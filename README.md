@@ -58,7 +58,7 @@ graph TD
     User([User's Browser / Device]) -->|HTTP Requests| Shell[Django Command Center]
     EmailClient([User's Mail Client]) -->|Sends Transaction Email| Gmail[Gmail / Mail Server]
     
-    subgraph Django App Core (Leoxur Engine)
+    subgraph "Django App Core (Leoxur Engine)"
         Shell -->|Manages Models| Models[Database Schema Layer]
         Shell -->|Renders Views| Views[HTML5 / Tailwind Templates]
         Shell -->|Visualizes Data| Charts[Chart.js / Analytics Engine]
@@ -71,7 +71,7 @@ graph TD
         IMAPParser -->|Parses & Logs| Models
     end
 
-    subgraph Data & Mail Systems
+    subgraph "Data & Mail Systems"
         Models -->|CRUD Operations| DB[(SQLite Database)]
         MailOut -->|Sends Alerts/Statements| EmailClient
         Gmail -->|IMAP Stream| MailIn
