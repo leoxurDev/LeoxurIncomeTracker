@@ -1,0 +1,54 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Authenticate // Leoxur{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel rounded-3xl p-8 border border-white/10 shadow-glass-dark relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-cyan"></div>
+    
+    <h2 class="text-2xl font-bold font-outfit text-center mb-6 text-slate-800 dark:text-white">SYNCHRONIZE SESSION</h2>
+    
+    {% if form.errors %}
+    <div class="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-500 text-xs flex items-center space-x-2">
+        <i data-lucide="alert-circle" class="h-4.5 w-4.5 flex-shrink-0"></i>
+        <span>Invalid credentials. Please re-authenticate.</span>
+    </div>
+    {% endif %}
+    
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="id_username" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 pl-1">Username</label>
+            <div class="relative">
+                <input type="text" name="username" id="id_username" required
+                    class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-neon-cyan dark:focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan transition duration-300 dark:text-white"
+                    placeholder="Enter node identifier">
+                <i data-lucide="user" class="h-4.5 w-4.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+        </div>
+        
+        <div>
+            <label for="id_password" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 pl-1">Password</label>
+            <div class="relative">
+                <input type="password" name="password" id="id_password" required
+                    class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-neon-cyan dark:focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan transition duration-300 dark:text-white"
+                    placeholder="Enter security key">
+                <i data-lucide="lock" class="h-4.5 w-4.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+        </div>
+        
+        <button type="submit" 
+            class="w-full bg-gradient-to-r from-neon-cyan to-neon-violet hover:from-neon-cyan hover:to-neon-purple text-slate-950 font-bold font-outfit py-3.5 rounded-xl mt-6 transition duration-300 hover:scale-[1.01] hover:shadow-neon-cyan flex items-center justify-center space-x-2 text-sm uppercase tracking-wider">
+            <i data-lucide="shield-check" class="h-4.5 w-4.5 text-slate-950"></i>
+            <span>Establish Connection</span>
+        </button>
+    </form>
+    
+    <div class="mt-6 pt-6 border-t border-slate-200 dark:border-space-800/50 text-center">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            First time node deployment? 
+            <a href="{% url 'signup' %}" class="text-neon-cyan hover:underline font-semibold ml-1">Create an account &rarr;</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

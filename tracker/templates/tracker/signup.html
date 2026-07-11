@@ -1,0 +1,78 @@
+{% extends 'tracker/base.html' %}
+
+{% block title %}Register Node // Leoxur{% endblock %}
+
+{% block auth_content %}
+<div class="glass-panel rounded-3xl p-8 border border-white/10 shadow-glass-dark relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-neon-purple via-neon-cyan to-neon-purple"></div>
+    
+    <h2 class="text-2xl font-bold font-outfit text-center mb-6 text-slate-800 dark:text-white">INITIALIZE NEW NODE</h2>
+    
+    {% if form.errors %}
+    <div class="mb-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-500 text-xs flex flex-col space-y-1">
+        <div class="flex items-center space-x-2 font-bold uppercase text-[10px] tracking-wider">
+            <i data-lucide="alert-triangle" class="h-4 w-4"></i>
+            <span>Initialization Fault</span>
+        </div>
+        <ul class="list-disc list-inside text-[11px] pl-1 font-semibold opacity-90">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="id_username" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 pl-1">Choose Username</label>
+            <div class="relative">
+                <input type="text" name="username" id="id_username" required
+                    class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-neon-purple dark:focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition duration-300 dark:text-white"
+                    placeholder="Set unique node ID"
+                    value="{{ form.username.value|default_if_none:'' }}">
+                <i data-lucide="terminal" class="h-4.5 w-4.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 pl-1 font-semibold">Alphanumeric characters only.</p>
+        </div>
+        
+        <div>
+            <label for="id_password1" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 pl-1">Security Key (Password)</label>
+            <div class="relative">
+                <input type="password" name="password1" id="id_password1" required
+                    class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-neon-purple dark:focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition duration-300 dark:text-white"
+                    placeholder="Create robust secret key">
+                <i data-lucide="key-round" class="h-4.5 w-4.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+        </div>
+        
+        <div>
+            <label for="id_password2" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 pl-1">Confirm Security Key</label>
+            <div class="relative">
+                <input type="password" name="password2" id="id_password2" required
+                    class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-3 pl-11 pr-4 text-sm focus:outline-none focus:border-neon-purple dark:focus:border-neon-purple focus:ring-1 focus:ring-neon-purple transition duration-300 dark:text-white"
+                    placeholder="Verify secret key">
+                <i data-lucide="shield-alert" class="h-4.5 w-4.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+            </div>
+        </div>
+        
+        <button type="submit" 
+            class="w-full bg-gradient-to-r from-neon-purple to-neon-cyan hover:from-neon-purple hover:to-neon-violet text-slate-950 font-bold font-outfit py-3.5 rounded-xl mt-6 transition duration-300 hover:scale-[1.01] hover:shadow-neon-purple flex items-center justify-center space-x-2 text-sm uppercase tracking-wider">
+            <i data-lucide="server" class="h-4.5 w-4.5 text-slate-950"></i>
+            <span>Initialize Node & Seed</span>
+        </button>
+    </form>
+    
+    <div class="mt-6 pt-6 border-t border-slate-200 dark:border-space-800/50 text-center">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            Already have an active node? 
+            <a href="{% url 'login' %}" class="text-neon-purple hover:underline font-semibold ml-1">Connect here &rarr;</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

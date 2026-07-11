@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en" class="{% if profile.theme == 'dark' or not user.is_authenticated %}dark{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Leoxur Tracker{% endblock %}</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif'],
+                        outfit: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        space: {
+                            50: '#f5f5f7', // Apple Light Gray
+                            100: '#e8e8ed', // Apple Borders Gray
+                            200: '#d2d2d7',
+                            300: '#86868b', // Apple Neutral Gray
+                            400: '#6e6e73',
+                            500: '#424245',
+                            600: '#333336',
+                            700: '#1d1d1f', // Apple Space Gray Panel
+                            800: '#2d2d30', // Apple Border Dark Gray
+                            900: '#1c1c1e', // Apple iOS dark plate
+                            950: '#161617', // Apple macOS obsidian black background
+                        },
+                        neon: {
+                            cyan: '#007aff',   // Apple Blue
+                            purple: '#af52de', // Apple Purple
+                            violet: '#5856d6', // Apple Indigo
+                            rose: '#ff3b30',   // Apple Red
+                            green: '#34c759',  // Apple Green
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 4px 14px 0 rgba(0, 122, 255, 0.2)',
+                        'neon-purple': '0 4px 14px 0 rgba(175, 82, 222, 0.2)',
+                        'neon-violet': '0 4px 14px 0 rgba(88, 86, 214, 0.2)',
+                        'glass-dark': '0 8px 30px 0 rgba(0, 0, 0, 0.25)',
+                        'glass-light': '0 8px 30px 0 rgba(0, 0, 0, 0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 240, 255, 0.4);
+        }
+        
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        .dark .glass-panel {
+            background: rgba(29, 29, 31, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Neon glows */
+        .glow-cyan:hover {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+            border-color: rgba(0, 240, 255, 0.8);
+        }
+        
+        .glow-purple:hover {
+            box-shadow: 0 0 20px rgba(219, 70, 239, 0.6);
+            border-color: rgba(219, 70, 239, 0.8);
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-space-950 dark:text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0">
+
+    {% if user.is_authenticated %}
+    <!-- Main Shell Layout -->
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- Desktop Sidebar -->
+        <aside class="hidden md:flex flex-col w-64 bg-slate-100/50 dark:bg-space-900/50 border-r border-slate-200 dark:border-space-800/40 p-5 flex-shrink-0">
+            <!-- Logo / Brand -->
+            <div class="flex items-center space-x-3 mb-8 px-2">
+                <div class="relative">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-lg blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+                    <div class="relative bg-white dark:bg-space-950 p-2 rounded-lg border border-slate-200 dark:border-space-850">
+                        <i data-lucide="orbit" class="h-6 w-6 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">Financial Core</p>
+                </div>
+            </div>
+
+            <!-- Sidebar Navigation Links -->
+            <nav class="flex-1 space-y-2 px-1">
+                <a href="{% url 'dashboard' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 bg-gradient-to-r from-slate-200 to-slate-200/50 dark:from-space-800/40 dark:to-transparent border-l-4 border-neon-cyan text-slate-900 dark:text-white font-semibold">
+                    <i data-lucide="layout-dashboard" class="h-5 w-5 text-neon-cyan"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <!-- Quick triggers for dashboard actions -->
+                <button onclick="openModal('transactionModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i data-lucide="plus-circle" class="h-5 w-5 text-slate-400 dark:text-slate-500 group-hover:text-neon-cyan"></i>
+                    <span>Log Outflow / In</span>
+                </button>
+                
+                <button onclick="openModal('budgetModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i data-lucide="sliders" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
+                    <span>Set Target Budgets</span>
+                </button>
+
+                <button onclick="openModal('reminderModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    <i data-lucide="bell-ring" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
+                    <span>Add Bill Reminder</span>
+                </button>
+            </nav>
+
+            <!-- User footer / Quick settings info -->
+            <div class="mt-auto border-t border-slate-200 dark:border-space-800/40 pt-4 px-2">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple p-[2px]">
+                            <div class="w-full h-full rounded-full bg-white dark:bg-space-950 flex items-center justify-center font-bold text-slate-800 dark:text-white font-outfit uppercase">
+                                {{ user.username|slice:":2" }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-slate-700 dark:text-slate-300 font-outfit leading-tight">{{ user.username }}</div>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-500">Active Node</div>
+                        </div>
+                    </div>
+                    <button onclick="openModal('emailSettingsModal')" class="text-slate-400 hover:text-neon-cyan transition p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-space-850/50" title="Email Settings Integration">
+                        <i data-lucide="settings" class="h-4.5 w-4.5"></i>
+                    </button>
+                </div>
+                
+                <a href="{% url 'logout' %}" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-xs font-semibold">
+                    <i data-lucide="log-out" class="h-4 w-4"></i>
+                    <span>Terminate Session</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            
+            <!-- Global Top Bar -->
+            <header class="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-slate-200 dark:border-space-800/40 bg-white/40 dark:bg-space-950/20 backdrop-blur-md z-10 sticky top-0">
+                <div class="flex items-center space-x-1.5 md:hidden">
+                    <i data-lucide="orbit" class="h-5 w-5 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
+                    <h1 class="text-base sm:text-lg font-bold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
+                </div>
+                <div class="hidden md:block">
+                    <h2 class="text-lg font-bold font-outfit text-slate-800 dark:text-white">COMMAND CENTER</h2>
+                    <p class="text-xs text-slate-500">Node sync: <span class="text-neon-cyan font-mono font-semibold">ESTABLISHED</span></p>
+                </div>
+                
+                <!-- Quick Settings Actions -->
+                <div class="flex items-center space-x-2 md:space-x-4">
+                    <!-- Global Currency Selector -->
+                    <div class="relative flex items-center">
+                        <select name="currency" onchange="promptCurrencyConversion(this);" class="bg-transparent border-0 p-0 text-xs font-extrabold focus:outline-none focus:ring-0 appearance-none pr-4 cursor-pointer text-slate-800 dark:text-slate-200 font-outfit uppercase tracking-wider">
+                            <option value="$" {% if profile.currency == '$' %}selected{% endif %}>USD ($)</option>
+                            <option value="€" {% if profile.currency == '€' %}selected{% endif %}>EUR (€)</option>
+                            <option value="₹" {% if profile.currency == '₹' %}selected{% endif %}>INR (₹)</option>
+                            <option value="£" {% if profile.currency == '£' %}selected{% endif %}>GBP (£)</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="h-3 w-3 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-300"></i>
+                    </div>
+
+                    <!-- Telemetry Alerts Bell -->
+                    <div class="relative flex items-center">
+                        <button onclick="toggleAlertsDropdown(event)" class="bg-slate-200/50 dark:bg-space-850 hover:bg-slate-200 dark:hover:bg-space-800 border border-slate-300 dark:border-space-700/60 p-2 rounded-xl text-slate-600 dark:text-slate-300 transition duration-300 relative group" id="alerts-bell-btn" title="System Warnings">
+                            <div class="absolute -inset-0.5 bg-gradient-to-r from-neon-purple to-neon-rose rounded-xl opacity-0 group-hover:opacity-30 blur transition"></div>
+                            <i data-lucide="bell" class="h-4.5 w-4.5 text-slate-700 dark:text-slate-200 group-hover:text-neon-rose transition"></i>
+                            {% if alerts %}
+                            <span style="width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; line-height: 1;" class="absolute -top-1.5 -right-1.5 rounded-full bg-[#ff3b30] text-[8px] font-extrabold text-white ring-2 ring-white dark:ring-space-950 shadow-[0_1px_4px_rgba(255,59,48,0.4)] animate-pulse">
+                                {{ alerts|length }}
+                            </span>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div id="alerts-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white/95 dark:bg-space-950/90 backdrop-blur-xl border border-slate-200 dark:border-space-800/80 rounded-2xl p-4 shadow-2xl z-50 transform origin-top-right transition-all duration-200 scale-95 opacity-0">
+                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200 dark:border-space-850">
+                                <span class="text-[10px] font-extrabold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Telemetry Alerts</span>
+                                {% if alerts %}
+                                <span class="text-[9px] font-bold text-[#ff3b30] bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">{{ alerts|length }} Active</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                                {% for alert in alerts %}
+                                <div class="p-3 rounded-xl flex items-start space-x-2.5 border text-xs leading-normal font-semibold transition {% if alert.type == 'danger' %}bg-red-500/5 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400{% else %}bg-amber-500/5 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400{% endif %}">
+                                    {% if alert.type == 'danger' %}
+                                    <i data-lucide="shield-alert" class="h-4 w-4 flex-shrink-0 mt-0.5 text-red-600 dark:text-red-500 animate-bounce"></i>
+                                    {% else %}
+                                    <i data-lucide="info" class="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-500"></i>
+                                    {% endif %}
+                                    <div class="flex-1">
+                                        <span class="text-[8px] font-extrabold uppercase tracking-widest block text-slate-500 dark:text-slate-400 opacity-80 mb-0.5">Telemetry Alert</span>
+                                        <span>{{ alert.message }}</span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="py-6 text-center text-slate-400 dark:text-slate-500 text-xs">
+                                    <i data-lucide="bell-off" class="h-8 w-8 mx-auto mb-2 opacity-40"></i>
+                                    <span>No active budget alerts.</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Apple Ecosystem-inspired Segmented Theme Selector -->
+                    <div class="flex items-center bg-slate-200/60 dark:bg-space-900 border border-slate-300 dark:border-space-850 p-[3px] rounded-xl backdrop-blur-md shadow-inner relative select-none">
+                        <!-- Light Theme Tab -->
+                        <button id="theme-btn-light" onclick="toggleThemeTo('light')" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" title="Light Mode">
+                            <i data-lucide="sun" class="h-4 w-4"></i>
+                        </button>
+                        <!-- Dark Theme Tab -->
+                        <button id="theme-btn-dark" onclick="toggleThemeTo('dark')" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200" title="Dark Mode">
+                            <i data-lucide="moon" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                    
+                    <a href="{% url 'logout' %}" class="md:hidden bg-red-500/10 border border-red-500/20 p-2 rounded-xl text-red-500" title="Logout">
+                        <i data-lucide="log-out" class="h-4.5 w-4.5"></i>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Alert Toast Messages -->
+            {% if messages %}
+            <div class="fixed top-20 right-6 z-50 flex flex-col space-y-3 pointer-events-none">
+                {% for message in messages %}
+                <div class="toast-notification flex items-center space-x-3 px-4 py-3 rounded-xl border glass-panel shadow-lg pointer-events-auto transform translate-y-0 opacity-100 transition-all duration-300 {% if message.tags == 'error' %}border-red-500/30 text-red-500{% else %}border-emerald-500/30 text-emerald-500{% endif %}" style="animation: slideIn 0.3s ease;">
+                    {% if message.tags == 'error' %}
+                    <i data-lucide="alert-octagon" class="h-5 w-5"></i>
+                    {% else %}
+                    <i data-lucide="check-circle-2" class="h-5 w-5"></i>
+                    {% endif %}
+                    <span class="text-sm font-semibold">{{ message }}</span>
+                    <button onclick="dismissToast(this.parentElement)" class="text-slate-400 hover:text-slate-200 transition pl-2">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Core App View Area -->
+            <div class="flex-1 p-4 md:p-6 overflow-x-hidden flex flex-col justify-between">
+                <div class="flex-1">
+                    {% block content %}{% endblock %}
+                </div>
+                <footer class="mt-8 pt-4 border-t border-slate-200/60 dark:border-space-850/60 text-center text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-widest uppercase font-outfit">
+                    &copy; {% now "Y" %} Leoxur Inc. All Rights Reserved.
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation Bar (Glassmorphic) -->
+    <nav class="md:hidden fixed bottom-4 left-4 right-4 bg-white/70 dark:bg-space-900/70 border border-slate-200 dark:border-space-850 backdrop-blur-lg rounded-2xl py-3 px-6 shadow-lg z-40 flex items-center justify-between">
+        <a href="{% url 'dashboard' %}" class="flex flex-col items-center space-y-1 text-neon-cyan">
+            <i data-lucide="layout-dashboard" class="h-5.5 w-5.5"></i>
+            <span class="text-[9px] font-bold tracking-wider">DASHBOARD</span>
+        </a>
+        <button onclick="openModal('transactionModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+            <i data-lucide="plus-circle" class="h-5.5 w-5.5 text-neon-cyan"></i>
+            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">LOG</span>
+        </button>
+        <button onclick="openModal('budgetModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+            <i data-lucide="sliders" class="h-5.5 w-5.5 text-neon-purple"></i>
+            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">BUDGETS</span>
+        </button>
+        <button onclick="openModal('reminderModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+            <i data-lucide="bell-ring" class="h-5.5 w-5.5 text-neon-rose"></i>
+            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">REMINDERS</span>
+        </button>
+    </nav>
+    
+    {% else %}
+    <!-- Content container for Auth screens (Login / Register) -->
+    <div class="flex-1 flex flex-col justify-center items-center px-4 relative overflow-hidden">
+        <!-- Futuristic background nodes -->
+        <div class="absolute w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl -top-20 -left-20"></div>
+        <div class="absolute w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl -bottom-20 -right-20"></div>
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center select-none pointer-events-none opacity-20 dark:opacity-10 z-0">
+            <h1 class="text-8xl md:text-[12rem] font-bold font-outfit tracking-tighter bg-gradient-to-b from-white to-transparent bg-clip-text text-transparent">LEOXUR</h1>
+        </div>
+        
+        <div class="w-full max-w-md z-10">
+            <!-- Branding -->
+            <div class="flex flex-col items-center justify-center mb-8">
+                <i data-lucide="orbit" class="h-12 w-12 text-neon-cyan animate-spin mb-4" style="animation-duration: 20s;"></i>
+                <h1 class="text-3xl font-extrabold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
+                <p class="text-xs text-slate-400 dark:text-slate-500 tracking-widest font-semibold uppercase mt-1">Lightweight Elegant Financials</p>
+            </div>
+            
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+    
+    <!-- Currency Conversion Modal -->
+    <div id="currencyModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-300">
+        <div class="modal-container glass-panel max-w-md w-full rounded-3xl border border-white/10 shadow-glass-dark relative overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
+            <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-cyan"></div>
+            <div class="flex justify-between items-center p-6 border-b border-slate-200 dark:border-space-850">
+                <h3 class="font-bold font-outfit text-md text-slate-800 dark:text-white uppercase tracking-wider flex items-center space-x-2">
+                    <i data-lucide="refresh-cw" class="h-4.5 w-4.5 text-neon-cyan"></i>
+                    <span>Convert Portfolio Values</span>
+                </h3>
+                <button onclick="cancelCurrencyChange()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <form action="{% url 'update_currency' %}" method="post" class="p-6 space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="currency" id="modal-currency-value">
+                
+                <div class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    You are shifting your portfolio from <span class="font-bold text-slate-700 dark:text-white" id="modal-old-currency"></span> to <span class="font-bold text-neon-cyan" id="modal-new-currency"></span>.
+                    Please supply the current exchange rate to scale all existing transaction amounts, budgets, and bills in the database.
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5" id="conversion-rate-label">Conversion Rate</label>
+                    <input type="number" step="0.000001" name="conversion_rate" id="modal-conversion-rate-input" required
+                        class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan transition duration-300 dark:text-white font-mono"
+                        placeholder="1.000000">
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 pl-1">
+                        Formula: <span class="font-mono text-neon-purple font-semibold">New Value = Old Value &times; Rate</span>.
+                        Enter <span class="font-mono text-neon-cyan font-semibold">1.0</span> if you only want to change the symbol without modifying actual amounts.
+                    </p>
+                </div>
+                
+                <div class="flex space-x-3 pt-2">
+                    <button type="button" onclick="cancelCurrencyChange()"
+                        class="flex-1 bg-slate-200/50 dark:bg-space-850 hover:bg-slate-200 dark:hover:bg-space-800 text-slate-700 dark:text-slate-300 font-bold font-outfit py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                        class="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple hover:scale-[1.01] transition text-slate-950 font-bold font-outfit py-2.5 rounded-xl uppercase tracking-wider text-xs">
+                        Convert Ledger
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Global Javascript functions -->
+    <script>
+        let currentCurrency = "{{ profile.currency }}";
+
+        function promptCurrencyConversion(selectElement) {
+            const newCurrency = selectElement.value;
+            if (newCurrency === currentCurrency) return;
+
+            document.getElementById('modal-currency-value').value = newCurrency;
+            document.getElementById('modal-old-currency').innerText = currentCurrency;
+            document.getElementById('modal-new-currency').innerText = newCurrency;
+            document.getElementById('conversion-rate-label').innerText = `Conversion Rate (1 ${currentCurrency} = ? ${newCurrency})`;
+            
+            let defaultRate = "1.000000";
+            if (currentCurrency === "$" && newCurrency === "₹") defaultRate = "83.500000";
+            else if (currentCurrency === "₹" && newCurrency === "$") defaultRate = "0.012000";
+            else if (currentCurrency === "$" && newCurrency === "€") defaultRate = "0.920000";
+            else if (currentCurrency === "€" && newCurrency === "$") defaultRate = "1.080000";
+            else if (currentCurrency === "$" && newCurrency === "£") defaultRate = "0.780000";
+            else if (currentCurrency === "£" && newCurrency === "$") defaultRate = "1.280000";
+            else if (currentCurrency === "€" && newCurrency === "₹") defaultRate = "90.750000";
+            else if (currentCurrency === "₹" && newCurrency === "€") defaultRate = "0.011000";
+            else if (currentCurrency === "£" && newCurrency === "₹") defaultRate = "107.000000";
+            else if (currentCurrency === "₹" && newCurrency === "£") defaultRate = "0.009300";
+            else if (currentCurrency === "€" && newCurrency === "£") defaultRate = "0.850000";
+            else if (currentCurrency === "£" && newCurrency === "€") defaultRate = "1.180000";
+
+            document.getElementById('modal-conversion-rate-input').value = defaultRate;
+            document.getElementById('modal-conversion-rate-input').placeholder = defaultRate;
+
+            openModal('currencyModal');
+        }
+
+        function cancelCurrencyChange() {
+            const select = document.querySelector('select[name="currency"]');
+            if (select) select.value = currentCurrency;
+            closeModal('currencyModal');
+        }
+
+        // Init Lucide Icons
+        lucide.createIcons();
+
+        function syncThemeSegmentedControl(theme) {
+            const btnLight = document.getElementById('theme-btn-light');
+            const btnDark = document.getElementById('theme-btn-dark');
+            if (!btnLight || !btnDark) return;
+            
+            if (theme === 'dark') {
+                btnLight.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200";
+                btnDark.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 bg-space-800 text-neon-cyan shadow-[0_1px_3px_rgba(0,0,0,0.3)] border border-space-700/30";
+            } else {
+                btnLight.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 bg-white text-amber-500 shadow-[0_1px_3px_rgba(0,0,0,0.15)] border border-slate-200/40";
+                btnDark.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200";
+            }
+        }
+
+        function toggleThemeTo(mode) {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            if (currentTheme === mode) return;
+            toggleTheme();
+        }
+
+        // Theme Toggle Function
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            // Call API to save to django profile
+            fetch('{% url "toggle_theme" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFormToken': '{{ csrf_token }}',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.theme === 'dark') {
+                        html.classList.add('dark');
+                    } else {
+                        html.classList.remove('dark');
+                    }
+                    syncThemeSegmentedControl(data.theme);
+                    // Refresh custom components/charts if necessary
+                    if (typeof updateChartsTheme === 'function') {
+                        updateChartsTheme(data.theme);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Theme toggle error: ", err);
+                // Fallback to local toggle if API fails
+                if (nextTheme === 'dark') {
+                    html.classList.add('dark');
+                } else {
+                    html.classList.remove('dark');
+                }
+                syncThemeSegmentedControl(nextTheme);
+            });
+        }
+
+        // Run initial theme segmented control sync on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const initTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            syncThemeSegmentedControl(initTheme);
+        });
+
+        // Modal triggers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                setTimeout(() => {
+                    modal.querySelector('.modal-container').classList.remove('scale-95', 'opacity-0');
+                    modal.querySelector('.modal-container').classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.querySelector('.modal-container').classList.remove('scale-100', 'opacity-100');
+                modal.querySelector('.modal-container').classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    modal.classList.remove('flex');
+                    modal.classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        // Auto dismiss toast notifications after 5 seconds
+        document.addEventListener("DOMContentLoaded", () => {
+            const toasts = document.querySelectorAll('.toast-notification');
+            toasts.forEach(toast => {
+                setTimeout(() => {
+                    dismissToast(toast);
+                }, 5000);
+            });
+        });
+
+        function toggleAlertsDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('alerts-dropdown');
+            if (!dropdown) return;
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                setTimeout(() => {
+                    dropdown.classList.remove('scale-95', 'opacity-0');
+                    dropdown.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            } else {
+                dropdown.classList.remove('scale-100', 'opacity-100');
+                dropdown.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    dropdown.classList.add('hidden');
+                }, 200);
+            }
+        }
+        
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('alerts-dropdown');
+            if (dropdown && !dropdown.classList.contains('hidden')) {
+                const bellBtn = document.getElementById('alerts-bell-btn');
+                if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+                    dropdown.classList.remove('scale-100', 'opacity-100');
+                    dropdown.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        dropdown.classList.add('hidden');
+                    }, 200);
+                }
+            }
+        });
+
+        function dismissToast(toast) {
+            if (toast) {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }
+    </script>
+    
+    <style>
+        @keyframes slideIn {
+            from { transform: translateY(1.5rem); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
