@@ -331,28 +331,6 @@
         </button>
     </nav>
     
-    {% else %}
-    <!-- Content container for Auth screens (Login / Register) -->
-    <div class="flex-1 flex flex-col justify-center items-center px-4 relative overflow-hidden">
-        <!-- Futuristic background nodes -->
-        <div class="absolute w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl -top-20 -left-20"></div>
-        <div class="absolute w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl -bottom-20 -right-20"></div>
-        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center select-none pointer-events-none opacity-20 dark:opacity-10 z-0">
-            <h1 class="text-8xl md:text-[12rem] font-bold font-outfit tracking-tighter bg-gradient-to-b from-white to-transparent bg-clip-text text-transparent">LEOXUR</h1>
-        </div>
-        
-        <div class="w-full max-w-md z-10">
-            <!-- Branding -->
-            <div class="flex flex-col items-center justify-center mb-8">
-                <i data-lucide="orbit" class="h-12 w-12 text-neon-cyan animate-spin mb-4" style="animation-duration: 20s;"></i>
-                <h1 class="text-3xl font-extrabold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
-                <p class="text-xs text-slate-400 dark:text-slate-500 tracking-widest font-semibold uppercase mt-1">Lightweight Elegant Financials</p>
-            </div>
-            
-            {% block auth_content %}{% endblock %}
-        </div>
-    </div>
-    
     <!-- Currency Conversion Modal -->
     <div id="currencyModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-300">
         <div class="modal-container glass-panel max-w-md w-full rounded-3xl border border-white/10 shadow-glass-dark relative overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
@@ -397,6 +375,28 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Content container for Auth screens (Login / Register) -->
+    <div class="flex-1 flex flex-col justify-center items-center px-4 relative overflow-hidden">
+        <!-- Futuristic background nodes -->
+        <div class="absolute w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl -top-20 -left-20"></div>
+        <div class="absolute w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl -bottom-20 -right-20"></div>
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center select-none pointer-events-none opacity-20 dark:opacity-10 z-0">
+            <h1 class="text-8xl md:text-[12rem] font-bold font-outfit tracking-tighter bg-gradient-to-b from-white to-transparent bg-clip-text text-transparent">LEOXUR</h1>
+        </div>
+        
+        <div class="w-full max-w-md z-10">
+            <!-- Branding -->
+            <div class="flex flex-col items-center justify-center mb-8">
+                <i data-lucide="orbit" class="h-12 w-12 text-neon-cyan animate-spin mb-4" style="animation-duration: 20s;"></i>
+                <h1 class="text-3xl font-extrabold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
+                <p class="text-xs text-slate-400 dark:text-slate-500 tracking-widest font-semibold uppercase mt-1">Lightweight Elegant Financials</p>
+            </div>
+            
+            {% block auth_content %}{% endblock %}
         </div>
     </div>
     {% endif %}
