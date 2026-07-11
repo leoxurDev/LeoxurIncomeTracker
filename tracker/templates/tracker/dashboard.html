@@ -1108,6 +1108,19 @@
             <form method="post" action="{% url 'update_email_settings' %}" class="space-y-4">
                 {% csrf_token %}
                 
+                <!-- Account Email Profile -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-neon-cyan uppercase tracking-wider border-b border-slate-150 dark:border-space-850 pb-1.5 flex items-center space-x-1">
+                        <i data-lucide="user" class="h-3.5 w-3.5 text-neon-cyan"></i>
+                        <span>ACCOUNT EMAIL PROFILE</span>
+                    </h4>
+                    <div>
+                        <label class="block text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Functional Account Email</label>
+                        <input type="email" name="account_email" value="{{ user.email }}" placeholder="user@example.com" class="w-full bg-slate-100 dark:bg-space-950 border border-slate-200 dark:border-space-850 rounded-xl py-2 px-3 text-xs dark:text-white focus:outline-none focus:border-neon-cyan" required>
+                        <p class="text-[9px] text-slate-400 dark:text-slate-500 mt-1">This email address receives outbound report statements, budget alerts, and bill reminders.</p>
+                    </div>
+                </div>
+
                 <h4 class="text-xs font-bold text-neon-cyan uppercase tracking-wider border-b border-slate-150 dark:border-space-850 pb-1.5 flex items-center space-x-1">
                     <i data-lucide="send" class="h-3.5 w-3.5"></i>
                     <span>SMTP OUTGOING ALERTS</span>

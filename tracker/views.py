@@ -1120,6 +1120,12 @@ def update_email_settings(request):
         profile.imap_password = request.POST.get('imap_password', '')
         profile.auto_fetch_emails = request.POST.get('auto_fetch_emails') == 'on'
         profile.save()
+        
+        # Update User email profile
+        user = request.user
+        user.email = request.POST.get('account_email', '')
+        user.save()
+        
         messages.success(request, "Email SMTP/IMAP settings updated successfully!")
     return redirect('dashboard')
 
