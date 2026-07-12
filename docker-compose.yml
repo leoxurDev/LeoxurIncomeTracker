@@ -51,10 +51,8 @@ services:
       - "443:443"
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME}
-      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates
-      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     volumes:
-      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
       - ./certbot-etc:/etc/letsencrypt:ro
       - ./certbot-var:/var/lib/letsencrypt:ro
       - ./webroot:/var/www/certbot:ro
