@@ -1279,6 +1279,160 @@ def generate_pdf_data(user, total_income, total_expense, balance, currency):
     story.append(overview_table)
     story.append(Spacer(1, 15))
     
+    # Query current month transactions and budgets for detailed PDF pages
+    from datetime import date
+    from django.db.models import Sum
+    from decimal import Decimal
+    today = date.today()
+    month_txs = Transaction.objects.filter(user=user, date__year=today.year, date__month=today.month)
+    
+    # 1. Savings Index Gauge Table
+    savings_rate = int((balance / total_income * 100)) if total_income > 0 else 0
+    if savings_rate < 0: savings_rate = 0
+    if savings_rate > 100: savings_rate = 100
+    
+    if savings_rate < 10:
+        savings_status = "CRITICAL OUTFLOW"
+    elif savings_rate <= 30:
+        savings_status = "STANDARD SURPLUS"
+    else:
+        savings_status = "STRONG SAVINGS INDEX"
+
+    story.append(Paragraph("Savings Index Gauge", h2_style))
+    savings_data = [
+        ["Savings rate", "Saved Ratio Status"],
+        [f"{savings_rate}% of Inflows Saved", savings_status]
+    ]
+    savings_table = Table(savings_data, colWidths=[180, 170])
+    savings_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 9),
+        ('BOTTOMPADDING', (0,0), (-1,0), 4),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('BACKGROUND', (0,1), (-1,-1), colors.white),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 9),
+        ('PADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(savings_table)
+    story.append(Spacer(1, 15))
+
+    # 2. Outflow Concentration Table
+    story.append(Paragraph("Outflow Concentration", h2_style))
+    outflow_rows = [["Category", "Total Outflow Share", "Percentage Share"]]
+    if total_expense > 0:
+        outflow_by_cat = month_txs.filter(transaction_type='OUT').values('category').annotate(total=Sum('amount')).order_by('-total')
+        for item in outflow_by_cat:
+            pct = int((item['total'] / total_expense * 100))
+            outflow_rows.append([
+                item['category'],
+                f"{currency}{item['total']:.2f}",
+                f"{pct}%"
+            ])
+    if len(outflow_rows) == 1:
+        outflow_rows.append(["N/A", "N/A", "N/A"])
+        
+    outflow_table = Table(outflow_rows, colWidths=[150, 120, 80])
+    outflow_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 8),
+        ('BOTTOMPADDING', (0,0), (-1,0), 4),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(outflow_table)
+    story.append(Spacer(1, 15))
+
+    # 3. Weekly Flow Patterns Table
+    story.append(Paragraph("Weekly Flow Patterns", h2_style))
+    weekly_flows = {1: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    2: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    3: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    4: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    5: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')}}
+    for tx in month_txs:
+        w_idx = (tx.date.day - 1) // 7 + 1
+        if w_idx > 5: w_idx = 5
+        weekly_flows[w_idx][tx.transaction_type] += tx.amount
+        
+    weekly_rows = [["Week Name", "Weekly Inflow", "Weekly Outflow", "Weekly Net"]]
+    for w_idx in sorted(weekly_flows.keys()):
+        inflow = weekly_flows[w_idx]['IN']
+        outflow = weekly_flows[w_idx]['OUT']
+        if inflow == 0 and outflow == 0:
+            continue
+        weekly_rows.append([
+            f"Week {w_idx}",
+            f"{currency}{inflow:.2f}",
+            f"{currency}{outflow:.2f}",
+            f"{currency}{(inflow - outflow):.2f}"
+        ])
+    if len(weekly_rows) == 1:
+        weekly_rows.append(["N/A", "N/A", "N/A", "N/A"])
+        
+    weekly_table = Table(weekly_rows, colWidths=[90, 90, 90, 80])
+    weekly_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 8),
+        ('BOTTOMPADDING', (0,0), (-1,0), 4),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(weekly_table)
+    story.append(Spacer(1, 15))
+
+    # 4. Budget vs Spent Table
+    story.append(Paragraph("Budget Vs Spent Targets", h2_style))
+    budget_rows = [["Category", "Budget Limit", "Amount Spent", "Usage Ratio", "Status"]]
+    budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
+    for b in budgets:
+        spent = total_expense if b.category == 'Total' else month_txs.filter(category=b.category, transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        pct = int((spent / b.amount * 100)) if b.amount > 0 else 0
+        if pct >= 100:
+            status_label = "BREACHED"
+        elif pct >= 80:
+            status_label = "WARNING"
+        else:
+            status_label = "HEALTHY"
+            
+        budget_rows.append([
+            b.category,
+            f"{currency}{b.amount:.2f}",
+            f"{currency}{spent:.2f}",
+            f"{pct}%",
+            status_label
+        ])
+    if len(budget_rows) == 1:
+        budget_rows.append(["N/A", "N/A", "N/A", "N/A", "N/A"])
+        
+    budget_table = Table(budget_rows, colWidths=[90, 80, 80, 50, 50])
+    budget_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 8),
+        ('BOTTOMPADDING', (0,0), (-1,0), 4),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f8fafc")]),
+        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,1), (-1,-1), 8),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(budget_table)
+    story.append(Spacer(1, 20))
+
     story.append(Paragraph("Recent Transactions Statement", h2_style))
     tx_headers = ["ID", "Description", "Type", "Category", "Date", "Amount"]
     tx_rows = [tx_headers]
@@ -1554,30 +1708,188 @@ def test_email_report(request):
     </div>
     """
 
-    budget_lines = []
+    # 1. SAVINGS INDEX GAUGE
+    savings_rate = int((balance / total_income * 100)) if total_income > 0 else 0
+    if savings_rate < 0: savings_rate = 0
+    if savings_rate > 100: savings_rate = 100
+    
+    if savings_rate < 10:
+        savings_status = "CRITICAL OUTFLOW"
+        savings_color = "#ff3b30"
+    elif savings_rate <= 30:
+        savings_status = "STANDARD SURPLUS"
+        savings_color = "#ff9500"
+    else:
+        savings_status = "STRONG SAVINGS INDEX"
+        savings_color = "#34c759"
+        
+    savings_gauge_html = f"""
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px; border-collapse: collapse;">
+            <tr>
+                <td style="font-size: 11px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Savings Index Gauge</td>
+                <td style="font-size: 11px; font-weight: 700; color: {savings_color}; text-align: right; text-transform: uppercase; letter-spacing: 0.5px;">{savings_status}</td>
+            </tr>
+        </table>
+        
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 8px; border-collapse: collapse;">
+            <tr>
+                <td style="font-size: 22px; font-weight: 700; color: #1c1c1e;">{savings_rate}% <span style="font-size: 12px; color: #8e8e93; font-weight: normal; text-transform: none; letter-spacing: 0;">of monthly inflows saved</span></td>
+            </tr>
+        </table>
+        
+        <div style="position: relative; background: linear-gradient(to right, #ff3b30 0%, #ff9500 30%, #34c759 100%); height: 8px; border-radius: 9999px; width: 100%; margin-top: 12px; margin-bottom: 4px;">
+            <div style="position: absolute; left: {savings_rate}%; margin-left: -4px; top: -2px; width: 8px; height: 12px; background-color: #1c1c1e; border: 2px solid #ffffff; border-radius: 9999px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);"></div>
+        </div>
+        
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 8px; border-collapse: collapse;">
+            <tr>
+                <td style="font-size: 8px; color: #8e8e93; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;">Critical (0-10%)</td>
+                <td style="font-size: 8px; color: #8e8e93; font-weight: 700; text-align: center; width: 40%; text-transform: uppercase; letter-spacing: 0.3px;">Standard (10-30%)</td>
+                <td style="font-size: 8px; color: #8e8e93; font-weight: 700; text-align: right; text-transform: uppercase; letter-spacing: 0.3px;">Strong (30%+)</td>
+            </tr>
+        </table>
+    </div>
+    """
+
+    # 2. OUTFLOW CONCENTRATION
+    category_shares = []
+    if total_expense > 0:
+        outflow_by_cat = month_txs.filter(transaction_type='OUT').values('category').annotate(total=Sum('amount')).order_by('-total')
+        for item in outflow_by_cat:
+            share_pct = int((item['total'] / total_expense * 100))
+            category_shares.append({
+                'category': item['category'],
+                'total': item['total'],
+                'pct': share_pct
+            })
+    
+    outflow_concentration_lines = []
+    legend_colors = ["#ff3b30", "#34c759", "#007aff", "#ff9500", "#af52de", "#5856d6", "#5ac8fa", "#ffcc00", "#8e8e93"]
+    for idx, share in enumerate(category_shares):
+        color = legend_colors[idx % len(legend_colors)]
+        outflow_concentration_lines.append(f"""
+        <div style="margin-bottom: 14px; font-family: -apple-system, sans-serif;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 4px; border-collapse: collapse;">
+                <tr>
+                    <td style="font-size: 11px; font-weight: 600; color: #1c1c1e; font-family: -apple-system, sans-serif;">
+                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background-color: {color}; margin-right: 6px; vertical-align: middle;"></span>
+                        {share['category']}
+                    </td>
+                    <td style="font-size: 10px; color: #8e8e93; text-align: right; font-family: -apple-system, sans-serif;">{currency}{share['total']:.2f} ({share['pct']}%)</td>
+                </tr>
+            </table>
+            <div style="background-color: #f5f5f7; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%;">
+                <div style="background-color: {color}; height: 100%; width: {share['pct']}%; border-radius: 9999px;"></div>
+            </div>
+        </div>
+        """)
+    outflow_concentration_html = "".join(outflow_concentration_lines) if outflow_concentration_lines else '<div style="font-size: 11px; color: #8e8e93;">No outflows logged.</div>'
+    
+    outflow_concentration_panel_html = f"""
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+        <h3 style="font-size: 12px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px; font-weight: 700;">Outflow Concentration</h3>
+        {outflow_concentration_html}
+    </div>
+    """
+
+    # 3. WEEKLY FLOW PATTERNS
+    weekly_flows = {1: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    2: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    3: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    4: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')},
+                    5: {'IN': Decimal('0.00'), 'OUT': Decimal('0.00')}}
+    for tx in month_txs:
+        w_idx = (tx.date.day - 1) // 7 + 1
+        if w_idx > 5: w_idx = 5
+        weekly_flows[w_idx][tx.transaction_type] += tx.amount
+        
+    weekly_flow_lines = []
+    for w_idx in sorted(weekly_flows.keys()):
+        inflow = weekly_flows[w_idx]['IN']
+        outflow = weekly_flows[w_idx]['OUT']
+        if inflow == 0 and outflow == 0:
+            continue
+        max_val = max(inflow, outflow)
+        inflow_pct = int((inflow / max_val * 100)) if max_val > 0 else 0
+        outflow_pct = int((outflow / max_val * 100)) if max_val > 0 else 0
+        
+        weekly_flow_lines.append(f"""
+        <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+            <div style="font-size: 11px; font-weight: 700; color: #1c1c1e; margin-bottom: 6px;">Week {w_idx} Flow Summary</div>
+            <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+                <tr>
+                    <td width="55" style="font-size: 10px; color: #8e8e93; padding: 2px 0;">Inflow</td>
+                    <td style="padding: 2px 0; width: 70%;">
+                        <div style="background-color: #f5f5f7; border-radius: 9999px; height: 5px; width: 100%;">
+                            <div style="background-color: #34c759; height: 100%; width: {inflow_pct}%; border-radius: 9999px;"></div>
+                        </div>
+                    </td>
+                    <td style="font-size: 10px; font-weight: 600; color: #34c759; text-align: right; padding: 2px 0; padding-left: 8px;">{currency}{inflow:.2f}</td>
+                </tr>
+                <tr>
+                    <td width="55" style="font-size: 10px; color: #8e8e93; padding: 2px 0;">Outflow</td>
+                    <td style="padding: 2px 0; width: 70%;">
+                        <div style="background-color: #f5f5f7; border-radius: 9999px; height: 5px; width: 100%;">
+                            <div style="background-color: #ff3b30; height: 100%; width: {outflow_pct}%; border-radius: 9999px;"></div>
+                        </div>
+                    </td>
+                    <td style="font-size: 10px; font-weight: 600; color: #ff3b30; text-align: right; padding: 2px 0; padding-left: 8px;">{currency}{outflow:.2f}</td>
+                </tr>
+            </table>
+        </div>
+        """)
+    weekly_flow_html = "".join(weekly_flow_lines) if weekly_flow_lines else '<div style="font-size: 11px; color: #8e8e93;">No weekly flows logged.</div>'
+    
+    weekly_flow_panel_html = f"""
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+        <h3 style="font-size: 12px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px; font-weight: 700;">Weekly Flow Patterns</h3>
+        {weekly_flow_html}
+    </div>
+    """
+
+    # 4. BUDGET VS SPENT
+    budget_vs_spent_lines = []
     for b in budgets:
         spent = total_expense if b.category == 'Total' else month_txs.filter(category=b.category, transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         pct = int((spent / b.amount * 100)) if b.amount > 0 else 0
         fill_pct = pct if pct <= 100 else 100
-        bar_color = "#ff3b30" if pct >= 100 else "#a855f7"
-        budget_lines.append(f"""
-        <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
-            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 4px; border-collapse: collapse;">
+        
+        if pct >= 100:
+            status_label = "BREACHED"
+            status_color = "#ff3b30"
+            bar_color = "#ff3b30"
+        elif pct >= 80:
+            status_label = "WARNING"
+            status_color = "#ff9500"
+            bar_color = "#ff9500"
+        else:
+            status_label = "HEALTHY"
+            status_color = "#34c759"
+            bar_color = "#a855f7"
+
+        budget_vs_spent_lines.append(f"""
+        <div style="margin-bottom: 20px; font-family: -apple-system, sans-serif;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 6px; border-collapse: collapse;">
                 <tr>
-                    <td style="font-size: 11px; font-weight: 600; color: #1c1c1e;">{b.category}</td>
-                    <td style="font-size: 10px; color: #8e8e93; text-align: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</td>
+                    <td style="font-size: 12px; font-weight: 600; color: #1c1c1e;">
+                        {b.category}
+                        <span style="font-size: 8px; font-weight: 700; color: {status_color}; background-color: rgba(255,255,255,0.1); border: 1px solid {status_color}; padding: 1px 4px; border-radius: 4px; margin-left: 6px; text-transform: uppercase; vertical-align: middle;">{status_label}</span>
+                    </td>
+                    <td style="font-size: 11px; color: #8e8e93; text-align: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</td>
                 </tr>
             </table>
-            <div style="background-color: #e5e5ea; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
+            <div style="background-color: #e5e5ea; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
                 <div style="background-color: {bar_color}; height: 100%; width: {fill_pct}%; border-radius: 9999px;"></div>
             </div>
         </div>
         """)
-        
-    budgets_html = f"""
-    <div style="margin-bottom: 24px; font-family: -apple-system, sans-serif;">
-        <h3 style="font-size: 11px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e5ea; padding-bottom: 6px; font-weight: 700;">Budget Limits</h3>
-        {"".join(budget_lines) if budget_lines else '<div style="font-size: 9px; color: #8e8e93;">No active budget targets.</div>'}
+    budgets_html = "".join(budget_vs_spent_lines) if budget_vs_spent_lines else '<div style="font-size: 11px; color: #8e8e93;">No active budget targets set.</div>'
+    
+    budget_vs_spent_panel_html = f"""
+    <div style="background-color: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+        <h3 style="font-size: 12px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid #e5e5ea; padding-bottom: 8px; font-weight: 700;">Budget Vs Spent Targets</h3>
+        {budgets_html}
     </div>
     """
 
@@ -1614,7 +1926,10 @@ def test_email_report(request):
 
     content_html = f"""
     {balances_html}
-    {budgets_html}
+    {savings_gauge_html}
+    {weekly_flow_panel_html}
+    {outflow_concentration_panel_html}
+    {budget_vs_spent_panel_html}
     {recent_html}
     """
 
