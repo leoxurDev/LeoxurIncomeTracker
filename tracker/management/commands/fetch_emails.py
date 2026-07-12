@@ -215,15 +215,15 @@ class Command(BaseCommand):
                         # Only send failure emails for messages that were actually UNREAD/UNSEEN
                         if was_unseen:
                             fail_subject = "Transaction Logging Failed"
-                            content_html = f"""
-                            <div style="background-color: #ef4444; color: #ffffff; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-weight: 600; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Format Mismatch Detected
-                            </div>
-                            <div style="background-color: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; font-size: 10px; color: #e2e8f0; line-height: 1.5; margin-bottom: 4px;">
-                                Format your email payload inside the <strong>Subject</strong> or <strong>Body</strong> as:<br><br>
-                                <code style="background-color: #0f172a; padding: 2px 6px; border-radius: 4px; color: #f43f5e; font-family: monospace;">Category, Amount, IN/OUT, Description</code>
-                            </div>
-                            """
+                             content_html = f"""
+                             <div style="background-color: #ff3b30; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
+                                 Format Mismatch Detected
+                             </div>
+                             <div style="background-color: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #e5e5ea; font-size: 10px; color: #8e8e93; line-height: 1.5; margin-bottom: 4px; font-family: -apple-system, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                                 Format your email payload inside the <strong>Subject</strong> or <strong>Body</strong> as:<br><br>
+                                 <code style="background-color: #f5f5f7; padding: 4px 8px; border-radius: 4px; color: #ff3b30; font-family: monospace;">Category, Amount, IN/OUT, Description</code>
+                             </div>
+                             """
                             fail_body = render_html_email(
                                 title="Parser Rejected Email Payload",
                                 subtitle="Incoming Parser Error Transmission",
