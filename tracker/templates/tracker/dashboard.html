@@ -16,7 +16,7 @@
             <i data-lucide="plus-circle" class="h-4 w-4 text-neon-cyan"></i>
             <span>Log Transaction</span>
         </button>
-        <button onclick="openModal('budgetModal')" class="flex items-center space-x-2 bg-gradient-to-r from-neon-purple/20 to-neon-purple/10 hover:from-neon-purple/30 hover:to-neon-purple/20 border border-neon-purple/40 hover:border-neon-purple text-slate-900 dark:text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition duration-300 shadow-sm hover:shadow-neon-purple/30">
+        <button onclick="openBudgetModal('Total')" class="flex items-center space-x-2 bg-gradient-to-r from-neon-purple/20 to-neon-purple/10 hover:from-neon-purple/30 hover:to-neon-purple/20 border border-neon-purple/40 hover:border-neon-purple text-slate-900 dark:text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition duration-300 shadow-sm hover:shadow-neon-purple/30">
             <i data-lucide="sliders" class="h-4 w-4 text-neon-purple"></i>
             <span>Set Budget Limits</span>
         </button>
@@ -105,7 +105,7 @@
         </p>
         {% else %}
         <h3 class="text-xl font-bold font-outfit text-slate-400 mt-3 uppercase tracking-wider">Unspecified</h3>
-        <button onclick="openModal('budgetModal')" class="text-neon-purple hover:underline text-xs mt-3 flex items-center space-x-1 pl-0.5 font-bold">
+        <button onclick="openBudgetModal('Total')" class="text-neon-purple hover:underline text-xs mt-3 flex items-center space-x-1 pl-0.5 font-bold">
             <i data-lucide="plus" class="h-3.5 w-3.5"></i>
             <span>Set Overall Budget</span>
         </button>
@@ -350,7 +350,7 @@
                 </div>
                 <div class="mt-2 text-[10px] text-slate-400 dark:text-slate-500 font-semibold flex justify-between items-center">
                     <span>No cap assigned</span>
-                    <button onclick="openModal('budgetModal')" class="text-neon-purple hover:underline text-[9px] font-bold uppercase tracking-wider">Set Limit</button>
+                    <button onclick="openBudgetModal('{{ item.category|escapejs }}')" class="text-neon-purple hover:underline text-[9px] font-bold uppercase tracking-wider">Set Limit</button>
                 </div>
                 {% endif %}
             </div>
@@ -394,7 +394,7 @@
                 <i data-lucide="calendar-range" class="h-5 w-5 text-neon-violet"></i>
             </div>
         </div>
-        <div class="h-72 w-full relative flex items-center justify-center">
+        <div class="h-72 w-full relative">
             <canvas id="weeklyDistributionChart"></canvas>
         </div>
     </div>
@@ -1242,8 +1242,8 @@
     function getThemeColors() {
         const isDark = document.documentElement.classList.contains('dark');
         return {
-            text: isDark ? '#94a3b8' : '#64748b',
-            grid: isDark ? 'rgba(30, 41, 59, 0.4)' : 'rgba(226, 232, 240, 0.6)',
+            text: isDark ? '#cbd5e1' : '#64748b',
+            grid: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(226, 232, 240, 0.6)',
             tooltipBg: isDark ? '#1e293b' : '#ffffff',
             tooltipText: isDark ? '#f8fafc' : '#0f172a',
             tooltipBorder: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',

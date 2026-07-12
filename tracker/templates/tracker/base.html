@@ -154,7 +154,7 @@
                     <span>Log Outflow / In</span>
                 </button>
                 
-                <button onclick="openModal('budgetModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <button onclick="openBudgetModal('Total')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
                     <i data-lucide="sliders" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
                     <span>Set Target Budgets</span>
                 </button>
@@ -321,7 +321,7 @@
             <i data-lucide="plus-circle" class="h-5.5 w-5.5 text-neon-cyan"></i>
             <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">LOG</span>
         </button>
-        <button onclick="openModal('budgetModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
+        <button onclick="openBudgetModal('Total')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
             <i data-lucide="sliders" class="h-5.5 w-5.5 text-neon-purple"></i>
             <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">BUDGETS</span>
         </button>
@@ -503,6 +503,9 @@
                     html.classList.remove('dark');
                 }
                 syncThemeSegmentedControl(nextTheme);
+                if (typeof updateChartsTheme === 'function') {
+                    updateChartsTheme(nextTheme);
+                }
             });
         }
 
@@ -522,6 +525,17 @@
                     modal.querySelector('.modal-container').classList.remove('scale-95', 'opacity-0');
                     modal.querySelector('.modal-container').classList.add('scale-100', 'opacity-100');
                 }, 10);
+            }
+        }
+
+        function openBudgetModal(category) {
+            const modal = document.getElementById('budgetModal');
+            if (modal) {
+                const selectElement = modal.querySelector('select[name="category"]');
+                if (selectElement) {
+                    selectElement.value = category || 'Total';
+                }
+                openModal('budgetModal');
             }
         }
 
