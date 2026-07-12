@@ -1280,7 +1280,6 @@ def generate_pdf_data(user, total_income, total_expense, balance, currency):
     story.append(Spacer(1, 15))
     
     # Query current month transactions and budgets for detailed PDF pages
-    from datetime import date
     from django.db.models import Sum
     from decimal import Decimal
     today = date.today()
