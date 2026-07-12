@@ -151,6 +151,7 @@ class Command(BaseCommand):
                                 category=category_name,
                                 date=date.today(),
                                 description=description
+                            )
                             self.stdout.write(self.style.SUCCESS(f"Logged transaction #{tx.id}: {category_name}, {amount}, {tx_type}"))
 
                             # Send budget alerts if transaction is an Outflow
