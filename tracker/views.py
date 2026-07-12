@@ -1325,21 +1325,21 @@ def render_html_email(title, subtitle, content_html):
         <style>
             body {{
                 margin: 0;
-                padding: 4px;
+                padding: 12px;
                 background-color: #f5f5f7;
                 color: #1c1c1e;
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             }}
         </style>
     </head>
-    <body style="margin: 0; padding: 4px; background-color: #f5f5f7; color: #1c1c1e;">
-        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f7; padding: 10px 0;">
+    <body style="margin: 0; padding: 12px; background-color: #f5f5f7; color: #1c1c1e;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f7; padding: 20px 0;">
             <tr>
                 <td align="center" valign="top">
-                    <table width="100%" max-width="500" style="width: 100%; max-width: 500px; background-color: #ffffff; border: 1px solid #e5e5ea; border-radius: 16px; border-collapse: separate; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);" cellspacing="0" cellpadding="0">
+                    <table width="100%" max-width="600" style="width: 100%; max-width: 600px; background-color: #ffffff; border: 1px solid #e5e5ea; border-radius: 16px; border-collapse: separate; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.06);" cellspacing="0" cellpadding="0">
                         <!-- Header -->
                         <tr>
-                            <td style="padding: 16px 20px; border-bottom: 1px solid #e5e5ea; background-color: #fafafa;">
+                            <td style="padding: 20px 24px; border-bottom: 1px solid #e5e5ea; background-color: #fafafa;">
                                 <table width="100%" cellspacing="0" cellpadding="0">
                                     <tr>
                                         <td>
@@ -1352,14 +1352,14 @@ def render_html_email(title, subtitle, content_html):
                         </tr>
                         <!-- Content -->
                         <tr>
-                            <td style="padding: 20px;">
-                                <h1 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #1c1c1e; letter-spacing: -0.3px;">{title}</h1>
+                            <td style="padding: 24px 30px;">
+                                <h1 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600; color: #1c1c1e; letter-spacing: -0.3px;">{title}</h1>
                                 {content_html}
                             </td>
                         </tr>
                         <!-- Footer -->
                         <tr>
-                            <td style="padding: 12px 20px; background-color: #fafafa; border-top: 1px solid #e5e5ea; text-align: center; font-size: 8px; color: #8e8e93;">
+                            <td style="padding: 14px 24px; background-color: #fafafa; border-top: 1px solid #e5e5ea; text-align: center; font-size: 8px; color: #8e8e93;">
                                 Automated transmission. Settings and UI are synchronized.
                             </td>
                         </tr>
@@ -1527,28 +1527,30 @@ def test_email_report(request):
     if expense_pct > 100: expense_pct = 100
 
     balances_html = f"""
-    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px; border-spacing: 8px; border-collapse: separate; margin-left: -8px; margin-right: -8px;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; border-spacing: 12px; border-collapse: separate; margin-left: -12px; margin-right: -12px;">
         <tr>
-            <td width="50%" style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
-                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Inflows</div>
-                <div style="font-size: 18px; font-weight: 700; color: #34c759; margin-top: 4px;">{currency}{total_income:.2f}</div>
+            <td width="50%" style="background-color: #ffffff; padding: 18px; border-radius: 12px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px;">Total Inflows</div>
+                <div style="font-size: 20px; font-weight: 700; color: #34c759; margin-top: 6px;">{currency}{total_income:.2f}</div>
             </td>
-            <td width="50%" style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
-                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Outflows</div>
-                <div style="font-size: 18px; font-weight: 700; color: #ff3b30; margin-top: 4px;">{currency}{total_expense:.2f}</div>
+            <td width="50%" style="background-color: #ffffff; padding: 18px; border-radius: 12px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px;">Total Outflows</div>
+                <div style="font-size: 20px; font-weight: 700; color: #ff3b30; margin-top: 6px;">{currency}{total_expense:.2f}</div>
             </td>
         </tr>
     </table>
     
-    <div style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 16px; font-family: -apple-system, sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">
-            <span>Net Monthly Balance</span>
-            <span style="font-size: 15px; font-weight: 700; color: {'#a855f7' if balance >= 0 else '#ff3b30'};">{currency}{balance:.2f}</span>
-        </div>
-        <div style="margin-top: 8px; background-color: #e5e5ea; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%;">
+    <div style="background-color: #ffffff; padding: 18px; border-radius: 12px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
+        <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 10px; border-collapse: collapse;">
+            <tr>
+                <td style="font-size: 10px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Net Monthly Balance</td>
+                <td style="font-size: 16px; font-weight: 700; color: {'#a855f7' if balance >= 0 else '#ff3b30'}; text-align: right;">{currency}{balance:.2f}</td>
+            </tr>
+        </table>
+        <div style="background-color: #e5e5ea; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%; margin-top: 6px;">
             <div style="background-color: #a855f7; height: 100%; width: {expense_pct}%; border-radius: 9999px;"></div>
         </div>
-        <div style="font-size: 8px; color: #8e8e93; margin-top: 4px; text-align: right;">Spending ratio: {expense_pct}%</div>
+        <div style="font-size: 8px; color: #8e8e93; margin-top: 6px; text-align: right;">Spending ratio: {expense_pct}%</div>
     </div>
     """
 
@@ -1559,20 +1561,22 @@ def test_email_report(request):
         fill_pct = pct if pct <= 100 else 100
         bar_color = "#ff3b30" if pct >= 100 else "#a855f7"
         budget_lines.append(f"""
-        <div style="margin-bottom: 8px; font-family: -apple-system, sans-serif;">
-            <div style="font-size: 10px; margin-bottom: 2px; color: #1c1c1e;">
-                <span style="font-weight: 600;">{b.category}</span>
-                <span style="color: #8e8e93; float: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</span>
-            </div>
-            <div style="background-color: #e5e5ea; border-radius: 9999px; height: 4px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
+        <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+            <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 4px; border-collapse: collapse;">
+                <tr>
+                    <td style="font-size: 11px; font-weight: 600; color: #1c1c1e;">{b.category}</td>
+                    <td style="font-size: 10px; color: #8e8e93; text-align: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</td>
+                </tr>
+            </table>
+            <div style="background-color: #e5e5ea; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
                 <div style="background-color: {bar_color}; height: 100%; width: {fill_pct}%; border-radius: 9999px;"></div>
             </div>
         </div>
         """)
         
     budgets_html = f"""
-    <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
-        <h3 style="font-size: 10px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #e5e5ea; padding-bottom: 4px; font-weight: 700;">Budget Limits</h3>
+    <div style="margin-bottom: 24px; font-family: -apple-system, sans-serif;">
+        <h3 style="font-size: 11px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e5ea; padding-bottom: 6px; font-weight: 700;">Budget Limits</h3>
         {"".join(budget_lines) if budget_lines else '<div style="font-size: 9px; color: #8e8e93;">No active budget targets.</div>'}
     </div>
     """
@@ -1584,25 +1588,25 @@ def test_email_report(request):
         amt_sign = "+" if tx.transaction_type == 'IN' else "-"
         recent_rows.append(f"""
         <tr style="border-bottom: 1px solid #e5e5ea;">
-            <td style="padding: 6px 0; font-size: 10px; color: #1c1c1e; font-family: -apple-system, sans-serif;">{tx.description or 'N/A'}</td>
-            <td style="padding: 6px 0; font-size: 10px; color: #8e8e93; font-family: -apple-system, sans-serif;">{tx.category}</td>
-            <td style="padding: 6px 0; font-size: 10px; text-align: right; font-weight: 600; color: {amt_color}; font-family: -apple-system, sans-serif;">{amt_sign}{currency}{tx.amount:.2f}</td>
+            <td style="padding: 10px 0; font-size: 11px; color: #1c1c1e; font-family: -apple-system, sans-serif;">{tx.description or 'N/A'}</td>
+            <td style="padding: 10px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">{tx.category}</td>
+            <td style="padding: 10px 0; font-size: 11px; text-align: right; font-weight: 600; color: {amt_color}; font-family: -apple-system, sans-serif;">{amt_sign}{currency}{tx.amount:.2f}</td>
         </tr>
         """)
         
     recent_html = f"""
     <div style="margin-bottom: 8px; font-family: -apple-system, sans-serif;">
-        <h3 style="font-size: 10px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #e5e5ea; padding-bottom: 4px; font-weight: 700;">Recent Statements</h3>
+        <h3 style="font-size: 11px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e5ea; padding-bottom: 6px; font-weight: 700;">Recent Statements</h3>
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
             <thead>
                 <tr style="text-align: left; border-bottom: 1px solid #e5e5ea;">
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Description</th>
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Category</th>
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; text-align: right; font-weight: 700; font-family: -apple-system, sans-serif;">Amount</th>
+                    <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Description</th>
+                    <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Category</th>
+                    <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; text-align: right; font-weight: 700; font-family: -apple-system, sans-serif;">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                {"".join(recent_rows) if recent_rows else '<tr><td colspan="3" style="padding: 8px 0; font-size: 10px; color: #8e8e93; text-align: center; font-family: -apple-system, sans-serif;">No transactions found.</td></tr>'}
+                {"".join(recent_rows) if recent_rows else '<tr><td colspan="3" style="padding: 12px 0; font-size: 11px; color: #8e8e93; text-align: center; font-family: -apple-system, sans-serif;">No transactions found.</td></tr>'}
             </tbody>
         </table>
     </div>
