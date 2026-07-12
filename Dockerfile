@@ -25,5 +25,4 @@ COPY . /app/
 # Expose Django port
 EXPOSE 8000
 
-# Copy start-up script to perform database setup and launch Gunicorn
-CMD ["sh", "-c", "python3 manage.py migrate --noinput && python3 manage.py collectstatic --noinput && gunicorn income_tracker.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
+CMD ["sh", "-c", "python3 -c \"import socket, time, os; h=os.environ.get('DB_HOST','db'); p=int(os.environ.get('DB_PORT',3306)); print(f'Waiting for {h}:{p}...'); [time.sleep(2) for _ in range(30) if socket.socket().connect_ex((h,p)) != 0]; print('Database online!')\" && python3 manage.py migrate --noinput && python3 manage.py collectstatic --noinput && gunicorn income_tracker.wsgi:application --bind 0.0.0.0:8000 --workers 3"]
