@@ -27,7 +27,7 @@ mkdir -p ./webroot/.well-known/acme-challenge
 # 2. Check if certificates already exist
 if [ -d "./certbot-etc/live/$domain" ]; then
     echo "SSL certificates already exist for $domain. Starting containers..."
-    docker-compose up -d nginx
+    docker compose up -d nginx
     exit 0
 fi
 
@@ -43,7 +43,10 @@ openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
 
 # 4. Start Nginx
 echo "Starting Nginx with placeholder certificates..."
-docker-compose up -d nginx
+docker compose up -d nginx
+
+# Wait for Nginx to initialize and load the placeholder certs from disk
+sleep 5
 
 # 5. Delete dummy certificates
 echo "Removing dummy certificates..."
@@ -51,7 +54,7 @@ rm -rf "./certbot-etc/live/$domain"
 
 # 6. Request real Let's Encrypt certificates
 echo "Requesting live Let's Encrypt certificate for $domain..."
-docker-compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly --webroot \
     --webroot-path=/var/www/certbot \
     --email "$email" \
     --agree-tos \
@@ -60,6 +63,6 @@ docker-compose run --rm certbot certonly --webroot \
 
 # 7. Reload Nginx to load live certificates
 echo "Reloading Nginx with new live SSL certificates..."
-docker-compose exec nginx nginx -s reload
+docker compose exec nginx nginx -s reload
 
 echo "Success! Leoxur Income Tracker is now running securely on https://$domain"
