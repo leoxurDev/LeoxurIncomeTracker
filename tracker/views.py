@@ -380,6 +380,14 @@ def analytics_data_api(request):
 def savings_analyst_chat(request):
     if request.method == 'POST':
         import json
+        import re
+        from datetime import datetime, date
+        import calendar
+        from decimal import Decimal
+        from django.db.models import Sum, Q
+        from django.core.management import call_command
+        import threading
+
         try:
             body = json.loads(request.body)
             query = body.get('query', '').strip()
@@ -390,58 +398,412 @@ def savings_analyst_chat(request):
             return JsonResponse({'status': 'error', 'message': 'Query cannot be empty'}, status=400)
             
         user = request.user
+        profile = user.profile
+        currency = profile.currency
         today = date.today()
         start_of_month = date(today.year, today.month, 1)
         _, last_day = calendar.monthrange(today.year, today.month)
         end_of_month = date(today.year, today.month, last_day)
+
+        def parse_date(date_str):
+            for fmt in ('%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+                try:
+                    return datetime.strptime(date_str.strip(), fmt).date()
+                except ValueError:
+                    pass
+            return today
+
+        # ----------------- PARSE COMMANDS -----------------
+        q = query.strip()
+        q_lower = q.lower()
+
+        # 1. Sync Emails Command
+        if re.match(r'^(?:sync\s+emails|fetch\s+emails|sync\s+transactions)$', q_lower):
+            from django.db import connections
+            def run_background_sync():
+                try:
+                    call_command('fetch_emails')
+                except Exception as e:
+                    print(f"Background email sync failed: {e}")
+                finally:
+                    connections.close_all()
+            try:
+                threading.Thread(target=run_background_sync).start()
+                response = (
+                    f"<div class='space-y-2'>"
+                    f"  <div class='flex items-center space-x-1.5'>"
+                    f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>System Link</span>"
+                    f"    <strong class='text-xs text-slate-800 dark:text-white'>Inbox Sync Initiated</strong>"
+                    f"  </div>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>I've triggered a secure fetch sequence to scan your configured email node in the background. Fresh incoming transactions will populate your dashboard momentarily.</p>"
+                    f"</div>"
+                )
+            except Exception as e:
+                response = f"Failed to initiate background sync: {e}"
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # 2. Add Transaction Command
+        tx_match = re.match(
+            r"^(?:add|log|record)\s+(expense|outflow|spend|income|inflow)\s+(?:of\s+)?([\d.,]+)\s+(?:for|on|in|to)?\s*([a-zA-Z0-9_ -]+?)(?:\s+(?:with\s+)?(?:description|desc)\s+(.+))?$",
+            q,
+            re.IGNORECASE
+        )
+        if tx_match:
+            tx_type_str = tx_match.group(1).lower()
+            amount_val = Decimal(tx_match.group(2).replace(',', ''))
+            category_name = tx_match.group(3).strip().title()
+            description = tx_match.group(4).strip() if tx_match.group(4) else ""
+
+            tx_type = 'OUT' if tx_type_str in ('expense', 'outflow', 'spend') else 'IN'
+            
+            # Ensure category exists
+            Category.objects.get_or_create(user=user, name=category_name, is_income=(tx_type == 'IN'))
+
+            # Create Transaction
+            tx = Transaction.objects.create(
+                user=user,
+                amount=amount_val,
+                transaction_type=tx_type,
+                category=category_name,
+                date=today,
+                description=description
+            )
+            
+            type_label = "Outflow logged" if tx_type == 'OUT' else "Inflow logged"
+            color_class = "text-neon-rose bg-neon-rose/10 border-neon-rose/20" if tx_type == 'OUT' else "text-neon-green bg-neon-green/10 border-neon-green/20"
+            
+            response = (
+                f"<div class='space-y-2'>"
+                f"  <div class='flex items-center space-x-1.5'>"
+                f"    <span class='px-2 py-0.5 text-[9px] font-bold rounded border uppercase {color_class}'>{type_label}</span>"
+                f"    <strong class='text-xs text-slate-800 dark:text-white'>Operation Successful</strong>"
+                f"  </div>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Successfully added transaction to the financial ledger:</p>"
+                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
+                f"    <li><strong>Amount:</strong> {currency}{tx.amount:.2f}</li>"
+                f"    <li><strong>Category:</strong> {tx.category}</li>"
+                f"    <li><strong>Date:</strong> {tx.date.strftime('%b %d, %Y')}</li>"
+                f"    <li><strong>Description:</strong> {tx.description or 'None'}</li>"
+                f"  </ul>"
+                f"</div>"
+            )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # 3. Set Budget Command
+        budget_match = re.match(
+            r"^(?:set|create|update)\s+(?:budget|limit)\s+(?:for|on)?\s*([a-zA-Z0-9_ -]+?)\s+(?:to|of)?\s*([\d.,]+)$",
+            q,
+            re.IGNORECASE
+        )
+        if not budget_match:
+            budget_match = re.match(
+                r"^budget\s+([a-zA-Z0-9_ -]+?)\s+([\d.,]+)$",
+                q,
+                re.IGNORECASE
+            )
+        if budget_match:
+            category_name = budget_match.group(1).strip().title()
+            amount_val = Decimal(budget_match.group(2).replace(',', ''))
+
+            # Ensure category exists as expense
+            Category.objects.get_or_create(user=user, name=category_name, is_income=False)
+
+            budget, created = Budget.objects.update_or_create(
+                user=user,
+                category=category_name,
+                period='MONTHLY',
+                month=today.month,
+                year=today.year,
+                defaults={'amount': amount_val}
+            )
+
+            status_label = "Budget configured" if created else "Budget updated"
+            response = (
+                f"<div class='space-y-2'>"
+                f"  <div class='flex items-center space-x-1.5'>"
+                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-purple/10 text-neon-purple rounded border border-neon-purple/20 uppercase'>{status_label}</span>"
+                f"    <strong class='text-xs text-slate-800 dark:text-white'>Target Established</strong>"
+                f"  </div>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Configured category limit successfully:</p>"
+                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
+                f"    <li><strong>Category:</strong> {budget.category}</li>"
+                f"    <li><strong>Limit:</strong> {currency}{budget.amount:.2f}</li>"
+                f"    <li><strong>Period:</strong> Monthly ({today.strftime('%B %Y')})</li>"
+                f"  </ul>"
+                f"</div>"
+            )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # 4. Add Bill Reminder Command
+        reminder_match = re.match(
+            r"^(?:remind\s+me|add\s+reminder)\s+(?:to\s+pay\s+)?(.+?)\s+(?:of|amount)?\s*([\d.,]+)\s+(?:due\s+)?(?:on|by)?\s*([\d\-\/]+)$",
+            q,
+            re.IGNORECASE
+        )
+        if reminder_match:
+            title = reminder_match.group(1).strip().title()
+            amount_val = Decimal(reminder_match.group(2).replace(',', ''))
+            date_str = reminder_match.group(3).strip()
+            due_date = parse_date(date_str)
+
+            reminder = Reminder.objects.create(
+                user=user,
+                title=title,
+                amount=amount_val,
+                due_date=due_date,
+                is_recurring=False,
+                is_paid=False
+            )
+
+            response = (
+                f"<div class='space-y-2'>"
+                f"  <div class='flex items-center space-x-1.5'>"
+                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-violet/10 text-neon-violet rounded border border-neon-violet/20 uppercase'>Reminder Scheduled</span>"
+                f"    <strong class='text-xs text-slate-800 dark:text-white'>Outflow Alert Locked</strong>"
+                f"  </div>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Successfully added a new bill reminder:</p>"
+                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
+                f"    <li><strong>Title:</strong> {reminder.title}</li>"
+                f"    <li><strong>Amount:</strong> {currency}{reminder.amount:.2f}</li>"
+                f"    <li><strong>Due Date:</strong> {reminder.due_date.strftime('%b %d, %Y')}</li>"
+                f"  </ul>"
+                f"</div>"
+            )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # ----------------- PARSE QUERIES / ANALYSIS -----------------
         
+        # Help Menu
+        if q_lower in ('help', 'commands', 'menu', '?', 'what can you do'):
+            response = (
+                f"<div class='space-y-2 max-h-80 overflow-y-auto pr-1 text-xs text-slate-600 dark:text-slate-300'>"
+                f"  <div class='flex items-center space-x-1.5 mb-1'>"
+                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>Node Support</span>"
+                f"    <strong class='text-xs text-slate-800 dark:text-white'>LEOXUR Analyst Commands</strong>"
+                f"  </div>"
+                f"  <p>I am your financial copilot. Here is a list of commands and queries you can run directly:</p>"
+                f"  <div class='space-y-2.5 mt-2 pl-1'>"
+                f"    <div>"
+                f"      <strong class='text-neon-cyan'>1. Ledger Logging (Database Write)</strong>"
+                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>add expense/income [amount] [category] desc [details]</p>"
+                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>add expense 45 for Food desc lunch at office</code>"
+                f"    </div>"
+                f"    <div>"
+                f"      <strong class='text-neon-cyan'>2. Budget Configuration</strong>"
+                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>set budget/limit [category] [amount]</p>"
+                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>set budget for Entertainment to 250</code>"
+                f"    </div>"
+                f"    <div>"
+                f"      <strong class='text-neon-cyan'>3. Outflow Alerts (Bill Reminders)</strong>"
+                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>remind me to pay [title] [amount] on [YYYY-MM-DD]</p>"
+                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>remind me to pay internet bill 60 on 2026-07-25</code>"
+                f"    </div>"
+                f"    <div>"
+                f"      <strong class='text-neon-cyan'>4. General Analysis & Actions</strong>"
+                f"      <ul class='list-disc pl-4 space-y-1 text-[11px] mt-1'>"
+                f"        <li><strong>Cashflow Status:</strong> Ask <em>'how is my cashflow'</em> or <em>'savings rate'</em></li>"
+                f"        <li><strong>Check Budgets:</strong> Ask <em>'check budgets'</em> or <em>'are my budgets overspent?'</em></li>"
+                f"        <li><strong>Search Ledger:</strong> Ask <em>'find Rent'</em> or <em>'search Food'</em></li>"
+                f"        <li><strong>Savings Forecast:</strong> Ask <em>'predict savings'</em> or <em>'forecast'</em></li>"
+                f"        <li><strong>Email Sync:</strong> Type <em>'sync emails'</em> or <em>'fetch transactions'</em></li>"
+                f"      </ul>"
+                f"    </div>"
+                f"  </div>"
+                f"</div>"
+            )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # Gather general transaction aggregates
         month_txs = Transaction.objects.filter(user=user, date__range=(start_of_month, end_of_month))
         total_income = float(month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
         total_expense = float(month_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
         balance = total_income - total_expense
         
-        # Category breakdown
         category_totals = {}
         for tx in month_txs.filter(transaction_type='OUT'):
             category_totals[tx.category] = category_totals.get(tx.category, 0.0) + float(tx.amount)
             
         budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
-        
-        q = query.lower()
-        
-        if "save" in q or "saving" in q or "how to" in q:
-            if total_expense > 0:
-                highest_cat = max(category_totals, key=category_totals.get) if category_totals else None
-                highest_val = category_totals.get(highest_cat, 0.0) if highest_cat else 0.0
-                if highest_cat and highest_val > 0:
-                    pct = int((highest_val / total_expense) * 100)
-                    response = f"Your primary saving leverage is in **{highest_cat}** which comprises {pct}% of your monthly expense. Capping non-essential purchases there by setting a target limit will immediately improve your cash balance."
-                else:
-                    response = "You have no active expenses logged this month! Saving starts with tracking. Try entering some transactions or setting category budgets."
-            else:
-                response = "Your monthly expense sheet is clean! Try setting a savings goal of at least 20% of your total income, and allocating category budgets to help structure incoming capital."
-                
-        elif "spend" in q or "expense" in q or "where" in q:
-            if category_totals:
-                items = [f"**{c}** ({user.profile.currency}{v:.2f})" for c, v in category_totals.items()]
-                response = f"This month, your outflows are distributed as: {', '.join(items)}. Total current expenses sum up to **{user.profile.currency}{total_expense:.2f}**."
-            else:
-                response = "No outflows recorded for this month. All of your incoming cash is currently categorized as pure savings."
-                
-        elif "budget" in q or "limit" in q:
+
+        # Budget Check query
+        if re.search(r'(?:budget|limit|overspent|spent)', q_lower):
             if budgets.exists():
                 lines = []
+                overspent_count = 0
                 for b in budgets:
                     spent = category_totals.get(b.category, 0.0)
-                    lines.append(f"**{b.category}**: Limit {user.profile.currency}{b.amount:.2f} / Spent {user.profile.currency}{spent:.2f}")
-                response = "Your active monthly category limits:<br>" + "<br>".join(lines)
-            else:
-                response = "You have no monthly category budgets configured. Setting limits for volatile categories (like Food or Entertainment) helps protect against impulsive purchases."
+                    rem = float(b.amount) - spent
+                    if rem < 0:
+                        status_badge = "<span class='px-1.5 py-0.5 text-[9px] font-bold bg-neon-rose/10 text-neon-rose rounded border border-neon-rose/20 uppercase'>OVERSPENT</span>"
+                        overspent_count += 1
+                        val_str = f"<span class='text-neon-rose font-semibold'>-{currency}{abs(rem):.2f}</span>"
+                    else:
+                        status_badge = "<span class='px-1.5 py-0.5 text-[9px] font-bold bg-neon-green/10 text-neon-green rounded border border-neon-green/20 uppercase'>OK</span>"
+                        val_str = f"<span class='text-slate-400 dark:text-slate-500'>rem. {currency}{rem:.2f}</span>"
+                    
+                    lines.append(
+                        f"    <div class='flex justify-between items-center text-xs border-b border-slate-100 dark:border-space-850 pb-1.5'>"
+                        f"      <div>"
+                        f"        <strong class='text-slate-700 dark:text-slate-200'>{b.category}</strong>"
+                        f"        <p class='text-[10px] text-slate-400 dark:text-slate-500'>Limit: {currency}{b.amount:.2f} | Spent: {currency}{spent:.2f}</p>"
+                        f"      </div>"
+                        f"      <div class='flex items-center space-x-2'>"
+                        f"        {val_str} {status_badge}"
+                        f"      </div>"
+                        f"    </div>"
+                    )
                 
-        else:
-            savings_rate = int((balance / total_income) * 100) if total_income > 0 and balance > 0 else 0
-            response = f"Leoxur savings analysis confirms a current month cashflow of **{user.profile.currency}{total_income:.2f}** inflow vs **{user.profile.currency}{total_expense:.2f}** outflow. Your savings rate is **{savings_rate}%**. Focus on category budget limits and review recurring bill reminders to optimize this further."
+                header_badge = (
+                    f"<span class='px-2 py-0.5 text-[9px] font-bold bg-neon-rose/10 text-neon-rose rounded border border-neon-rose/20 uppercase'>{overspent_count} Over Budget</span>"
+                    if overspent_count > 0 else
+                    f"<span class='px-2 py-0.5 text-[9px] font-bold bg-neon-green/10 text-neon-green rounded border border-neon-green/20 uppercase'>All Budgets Healthy</span>"
+                )
 
+                response = (
+                    f"<div class='space-y-3'>"
+                    f"  <div class='flex justify-between items-center'>"
+                    f"    <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Budget Health Audit</strong>"
+                    f"    {header_badge}"
+                    f"  </div>"
+                    f"  <div class='space-y-2.5 max-h-52 overflow-y-auto pr-1'>"
+                    f"    " + "\n".join(lines) + ""
+                    f"  </div>"
+                    f"</div>"
+                )
+            else:
+                response = (
+                    f"<div class='space-y-2'>"
+                    f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>No Active Limits</strong>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>You have no category budgets set for this month. Set one by typing: <br><code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px] text-neon-cyan font-mono'>set Food budget to 300</code></p>"
+                    f"</div>"
+                )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # Transaction Search query
+        search_match = re.match(r'^(?:find|search|show|list)\s+(?:transactions|outflows|inflows|expenses|payments)?\s*(?:for|on|in|matching)?\s+(.+)$', q, re.IGNORECASE)
+        if not search_match and (q_lower.startswith("find ") or q_lower.startswith("search ")):
+            search_match = re.match(r'^(?:find|search)\s+(.+)$', q, re.IGNORECASE)
+            
+        if search_match:
+            search_term = search_match.group(1).strip()
+            txs = Transaction.objects.filter(user=user).filter(
+                Q(category__icontains=search_term) | Q(description__icontains=search_term)
+            )[:8]
+            
+            if txs.exists():
+                lines = []
+                for tx in txs:
+                    type_indicator = "<span class='text-neon-green font-bold'>+</span>" if tx.transaction_type == 'IN' else "<span class='text-neon-rose font-bold'>-</span>"
+                    amount_color = "text-neon-green" if tx.transaction_type == 'IN' else "text-slate-800 dark:text-white"
+                    desc_str = f" <span class='text-slate-400 dark:text-slate-500'>({tx.description})</span>" if tx.description else ""
+                    lines.append(
+                        f"    <div class='flex justify-between items-center text-xs border-b border-slate-100 dark:border-space-850 pb-1.5'>"
+                        f"      <div>"
+                        f"        <strong class='text-slate-700 dark:text-slate-200'>{tx.category}</strong>{desc_str}"
+                        f"        <p class='text-[10px] text-slate-400 dark:text-slate-500'>{tx.date.strftime('%b %d, %Y')}</p>"
+                        f"      </div>"
+                        f"      <div class='text-xs font-semibold {amount_color}'>"
+                        f"        {type_indicator}{currency}{tx.amount:.2f}"
+                        f"      </div>"
+                        f"    </div>"
+                    )
+                response = (
+                    f"<div class='space-y-3'>"
+                    f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Ledger Query: '{search_term}'</strong>"
+                    f"  <div class='space-y-2 max-h-52 overflow-y-auto pr-1'>"
+                    f"    " + "\n".join(lines) + ""
+                    f"  </div>"
+                    f"</div>"
+                )
+            else:
+                response = (
+                    f"<div class='space-y-2'>"
+                    f"  <strong class='text-xs text-slate-800 dark:text-white font-outfit uppercase tracking-wider'>No Matches Found</strong>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>No ledger records match your query term <strong>'{search_term}'</strong> in category names or descriptions.</p>"
+                    f"</div>"
+                )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # Forecast Query
+        if re.search(r'(?:predict|projection|forecast|future|extrapolate)', q_lower):
+            savings_rate = int((balance / total_income) * 100) if total_income > 0 and balance > 0 else 0
+            monthly_savings = balance if balance > 0 else 0.0
+            
+            p3 = monthly_savings * 3
+            p6 = monthly_savings * 6
+            p12 = monthly_savings * 12
+            
+            response = (
+                f"<div class='space-y-2.5'>"
+                f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Savings Projections</strong>"
+                f"  <p class='text-[11px] text-slate-600 dark:text-slate-350'>Extrapolating your current monthly net surplus of <strong>{currency}{monthly_savings:.2f}</strong> ({savings_rate}% savings rate):</p>"
+                f"  <ul class='space-y-1.5 pl-1'>"
+                f"    <li class='flex justify-between items-center text-xs'>"
+                f"      <span class='text-slate-500 dark:text-slate-400'>3-Month Cumulative:</span>"
+                f"      <strong class='text-neon-cyan font-semibold'>{currency}{p3:.2f}</strong>"
+                f"    </li>"
+                f"    <li class='flex justify-between items-center text-xs'>"
+                f"      <span class='text-slate-500 dark:text-slate-400'>6-Month Cumulative:</span>"
+                f"      <strong class='text-neon-purple font-semibold'>{currency}{p6:.2f}</strong>"
+                f"    </li>"
+                f"    <li class='flex justify-between items-center text-xs'>"
+                f"      <span class='text-slate-500 dark:text-slate-400'>12-Month Cumulative:</span>"
+                f"      <strong class='text-neon-green font-semibold'>{currency}{p12:.2f}</strong>"
+                f"    </li>"
+                f"  </ul>"
+                f"  <p class='text-[10px] text-slate-400 dark:text-slate-500 italic mt-2'>Note: Projections assume cashflow remains uniform. Configure category budgets to prevent leakage.</p>"
+                f"</div>"
+            )
+            return JsonResponse({'status': 'success', 'response': response})
+
+        # Fallback & General Cashflow Analysis (Detailed 50/30/20 breakdown)
+        savings_rate = int((balance / total_income) * 100) if total_income > 0 and balance > 0 else 0
+        
+        tip_text = ""
+        highest_cat = max(category_totals, key=category_totals.get) if category_totals else None
+        highest_val = category_totals.get(highest_cat, 0.0) if highest_cat else 0.0
+        if highest_cat and highest_val > 0:
+            pct = int((highest_val / total_expense) * 100) if total_expense > 0 else 0
+            tip_text = f"Your highest outflow category is <strong>{highest_cat}</strong> ({currency}{highest_val:.2f}, {pct}% of expenses). Placing a strict monthly limit here is your best saving leverage."
+        else:
+            tip_text = "Logging category expenses is the first step. Allocate a target budget to structure your outflows."
+
+        needs_sum = 0.0
+        wants_sum = 0.0
+        for cat, val in category_totals.items():
+            c_l = cat.lower()
+            if any(n in c_l for n in ('rent', 'utility', 'utilities', 'food', 'bill', 'groceries')):
+                needs_sum += val
+            else:
+                wants_sum += val
+                
+        needs_pct = int((needs_sum / total_income) * 100) if total_income > 0 else 0
+        wants_pct = int((wants_sum / total_income) * 100) if total_income > 0 else 0
+        savings_pct = savings_rate
+        
+        fallback_note = ""
+        if not re.search(r'(?:save|saving|how to|cashflow|summary|status|health|analysis)', q_lower):
+            fallback_note = f"<div class='text-[10px] text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-space-850 pb-1 mb-1 italic'>Analyzed monthly cashflow. (Type 'help' to see my full commands list!)</div>"
+
+        response = (
+            f"{fallback_note}"
+            f"<div class='space-y-2 text-xs'>"
+            f"  <div class='flex justify-between items-center'>"
+            f"    <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Cashflow Diagnostic</strong>"
+            f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>{savings_rate}% Savings Rate</span>"
+            f"  </div>"
+            f"  <p class='text-slate-600 dark:text-slate-350'>Current Cashflow: Inflow <strong>{currency}{total_income:.2f}</strong> | Outflow <strong>{currency}{total_expense:.2f}</strong> | Net <strong>{currency}{balance:.2f}</strong>.</p>"
+            f"  <div class='space-y-1.5 pt-1'>"
+            f"    <strong class='text-[10px] text-slate-500 uppercase tracking-wide'>50/30/20 Allocation:</strong>"
+            f"    <div class='grid grid-cols-3 gap-2 text-center text-[10px] font-semibold'>"
+            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Needs: {needs_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 50%)</span></div>"
+            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Wants: {wants_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 30%)</span></div>"
+            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Savings: {savings_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 20%)</span></div>"
+            f"    </div>"
+            f"  </div>"
+            f"  <p class='text-slate-600 dark:text-slate-350 text-[11px] leading-normal pt-1'>{tip_text}</p>"
+            f"</div>"
+        )
         return JsonResponse({'status': 'success', 'response': response})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
