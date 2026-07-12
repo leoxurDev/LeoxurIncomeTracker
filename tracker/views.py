@@ -469,6 +469,9 @@ def savings_analyst_chat(request):
                 description=description
             )
             
+            if tx_type == 'OUT':
+                check_and_send_budget_alerts(user, category_name, today)
+                
             type_label = "Outflow logged" if tx_type == 'OUT' else "Inflow logged"
             color_class = "text-neon-rose bg-neon-rose/10 border-neon-rose/20" if tx_type == 'OUT' else "text-neon-green bg-neon-green/10 border-neon-green/20"
             
@@ -899,30 +902,30 @@ def check_and_send_budget_alerts(user, category, tx_date):
                 subject = f"BUDGET BREACH ALERT: {b.category} Budget Exceeded!"
                 
                 content_html = f"""
-                <div style="background-color: #ef4444; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+                <div style="background-color: #ff3b30; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
                     Target Category Breach Alert
                 </div>
-                <div style="background-color: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px;">
+                <div style="background-color: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
                     <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-                        <tr style="border-bottom: 1px solid #334155;">
-                            <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Target Category</td>
-                            <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{b.category}</td>
+                        <tr style="border-bottom: 1px solid #e5e5ea;">
+                            <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Target Category</td>
+                            <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{b.category}</td>
                         </tr>
-                        <tr style="border-bottom: 1px solid #334155;">
-                            <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Monthly Limit</td>
-                            <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{currency}{limit:.2f}</td>
+                        <tr style="border-bottom: 1px solid #e5e5ea;">
+                            <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Monthly Limit</td>
+                            <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}{limit:.2f}</td>
                         </tr>
-                        <tr style="border-bottom: 1px solid #334155;">
-                            <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Accumulated Total</td>
-                            <td style="padding: 8px 0; font-size: 11px; color: #f87171; font-weight: 600; text-align: right;">{currency}{spent:.2f}</td>
+                        <tr style="border-bottom: 1px solid #e5e5ea;">
+                            <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Accumulated Total</td>
+                            <td style="padding: 8px 0; font-size: 11px; color: #ff3b30; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}{spent:.2f}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Threshold Overage</td>
-                            <td style="padding: 8px 0; font-size: 11px; color: #f87171; font-weight: 600; text-align: right;">{currency}{spent - limit:.2f}</td>
+                            <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Threshold Overage</td>
+                            <td style="padding: 8px 0; font-size: 11px; color: #ff3b30; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}{spent - limit:.2f}</td>
                         </tr>
                     </table>
                 </div>
-                <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-top: 12px; margin-bottom: 0;">
+                <p style="font-size: 11px; color: #8e8e93; line-height: 1.5; margin-top: 12px; margin-bottom: 0; font-family: -apple-system, sans-serif;">
                     Your account has exceeded the designated category thresholds for the month of {d.strftime('%B %Y')}. We recommend reviewing your transactions to reduce your outflows.
                 </p>
                 """
@@ -1526,26 +1529,26 @@ def test_email_report(request):
     balances_html = f"""
     <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 12px; border-spacing: 8px; border-collapse: separate; margin-left: -8px; margin-right: -8px;">
         <tr>
-            <td width="50%" style="background-color: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-                <div style="font-size: 9px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600;">Total Earnings</div>
-                <div style="font-size: 18px; font-weight: 700; color: #4ade80; margin-top: 4px;">{currency}{total_income:.2f}</div>
+            <td width="50%" style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
+                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Inflows</div>
+                <div style="font-size: 18px; font-weight: 700; color: #34c759; margin-top: 4px;">{currency}{total_income:.2f}</div>
             </td>
-            <td width="50%" style="background-color: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
-                <div style="font-size: 9px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600;">Total Spending</div>
-                <div style="font-size: 18px; font-weight: 700; color: #f87171; margin-top: 4px;">{currency}{total_expense:.2f}</div>
+            <td width="50%" style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
+                <div style="font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Outflows</div>
+                <div style="font-size: 18px; font-weight: 700; color: #ff3b30; margin-top: 4px;">{currency}{total_expense:.2f}</div>
             </td>
         </tr>
     </table>
     
-    <div style="background-color: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600;">
+    <div style="background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">
             <span>Net Monthly Balance</span>
-            <span style="font-size: 15px; font-weight: 700; color: {'#38bdf8' if balance >= 0 else '#f87171'};">{currency}{balance:.2f}</span>
+            <span style="font-size: 15px; font-weight: 700; color: {'#a855f7' if balance >= 0 else '#ff3b30'};">{currency}{balance:.2f}</span>
         </div>
-        <div style="margin-top: 8px; background-color: #0f172a; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%;">
-            <div style="background-color: #38bdf8; height: 100%; width: {expense_pct}%; border-radius: 9999px;"></div>
+        <div style="margin-top: 8px; background-color: #e5e5ea; border-radius: 9999px; height: 5px; overflow: hidden; width: 100%;">
+            <div style="background-color: #a855f7; height: 100%; width: {expense_pct}%; border-radius: 9999px;"></div>
         </div>
-        <div style="font-size: 8px; color: #64748b; margin-top: 4px; text-align: right;">Spending ratio: {expense_pct}%</div>
+        <div style="font-size: 8px; color: #8e8e93; margin-top: 4px; text-align: right;">Spending ratio: {expense_pct}%</div>
     </div>
     """
 
@@ -1554,52 +1557,52 @@ def test_email_report(request):
         spent = total_expense if b.category == 'Total' else month_txs.filter(category=b.category, transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         pct = int((spent / b.amount * 100)) if b.amount > 0 else 0
         fill_pct = pct if pct <= 100 else 100
-        bar_color = "#f87171" if pct >= 100 else "#38bdf8"
+        bar_color = "#ff3b30" if pct >= 100 else "#a855f7"
         budget_lines.append(f"""
-        <div style="margin-bottom: 8px;">
-            <div style="font-size: 10px; margin-bottom: 2px; color: #ffffff;">
+        <div style="margin-bottom: 8px; font-family: -apple-system, sans-serif;">
+            <div style="font-size: 10px; margin-bottom: 2px; color: #1c1c1e;">
                 <span style="font-weight: 600;">{b.category}</span>
-                <span style="color: #94a3b8; float: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</span>
+                <span style="color: #8e8e93; float: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</span>
             </div>
-            <div style="background-color: #0f172a; border-radius: 9999px; height: 4px; overflow: hidden; width: 100%; border: 1px solid #1e293b;">
+            <div style="background-color: #e5e5ea; border-radius: 9999px; height: 4px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
                 <div style="background-color: {bar_color}; height: 100%; width: {fill_pct}%; border-radius: 9999px;"></div>
             </div>
         </div>
         """)
         
     budgets_html = f"""
-    <div style="margin-bottom: 16px;">
-        <h3 style="font-size: 10px; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; font-weight: 700;">Budget Limits</h3>
-        {"".join(budget_lines) if budget_lines else '<div style="font-size: 9px; color: #64748b;">No active budget targets.</div>'}
+    <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+        <h3 style="font-size: 10px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #e5e5ea; padding-bottom: 4px; font-weight: 700;">Budget Limits</h3>
+        {"".join(budget_lines) if budget_lines else '<div style="font-size: 9px; color: #8e8e93;">No active budget targets.</div>'}
     </div>
     """
 
     recent_rows = []
     txs = Transaction.objects.filter(user=user).order_by('-date')[:5]
     for tx in txs:
-        amt_color = "#4ade80" if tx.transaction_type == 'IN' else "#f87171"
+        amt_color = "#34c759" if tx.transaction_type == 'IN' else "#ff3b30"
         amt_sign = "+" if tx.transaction_type == 'IN' else "-"
         recent_rows.append(f"""
-        <tr style="border-bottom: 1px solid #1e293b;">
-            <td style="padding: 6px 0; font-size: 10px; color: #e2e8f0;">{tx.description or 'N/A'}</td>
-            <td style="padding: 6px 0; font-size: 10px; color: #94a3b8;">{tx.category}</td>
-            <td style="padding: 6px 0; font-size: 10px; text-align: right; font-weight: 600; color: {amt_color};">{amt_sign}{currency}{tx.amount:.2f}</td>
+        <tr style="border-bottom: 1px solid #e5e5ea;">
+            <td style="padding: 6px 0; font-size: 10px; color: #1c1c1e; font-family: -apple-system, sans-serif;">{tx.description or 'N/A'}</td>
+            <td style="padding: 6px 0; font-size: 10px; color: #8e8e93; font-family: -apple-system, sans-serif;">{tx.category}</td>
+            <td style="padding: 6px 0; font-size: 10px; text-align: right; font-weight: 600; color: {amt_color}; font-family: -apple-system, sans-serif;">{amt_sign}{currency}{tx.amount:.2f}</td>
         </tr>
         """)
         
     recent_html = f"""
-    <div style="margin-bottom: 8px;">
-        <h3 style="font-size: 10px; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; font-weight: 700;">Recent Statements</h3>
+    <div style="margin-bottom: 8px; font-family: -apple-system, sans-serif;">
+        <h3 style="font-size: 10px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid #e5e5ea; padding-bottom: 4px; font-weight: 700;">Recent Statements</h3>
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
             <thead>
-                <tr style="text-align: left; border-bottom: 1px solid #334155;">
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 600;">Description</th>
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 600;">Category</th>
-                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #64748b; text-align: right; font-weight: 600;">Amount</th>
+                <tr style="text-align: left; border-bottom: 1px solid #e5e5ea;">
+                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Description</th>
+                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Category</th>
+                    <th style="padding-bottom: 4px; font-size: 9px; text-transform: uppercase; color: #8e8e93; text-align: right; font-weight: 700; font-family: -apple-system, sans-serif;">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                {"".join(recent_rows) if recent_rows else '<tr><td colspan="3" style="padding: 8px 0; font-size: 10px; color: #64748b; text-align: center;">No transactions found.</td></tr>'}
+                {"".join(recent_rows) if recent_rows else '<tr><td colspan="3" style="padding: 8px 0; font-size: 10px; color: #8e8e93; text-align: center; font-family: -apple-system, sans-serif;">No transactions found.</td></tr>'}
             </tbody>
         </table>
     </div>
@@ -1649,30 +1652,30 @@ def test_email_alert(request):
     subject = "BUDGET BREACH ALERT: Entertainment Budget Exceeded"
     
     content_html = f"""
-    <div style="background-color: #ef4444; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+    <div style="background-color: #ff3b30; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
         Target Category Breach Alert
     </div>
-    <div style="background-color: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px;">
+    <div style="background-color: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Target Category</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">Entertainment</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Target Category</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">Entertainment</td>
             </tr>
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Monthly Limit</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{currency}250.00</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Monthly Limit</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}250.00</td>
             </tr>
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Accumulated Total</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #f87171; font-weight: 600; text-align: right;">{currency}320.00</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Accumulated Total</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #ff3b30; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}320.00</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Threshold Overage</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #f87171; font-weight: 600; text-align: right;">{currency}70.00</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Threshold Overage</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #ff3b30; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}70.00</td>
             </tr>
         </table>
     </div>
-    <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-top: 12px; margin-bottom: 0;">
+    <p style="font-size: 11px; color: #8e8e93; line-height: 1.5; margin-top: 12px; margin-bottom: 0; font-family: -apple-system, sans-serif;">
         Your account has exceeded the designated category thresholds for the month of {date.today().strftime('%B %Y')}. We recommend reviewing your transactions to reduce your outflows.
     </p>
     """
@@ -1703,30 +1706,30 @@ def test_email_reminder(request):
     subject = "BILL DUE TODAY: Internet & Broadband subscription"
     
     content_html = f"""
-    <div style="background-color: #3b82f6; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+    <div style="background-color: #a855f7; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
         Scheduled Payment Due Today
     </div>
-    <div style="background-color: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px;">
+    <div style="background-color: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Bill Description</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">Internet & Broadband subscription</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Bill Description</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">Internet & Broadband subscription</td>
             </tr>
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Amount Due</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{currency}79.99</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Amount Due</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}79.99</td>
             </tr>
-            <tr style="border-bottom: 1px solid #334155;">
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Due Date</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{date.today().strftime('%A, %b %d, %Y')}</td>
+            <tr style="border-bottom: 1px solid #e5e5ea;">
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Due Date</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{date.today().strftime('%A, %b %d, %Y')}</td>
             </tr>
             <tr>
-                <td style="padding: 8px 0; font-size: 11px; color: #94a3b8;">Recurrence</td>
-                <td style="padding: 8px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">Yes (Monthly)</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Recurrence</td>
+                <td style="padding: 8px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">Yes (Monthly)</td>
             </tr>
         </table>
     </div>
-    <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-top: 12px; margin-bottom: 0;">
+    <p style="font-size: 11px; color: #8e8e93; line-height: 1.5; margin-top: 12px; margin-bottom: 0; font-family: -apple-system, sans-serif;">
         This automated transmission has been dispatched to remind you that your scheduled payment is due today. Please log in to your dashboard to pay the reminder and update your records.
     </p>
     """

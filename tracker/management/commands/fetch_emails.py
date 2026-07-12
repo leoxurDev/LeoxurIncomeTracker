@@ -151,8 +151,12 @@ class Command(BaseCommand):
                                 category=category_name,
                                 date=date.today(),
                                 description=description
-                            )
                             self.stdout.write(self.style.SUCCESS(f"Logged transaction #{tx.id}: {category_name}, {amount}, {tx_type}"))
+
+                            # Send budget alerts if transaction is an Outflow
+                            if tx_type == 'OUT':
+                                from tracker.views import check_and_send_budget_alerts
+                                check_and_send_budget_alerts(user, category_name, date.today())
 
                             # Save Message-ID to database to prevent double logging
                             if msg_id:
@@ -162,37 +166,37 @@ class Command(BaseCommand):
                             currency = user.profile.currency
                             ack_subject = f"Transaction Logged: {category_name}"
                             tx_type_str = 'Inflow (Income)' if tx_type == 'IN' else 'Outflow (Expense)'
-                            flow_color = '#10b981' if tx_type == 'IN' else '#ef4444'
+                            flow_color = '#34c759' if tx_type == 'IN' else '#ff3b30'
                             
                             content_html = f"""
-                            <div style="background-color: {flow_color}; color: #ffffff; padding: 8px 12px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Transaction Logged Successfully
-                            </div>
-                            <div style="background-color: #1e293b; padding: 16px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 8px;">
-                                <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-                                    <tr style="border-bottom: 1px solid #334155;">
-                                        <td style="padding: 6px 0; font-size: 11px; color: #94a3b8;">Category</td>
-                                        <td style="padding: 6px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{category_name}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #334155;">
-                                        <td style="padding: 6px 0; font-size: 11px; color: #94a3b8;">Amount</td>
-                                        <td style="padding: 6px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{currency}{amount:.2f}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #334155;">
-                                        <td style="padding: 6px 0; font-size: 11px; color: #94a3b8;">Flow</td>
-                                        <td style="padding: 6px 0; font-size: 11px; color: {flow_color}; font-weight: 600; text-align: right;">{tx_type_str}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #334155;">
-                                        <td style="padding: 6px 0; font-size: 11px; color: #94a3b8;">Note</td>
-                                        <td style="padding: 6px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{description or 'N/A'}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 6px 0; font-size: 11px; color: #94a3b8;">Date Logged</td>
-                                        <td style="padding: 6px 0; font-size: 11px; color: #ffffff; font-weight: 600; text-align: right;">{tx.date.strftime('%Y-%m-%d')}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            """
+                             <div style="background-color: {flow_color}; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 16px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
+                                 Transaction Logged Successfully
+                             </div>
+                             <div style="background-color: #ffffff; padding: 16px; border-radius: 8px; border: 1px solid #e5e5ea; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                                 <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+                                     <tr style="border-bottom: 1px solid #e5e5ea;">
+                                         <td style="padding: 6px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Category</td>
+                                         <td style="padding: 6px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{category_name}</td>
+                                     </tr>
+                                     <tr style="border-bottom: 1px solid #e5e5ea;">
+                                         <td style="padding: 6px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Amount</td>
+                                         <td style="padding: 6px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}{amount:.2f}</td>
+                                     </tr>
+                                     <tr style="border-bottom: 1px solid #e5e5ea;">
+                                         <td style="padding: 6px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Flow</td>
+                                         <td style="padding: 6px 0; font-size: 11px; color: {flow_color}; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{tx_type_str}</td>
+                                     </tr>
+                                     <tr style="border-bottom: 1px solid #e5e5ea;">
+                                         <td style="padding: 6px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Note</td>
+                                         <td style="padding: 6px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{description or 'N/A'}</td>
+                                     </tr>
+                                     <tr>
+                                         <td style="padding: 6px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">Date Logged</td>
+                                         <td style="padding: 6px 0; font-size: 11px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{tx.date.strftime('%Y-%m-%d')}</td>
+                                     </tr>
+                                 </table>
+                             </div>
+                             """
                             
                             ack_body = render_html_email(
                                 title=f"Telemetry Added: {category_name}",
