@@ -612,7 +612,250 @@
             from { transform: translateY(1.5rem); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        #floating-chatbot-window.chatbot-maximized {
+            width: calc(100vw - 48px) !important;
+            height: calc(100vh - 120px) !important;
+            max-width: 1200px !important;
+            max-height: 85vh !important;
+        }
     </style>
     {% block extra_js %}{% endblock %}
+    
+    {% if user.is_authenticated %}
+    <!-- Floating Chatbot Widget -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <!-- Chat Window Popover -->
+        <div id="floating-chatbot-window" class="hidden mb-4 w-80 md:w-96 rounded-3xl overflow-hidden shadow-2xl border border-neon-cyan/20 dark:border-neon-cyan/15 bg-white/95 dark:bg-space-900/95 backdrop-blur-md transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right flex flex-col h-[400px] pointer-events-none">
+            <!-- Header -->
+            <div class="p-4 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/5 border-b border-slate-100 dark:border-space-850 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="p-1 rounded-lg bg-neon-cyan/15 text-neon-cyan">
+                        <i data-lucide="cpu" class="h-4 w-4 animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold font-outfit text-xs text-slate-800 dark:text-white uppercase tracking-wider leading-none mb-0.5">Leoxur AI Copilot</h4>
+                        <p class="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-widest leading-none">Savings Analyst</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="clearAnalystChat()" class="text-slate-400 hover:text-neon-rose p-1 rounded transition" title="Clear Chat History">
+                        <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                    </button>
+                    <button onclick="toggleMaximizeChat()" id="chatbot-maximize-btn" class="text-slate-400 hover:text-neon-cyan p-1 rounded transition" title="Maximize Chat">
+                        <i data-lucide="maximize-2" class="h-4 w-4"></i>
+                    </button>
+                    <button onclick="toggleFloatingChat()" class="text-slate-400 hover:text-neon-cyan p-1 rounded transition" title="Minimize Chat">
+                        <i data-lucide="minus" class="h-4 w-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat logs scroll box -->
+            <div id="analyst-chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 pr-1 scroll-smooth">
+                <!-- Greeting Message -->
+                <div class="flex items-start space-x-2.5 max-w-[85%]">
+                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
+                        <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
+                    </div>
+                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
+                        Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-900 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator (Hidden by default) -->
+            <div id="analyst-typing" class="hidden flex items-start space-x-2.5 max-w-[85%] mb-3 px-4 animate-fade-in">
+                <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
+                    <i data-lucide="cpu" class="h-3.5 w-3.5 animate-spin"></i>
+                </div>
+                <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-400 dark:text-slate-500 leading-relaxed shadow-sm flex items-center space-x-1.5">
+                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                </div>
+            </div>
+
+            <!-- Input Box -->
+            <div class="p-3 bg-slate-50/50 dark:bg-space-950/50 border-t border-slate-100 dark:border-space-850 flex space-x-2">
+                <input id="analyst-query" type="text" onkeypress="if(event.key === 'Enter') askSavingsAnalyst()" placeholder="Type a message or command..." class="flex-1 px-4 py-2 text-xs rounded-xl bg-white dark:bg-space-900 border border-slate-200 dark:border-space-800 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/20 transition duration-200">
+                <button onclick="askSavingsAnalyst()" class="px-3.5 py-2 rounded-xl bg-neon-cyan text-white text-xs font-bold hover:bg-neon-cyan/90 transition duration-200 flex items-center justify-center shadow-lg shadow-neon-cyan/15">
+                    <i data-lucide="send" class="h-3.5 w-3.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Trigger Button -->
+        <button id="floating-chatbot-trigger" onclick="toggleFloatingChat()" class="bg-gradient-to-tr from-neon-cyan to-neon-violet text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition duration-300 flex items-center justify-center border border-white/20" title="Consult Leoxur AI Assistant">
+            <i data-lucide="message-square" class="h-5 w-5"></i>
+        </button>
+    </div>
+
+    <!-- Chatbot Script -->
+    <script>
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        function toggleFloatingChat() {
+            const windowEl = document.getElementById('floating-chatbot-window');
+            if (!windowEl) return;
+            
+            if (windowEl.classList.contains('hidden')) {
+                windowEl.classList.remove('hidden');
+                setTimeout(() => {
+                    windowEl.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+                    windowEl.classList.add('scale-100', 'opacity-100', 'pointer-events-auto');
+                    const chatBox = document.getElementById('analyst-chat-box');
+                    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                }, 10);
+            } else {
+                windowEl.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto');
+                windowEl.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    windowEl.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function toggleMaximizeChat() {
+            const windowEl = document.getElementById('floating-chatbot-window');
+            const btn = document.getElementById('chatbot-maximize-btn');
+            if (!windowEl || !btn) return;
+            
+            if (windowEl.classList.contains('chatbot-maximized')) {
+                windowEl.classList.remove('chatbot-maximized');
+                btn.innerHTML = `<i data-lucide="maximize-2" class="h-4 w-4"></i>`;
+                btn.setAttribute('title', 'Maximize Chat');
+            } else {
+                windowEl.classList.add('chatbot-maximized');
+                btn.innerHTML = `<i data-lucide="minimize-2" class="h-4 w-4"></i>`;
+                btn.setAttribute('title', 'Restore Normal Size');
+            }
+            lucide.createIcons();
+        }
+
+        function clearAnalystChat() {
+            const chatBox = document.getElementById('analyst-chat-box');
+            if (!chatBox) return;
+            chatBox.innerHTML = `
+                <div class="flex items-start space-x-2.5 max-w-[85%]">
+                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
+                        <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
+                    </div>
+                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
+                        Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-900 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function askSavingsAnalyst() {
+            const input = document.getElementById('analyst-query');
+            const query = input.value.trim();
+            if (!query) return;
+
+            const chatBox = document.getElementById('analyst-chat-box');
+            const typingIndicator = document.getElementById('analyst-typing');
+
+            // Append User Message bubble
+            const userMsgHtml = `
+                <div class="flex items-start justify-end space-x-2.5 ml-auto max-w-[85%] animate-fade-in">
+                    <div class="p-2.5 rounded-2xl rounded-tr-none bg-neon-cyan/10 border border-neon-cyan/20 text-xs text-slate-800 dark:text-white leading-relaxed shadow-sm">
+                        ${escapeHTML(query)}
+                    </div>
+                </div>
+            `;
+            chatBox.insertAdjacentHTML('beforeend', userMsgHtml);
+            
+            // Clear input and scroll down
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Show typing indicator at the very bottom
+            if (typingIndicator) {
+                typingIndicator.classList.remove('hidden');
+                chatBox.appendChild(typingIndicator);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            fetch('/api/savings-analyst/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ query: query })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Hide typing indicator
+                if (typingIndicator) {
+                    typingIndicator.classList.add('hidden');
+                }
+
+                let responseHtml = "";
+                if (data.status === 'success') {
+                    responseHtml = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                } else {
+                    responseHtml = `<span class="text-neon-rose">Error: ${escapeHTML(data.message)}</span>`;
+                }
+
+                // Append bot message bubble
+                const botMsgHtml = `
+                    <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
+                        <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
+                            <i data-lucide="cpu" class="h-3.5 w-3.5"></i>
+                        </div>
+                        <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm w-full">
+                            ${responseHtml}
+                        </div>
+                    </div>
+                `;
+                chatBox.insertAdjacentHTML('beforeend', botMsgHtml);
+                
+                // Re-render Lucide icons dynamically
+                lucide.createIcons();
+                
+                // Scroll to bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(err => {
+                console.error("Savings Analyst consult failed:", err);
+                if (typingIndicator) {
+                    typingIndicator.classList.add('hidden');
+                }
+                const errorMsgHtml = `
+                    <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
+                        <div class="p-1.5 rounded-lg bg-neon-rose/15 border border-neon-rose/20 text-neon-rose flex-shrink-0 mt-0.5">
+                            <i data-lucide="alert-triangle" class="h-3.5 w-3.5"></i>
+                        </div>
+                        <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-neon-rose leading-relaxed shadow-sm">
+                            System offline. Failed to consult savings analyst.
+                        </div>
+                    </div>
+                `;
+                chatBox.insertAdjacentHTML('beforeend', errorMsgHtml);
+                lucide.createIcons();
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        }
+
+        // Initialize Lucide icons on page load for the chatbot components defined at the bottom
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

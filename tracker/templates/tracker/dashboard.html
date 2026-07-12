@@ -197,52 +197,12 @@
             {% endfor %}
         </div>
         
-        <!-- Interactive AI Analyst Consult Section -->
-        <div class="mt-5 pt-4 border-t border-slate-200 dark:border-space-800/40">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="message-square" class="h-4 w-4 text-neon-cyan"></i>
-                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Interactive Analyst Consult</span>
-                </div>
-                <button onclick="clearAnalystChat()" class="text-[10px] font-bold text-slate-400 hover:text-neon-rose transition flex items-center space-x-1 uppercase" title="Clear Chat History">
-                    <i data-lucide="trash-2" class="h-3 w-3"></i>
-                    <span>Clear</span>
-                </button>
-            </div>
-            
-            <!-- Chat Logs Container -->
-            <div id="analyst-chat-box" class="h-52 overflow-y-auto mb-3.5 space-y-3 pr-1 scroll-smooth">
-                <!-- Greeting Message -->
-                <div class="flex items-start space-x-2.5 max-w-[85%]">
-                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                        <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
-                    </div>
-                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-900 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
-                        Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-950 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
-                    </div>
-                </div>
-            </div>
-
-            <!-- Typing Indicator (Hidden by default, will be appended as needed) -->
-            <div id="analyst-typing" class="hidden flex items-start space-x-2.5 max-w-[85%] mb-3 animate-fade-in">
-                <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                    <i data-lucide="cpu" class="h-3.5 w-3.5 animate-spin"></i>
-                </div>
-                <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-900 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-400 dark:text-slate-500 leading-relaxed shadow-sm flex items-center space-x-1.5">
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-                </div>
-            </div>
-
-            <!-- Input Bar -->
-            <div class="flex space-x-2">
-                <input id="analyst-query" type="text" onkeypress="if(event.key === 'Enter') askSavingsAnalyst()" placeholder="Type a message or command..." class="flex-1 px-4 py-2.5 text-xs rounded-xl bg-slate-100 dark:bg-space-900/50 border border-slate-200 dark:border-space-800 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/20 transition duration-200">
-                <button onclick="askSavingsAnalyst()" class="px-4 py-2.5 rounded-xl bg-neon-cyan text-space-950 text-xs font-bold hover:bg-neon-cyan/90 transition duration-200 flex items-center space-x-1.5 shadow-lg shadow-neon-cyan/10">
-                    <span>Send</span>
-                    <i data-lucide="send" class="h-3.5 w-3.5"></i>
-                </button>
-            </div>
+        <!-- Interactive AI Analyst Consult helper -->
+        <div class="mt-5 pt-4 border-t border-slate-200 dark:border-space-800/40 text-center">
+            <button onclick="toggleFloatingChat()" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/25 text-neon-cyan text-xs font-bold transition">
+                <i data-lucide="message-square" class="h-4 w-4 animate-pulse"></i>
+                <span>Open Savings Copilot</span>
+            </button>
         </div>
     </div>
 </div>
@@ -748,7 +708,7 @@
         <div class="p-6 space-y-4">
             <div class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed space-y-2">
                 <p>Upload a bulk spreadsheet containing your inflows and outflows to update your data instantly.</p>
-                <p>The system parses <span class="font-bold text-slate-700 dark:text-slate-350">CSV (.csv)</span> and <span class="font-bold text-slate-700 dark:text-slate-350">Excel (.xlsx)</span> spreadsheets matching the official template columns.</p>
+                <p>The system parses <span class="font-bold text-slate-700 dark:text-slate-300">CSV (.csv)</span> and <span class="font-bold text-slate-700 dark:text-slate-300">Excel (.xlsx)</span> spreadsheets matching the official template columns.</p>
             </div>
             
             <!-- Download template CTA -->
@@ -1200,7 +1160,7 @@
                 </div>
                 
                 <div class="flex items-center space-x-2 pt-1.5 pb-2">
-                    <input type="checkbox" id="auto_fetch_emails" name="auto_fetch_emails" {% if profile.auto_fetch_emails %}checked{% endif %} class="rounded border-slate-350 dark:border-space-800 text-neon-purple focus:ring-neon-purple bg-transparent">
+                    <input type="checkbox" id="auto_fetch_emails" name="auto_fetch_emails" {% if profile.auto_fetch_emails %}checked{% endif %} class="rounded border-slate-300 dark:border-space-800 text-neon-purple focus:ring-neon-purple bg-transparent">
                     <label for="auto_fetch_emails" class="text-[10px] uppercase font-bold tracking-wider text-slate-400 select-none">Auto-Fetch on Dashboard Load</label>
                 </div>
                 
@@ -1725,124 +1685,7 @@
         });
     }
 
-    function escapeHTML(str) {
-        return str.replace(/[&<>'"]/g, 
-            tag => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                "'": '&#39;',
-                '"': '&quot;'
-            }[tag] || tag)
-        );
-    }
 
-    function clearAnalystChat() {
-        const chatBox = document.getElementById('analyst-chat-box');
-        if (!chatBox) return;
-        chatBox.innerHTML = `
-            <div class="flex items-start space-x-2.5 max-w-[85%]">
-                <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                    <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
-                </div>
-                <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-900 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
-                    Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-950 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
-                </div>
-            </div>
-        `;
-        lucide.createIcons();
-    }
-
-    function askSavingsAnalyst() {
-        const input = document.getElementById('analyst-query');
-        const query = input.value.trim();
-        if (!query) return;
-
-        const chatBox = document.getElementById('analyst-chat-box');
-        const typingIndicator = document.getElementById('analyst-typing');
-
-        // Append User Message bubble
-        const userMsgHtml = `
-            <div class="flex items-start justify-end space-x-2.5 ml-auto max-w-[85%] animate-fade-in">
-                <div class="p-2.5 rounded-2xl rounded-tr-none bg-neon-cyan/10 border border-neon-cyan/20 text-xs text-slate-800 dark:text-white leading-relaxed shadow-sm">
-                    ${escapeHTML(query)}
-                </div>
-            </div>
-        `;
-        chatBox.insertAdjacentHTML('beforeend', userMsgHtml);
-        
-        // Clear input and scroll down
-        input.value = '';
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // Show typing indicator at the very bottom
-        if (typingIndicator) {
-            typingIndicator.classList.remove('hidden');
-            chatBox.appendChild(typingIndicator);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        fetch('/api/savings-analyst/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ query: query })
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Hide typing indicator
-            if (typingIndicator) {
-                typingIndicator.classList.add('hidden');
-            }
-
-            let responseHtml = "";
-            if (data.status === 'success') {
-                responseHtml = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            } else {
-                responseHtml = `<span class="text-neon-rose">Error: ${escapeHTML(data.message)}</span>`;
-            }
-
-            // Append bot message bubble
-            const botMsgHtml = `
-                <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
-                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                        <i data-lucide="cpu" class="h-3.5 w-3.5"></i>
-                    </div>
-                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-900 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm w-full">
-                        ${responseHtml}
-                    </div>
-                </div>
-            `;
-            chatBox.insertAdjacentHTML('beforeend', botMsgHtml);
-            
-            // Re-render Lucide icons dynamically (e.g. for sub-lists)
-            lucide.createIcons();
-            
-            // Scroll to bottom
-            chatBox.scrollTop = chatBox.scrollHeight;
-        })
-        .catch(err => {
-            console.error("Savings Analyst consult failed:", err);
-            if (typingIndicator) {
-                typingIndicator.classList.add('hidden');
-            }
-            const errorMsgHtml = `
-                <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
-                    <div class="p-1.5 rounded-lg bg-neon-rose/15 border border-neon-rose/20 text-neon-rose flex-shrink-0 mt-0.5">
-                        <i data-lucide="alert-triangle" class="h-3.5 w-3.5"></i>
-                    </div>
-                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-900 border border-slate-200/50 dark:border-space-800/60 text-xs text-neon-rose leading-relaxed shadow-sm">
-                        System offline. Failed to consult savings analyst.
-                    </div>
-                </div>
-            `;
-            chatBox.insertAdjacentHTML('beforeend', errorMsgHtml);
-            lucide.createIcons();
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-    }
 
     // Called when theme undergoes a server or local toggle action
     function updateChartsTheme(newTheme) {

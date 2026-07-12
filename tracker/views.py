@@ -435,7 +435,7 @@ def savings_analyst_chat(request):
                     f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>System Link</span>"
                     f"    <strong class='text-xs text-slate-800 dark:text-white'>Inbox Sync Initiated</strong>"
                     f"  </div>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>I've triggered a secure fetch sequence to scan your configured email node in the background. Fresh incoming transactions will populate your dashboard momentarily.</p>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>I've triggered a secure fetch sequence to scan your configured email node in the background. Fresh incoming transactions will populate your dashboard momentarily.</p>"
                     f"</div>"
                 )
             except Exception as e:
@@ -478,7 +478,7 @@ def savings_analyst_chat(request):
                 f"    <span class='px-2 py-0.5 text-[9px] font-bold rounded border uppercase {color_class}'>{type_label}</span>"
                 f"    <strong class='text-xs text-slate-800 dark:text-white'>Operation Successful</strong>"
                 f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Successfully added transaction to the financial ledger:</p>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Successfully added transaction to the financial ledger:</p>"
                 f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
                 f"    <li><strong>Amount:</strong> {currency}{tx.amount:.2f}</li>"
                 f"    <li><strong>Category:</strong> {tx.category}</li>"
@@ -524,7 +524,7 @@ def savings_analyst_chat(request):
                 f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-purple/10 text-neon-purple rounded border border-neon-purple/20 uppercase'>{status_label}</span>"
                 f"    <strong class='text-xs text-slate-800 dark:text-white'>Target Established</strong>"
                 f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Configured category limit successfully:</p>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Configured category limit successfully:</p>"
                 f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
                 f"    <li><strong>Category:</strong> {budget.category}</li>"
                 f"    <li><strong>Limit:</strong> {currency}{budget.amount:.2f}</li>"
@@ -561,7 +561,7 @@ def savings_analyst_chat(request):
                 f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-violet/10 text-neon-violet rounded border border-neon-violet/20 uppercase'>Reminder Scheduled</span>"
                 f"    <strong class='text-xs text-slate-800 dark:text-white'>Outflow Alert Locked</strong>"
                 f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-350'>Successfully added a new bill reminder:</p>"
+                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Successfully added a new bill reminder:</p>"
                 f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
                 f"    <li><strong>Title:</strong> {reminder.title}</li>"
                 f"    <li><strong>Amount:</strong> {currency}{reminder.amount:.2f}</li>"
@@ -674,7 +674,7 @@ def savings_analyst_chat(request):
                 response = (
                     f"<div class='space-y-2'>"
                     f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>No Active Limits</strong>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>You have no category budgets set for this month. Set one by typing: <br><code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px] text-neon-cyan font-mono'>set Food budget to 300</code></p>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>You have no category budgets set for this month. Set one by typing: <br><code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px] text-neon-cyan font-mono'>set Food budget to 300</code></p>"
                     f"</div>"
                 )
             return JsonResponse({'status': 'success', 'response': response})
@@ -719,7 +719,7 @@ def savings_analyst_chat(request):
                 response = (
                     f"<div class='space-y-2'>"
                     f"  <strong class='text-xs text-slate-800 dark:text-white font-outfit uppercase tracking-wider'>No Matches Found</strong>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-350'>No ledger records match your query term <strong>'{search_term}'</strong> in category names or descriptions.</p>"
+                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>No ledger records match your query term <strong>'{search_term}'</strong> in category names or descriptions.</p>"
                     f"</div>"
                 )
             return JsonResponse({'status': 'success', 'response': response})
@@ -736,7 +736,7 @@ def savings_analyst_chat(request):
             response = (
                 f"<div class='space-y-2.5'>"
                 f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Savings Projections</strong>"
-                f"  <p class='text-[11px] text-slate-600 dark:text-slate-350'>Extrapolating your current monthly net surplus of <strong>{currency}{monthly_savings:.2f}</strong> ({savings_rate}% savings rate):</p>"
+                f"  <p class='text-[11px] text-slate-600 dark:text-slate-300'>Extrapolating your current monthly net surplus of <strong>{currency}{monthly_savings:.2f}</strong> ({savings_rate}% savings rate):</p>"
                 f"  <ul class='space-y-1.5 pl-1'>"
                 f"    <li class='flex justify-between items-center text-xs'>"
                 f"      <span class='text-slate-500 dark:text-slate-400'>3-Month Cumulative:</span>"
@@ -792,7 +792,7 @@ def savings_analyst_chat(request):
             f"    <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Cashflow Diagnostic</strong>"
             f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>{savings_rate}% Savings Rate</span>"
             f"  </div>"
-            f"  <p class='text-slate-600 dark:text-slate-350'>Current Cashflow: Inflow <strong>{currency}{total_income:.2f}</strong> | Outflow <strong>{currency}{total_expense:.2f}</strong> | Net <strong>{currency}{balance:.2f}</strong>.</p>"
+            f"  <p class='text-slate-600 dark:text-slate-300'>Current Cashflow: Inflow <strong>{currency}{total_income:.2f}</strong> | Outflow <strong>{currency}{total_expense:.2f}</strong> | Net <strong>{currency}{balance:.2f}</strong>.</p>"
             f"  <div class='space-y-1.5 pt-1'>"
             f"    <strong class='text-[10px] text-slate-500 uppercase tracking-wide'>50/30/20 Allocation:</strong>"
             f"    <div class='grid grid-cols-3 gap-2 text-center text-[10px] font-semibold'>"
@@ -801,7 +801,7 @@ def savings_analyst_chat(request):
             f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Savings: {savings_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 20%)</span></div>"
             f"    </div>"
             f"  </div>"
-            f"  <p class='text-slate-600 dark:text-slate-350 text-[11px] leading-normal pt-1'>{tip_text}</p>"
+            f"  <p class='text-slate-600 dark:text-slate-300 text-[11px] leading-normal pt-1'>{tip_text}</p>"
             f"</div>"
         )
         return JsonResponse({'status': 'success', 'response': response})
