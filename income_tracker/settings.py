@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-wt=3tc4qir3v#43vvuagckg06_m9h63+ds8$e^_0i!a0c$qw9g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
