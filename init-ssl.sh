@@ -12,6 +12,15 @@ fi
 # Set environmental values for docker-compose substitution
 export DOMAIN_NAME=$domain
 
+# Write DOMAIN_NAME to .env to prevent sudo stripping env variables
+if [ -f .env ]; then
+    # Remove existing DOMAIN_NAME definition if present
+    sed -i.bak "/^DOMAIN_NAME=/d" .env && rm -f .env.bak
+    echo "DOMAIN_NAME=$domain" >> .env
+else
+    echo "DOMAIN_NAME=$domain" > .env
+fi
+
 # Create local webroot directory for certbot challenge verification
 mkdir -p ./webroot/.well-known/acme-challenge
 
