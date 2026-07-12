@@ -15,12 +15,8 @@ export DOMAIN_NAME=$domain
 # Create local webroot directory for certbot challenge verification
 mkdir -p ./webroot/.well-known/acme-challenge
 
-# 1. Update nginx.conf template with actual domain name
-sed -i.bak "s/\${DOMAIN_NAME}/$domain/g" nginx.conf
-rm -f nginx.conf.bak
-
 # 2. Check if certificates already exist
-if [ -d "/etc/letsencrypt/live/$domain" ]; then
+if [ -d "./certbot-etc/live/$domain" ]; then
     echo "SSL certificates already exist for $domain. Starting containers..."
     docker-compose up -d nginx
     exit 0

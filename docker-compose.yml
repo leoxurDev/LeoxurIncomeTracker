@@ -49,10 +49,14 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - certbot-etc:/etc/letsencrypt:ro
-      - certbot-var:/var/lib/letsencrypt:ro
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./certbot-etc:/etc/letsencrypt:ro
+      - ./certbot-var:/var/lib/letsencrypt:ro
       - ./webroot:/var/www/certbot:ro
       - web-static:/app/staticfiles:ro
     depends_on:
@@ -62,8 +66,8 @@ services:
     image: certbot/certbot
     container_name: leoxur_certbot
     volumes:
-      - certbot-etc:/etc/letsencrypt
-      - certbot-var:/var/lib/letsencrypt
+      - ./certbot-etc:/etc/letsencrypt
+      - ./certbot-var:/var/lib/letsencrypt
       - ./webroot:/var/www/certbot
 
   prometheus:
@@ -126,7 +130,5 @@ services:
 volumes:
   mysql-data:
   web-static:
-  certbot-etc:
-  certbot-var:
   prometheus-data:
   grafana-data:
