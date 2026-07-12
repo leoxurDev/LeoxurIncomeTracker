@@ -52,24 +52,24 @@ class Command(BaseCommand):
                 balances_html = f"""
                 <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 24px; border-spacing: 12px; border-collapse: separate; margin-left: -12px; margin-right: -12px;">
                     <tr>
-                        <td width="50%" style="background-color: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155;">
-                            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600;">Total Earnings</div>
-                            <div style="font-size: 22px; font-weight: 700; color: #4ade80; margin-top: 6px;">{currency}{total_income:.2f}</div>
+                        <td width="50%" style="background-color: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
+                            <div style="font-size: 10px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Inflows</div>
+                            <div style="font-size: 22px; font-weight: 700; color: #34c759; margin-top: 6px;">{currency}{total_income:.2f}</div>
                         </td>
-                        <td width="50%" style="background-color: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155;">
-                            <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600;">Total Spending</div>
-                            <div style="font-size: 22px; font-weight: 700; color: #f87171; margin-top: 6px;">{currency}{total_expense:.2f}</div>
+                        <td width="50%" style="background-color: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e5e5ea; font-family: -apple-system, sans-serif;">
+                            <div style="font-size: 10px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700;">Total Outflows</div>
+                            <div style="font-size: 22px; font-weight: 700; color: #ff3b30; margin-top: 6px;">{currency}{total_expense:.2f}</div>
                         </td>
                     </tr>
                 </table>
                 
-                <div style="background-color: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 24px;">
-                    <div style="font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px;">Net Monthly Balance</div>
-                    <div style="font-size: 20px; font-weight: 700; color: {'#38bdf8' if balance >= 0 else '#f87171'};">{currency}{balance:.2f}</div>
-                    <div style="margin-top: 12px; background-color: #0f172a; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%;">
-                        <div style="background-color: #38bdf8; height: 100%; width: {expense_pct}%; border-radius: 9999px;"></div>
+                <div style="background-color: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e5e5ea; margin-bottom: 24px; font-family: -apple-system, sans-serif;">
+                    <div style="font-size: 10px; text-transform: uppercase; color: #8e8e93; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 8px;">Net Surplus / Deficit</div>
+                    <div style="font-size: 20px; font-weight: 700; color: {'#a855f7' if balance >= 0 else '#ff3b30'};">{currency}{balance:.2f}</div>
+                    <div style="margin-top: 12px; background-color: #e5e5ea; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%;">
+                        <div style="background-color: #a855f7; height: 100%; width: {expense_pct}%; border-radius: 9999px;"></div>
                     </div>
-                    <div style="font-size: 9px; color: #64748b; margin-top: 6px; text-align: right;">Spending ratio: {expense_pct}% of total inflow</div>
+                    <div style="font-size: 9px; color: #8e8e93; margin-top: 6px; text-align: right;">Spending ratio: {expense_pct}% of total inflow</div>
                 </div>
                 """
 
@@ -78,54 +78,54 @@ class Command(BaseCommand):
                     spent = total_expense if b.category == 'Total' else month_txs.filter(category=b.category, transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
                     pct = int((spent / b.amount * 100)) if b.amount > 0 else 0
                     fill_pct = pct if pct <= 100 else 100
-                    bar_color = "#f87171" if pct >= 100 else "#38bdf8"
+                    bar_color = "#ff3b30" if pct >= 100 else "#a855f7"
                     budget_lines.append(f"""
-                    <div style="margin-bottom: 14px;">
-                        <div style="font-size: 11px; margin-bottom: 4px; color: #ffffff;">
+                    <div style="margin-bottom: 14px; font-family: -apple-system, sans-serif;">
+                        <div style="font-size: 11px; margin-bottom: 4px; color: #1c1c1e;">
                             <span style="font-weight: 600;">{b.category}</span>
-                            <span style="color: #94a3b8; float: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</span>
+                            <span style="color: #8e8e93; float: right;">{currency}{spent:.2f} / {currency}{b.amount:.2f} ({pct}%)</span>
                         </div>
-                        <div style="background-color: #0f172a; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%; border: 1px solid #1e293b;">
+                        <div style="background-color: #e5e5ea; border-radius: 9999px; height: 6px; overflow: hidden; width: 100%; border: 1px solid #e5e5ea;">
                             <div style="background-color: {bar_color}; height: 100%; width: {fill_pct}%; border-radius: 9999px;"></div>
                         </div>
                     </div>
                     """)
                     
                 budgets_html = f"""
-                <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 11px; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; font-weight: 700;">Budget Limits</h3>
-                    {"".join(budget_lines) if budget_lines else '<div style="font-size: 11px; color: #64748b;">No active budget targets.</div>'}
+                <div style="margin-bottom: 24px; font-family: -apple-system, sans-serif;">
+                    <h3 style="font-size: 11px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e5ea; padding-bottom: 6px; font-weight: 700;">Budget Targets Health</h3>
+                    {"".join(budget_lines) if budget_lines else '<div style="font-size: 11px; color: #8e8e93;">No active budget targets set.</div>'}
                 </div>
                 """
 
                 recent_rows = []
                 txs = Transaction.objects.filter(user=user).order_by('-date')[:5]
                 for tx in txs:
-                    amt_color = "#4ade80" if tx.transaction_type == 'IN' else "#f87171"
+                    amt_color = "#34c759" if tx.transaction_type == 'IN' else "#ff3b30"
                     amt_sign = "+" if tx.transaction_type == 'IN' else "-"
                     recent_rows.append(f"""
-                    <tr style="border-bottom: 1px solid #1e293b;">
-                        <td style="padding: 10px 0; font-size: 11px; color: #e2e8f0;">{tx.description or 'N/A'}</td>
-                        <td style="padding: 10px 0; font-size: 11px; color: #94a3b8;">{tx.category}</td>
-                        <td style="padding: 10px 0; font-size: 11px; color: #64748b;">{tx.date.strftime('%Y-%m-%d')}</td>
-                        <td style="padding: 10px 0; font-size: 11px; text-align: right; font-weight: 600; color: {amt_color};">{amt_sign}{currency}{tx.amount:.2f}</td>
+                    <tr style="border-bottom: 1px solid #e5e5ea;">
+                        <td style="padding: 10px 0; font-size: 11px; color: #1c1c1e; font-family: -apple-system, sans-serif;">{tx.description or 'N/A'}</td>
+                        <td style="padding: 10px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">{tx.category}</td>
+                        <td style="padding: 10px 0; font-size: 11px; color: #8e8e93; font-family: -apple-system, sans-serif;">{tx.date.strftime('%Y-%m-%d')}</td>
+                        <td style="padding: 10px 0; font-size: 11px; text-align: right; font-weight: 600; color: {amt_color}; font-family: -apple-system, sans-serif;">{amt_sign}{currency}{tx.amount:.2f}</td>
                     </tr>
                     """)
                     
                 recent_html = f"""
-                <div style="margin-bottom: 16px;">
-                    <h3 style="font-size: 11px; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; font-weight: 700;">Recent Statements</h3>
+                <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+                    <h3 style="font-size: 11px; text-transform: uppercase; color: #a855f7; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #e5e5ea; padding-bottom: 6px; font-weight: 700;">Recent Ledger Entries</h3>
                     <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
                         <thead>
-                            <tr style="text-align: left; border-bottom: 1px solid #334155;">
-                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600;">Description</th>
-                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600;">Category</th>
-                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600;">Date</th>
-                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #64748b; text-align: right; font-weight: 600;">Amount</th>
+                            <tr style="text-align: left; border-bottom: 1px solid #e5e5ea;">
+                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Description</th>
+                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Category</th>
+                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; font-weight: 700; font-family: -apple-system, sans-serif;">Date</th>
+                                <th style="padding-bottom: 6px; font-size: 10px; text-transform: uppercase; color: #8e8e93; text-align: right; font-weight: 700; font-family: -apple-system, sans-serif;">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {"".join(recent_rows) if recent_rows else '<tr><td colspan="4" style="padding: 12px 0; font-size: 11px; color: #64748b; text-align: center;">No transactions found.</td></tr>'}
+                            {"".join(recent_rows) if recent_rows else '<tr><td colspan="4" style="padding: 12px 0; font-size: 11px; color: #8e8e93; text-align: center; font-family: -apple-system, sans-serif;">No transactions registered.</td></tr>'}
                         </tbody>
                     </table>
                 </div>

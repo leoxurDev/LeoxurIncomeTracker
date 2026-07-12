@@ -409,10 +409,10 @@
             </div>
 
             <!-- Filters & Controls Bar -->
-            <div class="bg-slate-100/50 dark:bg-space-900/40 border border-slate-200/50 dark:border-space-850/50 p-2.5 rounded-2xl flex flex-wrap items-center gap-2.5 w-full">
+            <div class="bg-white/30 dark:bg-space-900/40 border border-white/50 dark:border-space-850/50 p-2.5 rounded-2xl flex flex-wrap items-center gap-2.5 w-full backdrop-blur-md">
                 <!-- Event Search -->
                 <div class="relative flex-grow min-w-[150px]">
-                    <input type="text" id="search-ledger" oninput="applyLedgerFiltersAndSort()" placeholder="Search transactions..." class="bg-white dark:bg-space-950 border border-slate-200 dark:border-space-850 text-xs rounded-xl py-2 pl-8 pr-3 focus:outline-none focus:border-neon-cyan text-slate-700 dark:text-slate-200 w-full placeholder-slate-400 font-semibold transition">
+                    <input type="text" id="search-ledger" oninput="applyLedgerFiltersAndSort()" placeholder="Search transactions..." class="bg-white/60 dark:bg-space-950/60 border border-slate-200/50 dark:border-space-850/40 text-xs rounded-xl py-2 pl-8 pr-3 focus:outline-none focus:border-neon-cyan focus:bg-white/80 dark:focus:bg-space-950/80 text-slate-700 dark:text-slate-200 w-full placeholder-slate-400 font-semibold transition">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                         <i data-lucide="search" class="h-3.5 w-3.5 text-slate-400 dark:text-slate-500"></i>
                     </div>
@@ -420,7 +420,7 @@
 
                 <!-- Type Filter -->
                 <div class="relative">
-                    <select id="filter-type" onchange="applyLedgerFiltersAndSort()" class="bg-white dark:bg-space-950 border border-slate-200 dark:border-space-850 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
+                    <select id="filter-type" onchange="applyLedgerFiltersAndSort()" class="bg-white/60 dark:bg-space-950/60 border border-slate-200/50 dark:border-space-850/40 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan focus:bg-white/80 dark:focus:bg-space-950/80 text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
                         <option value="ALL">All Flows</option>
                         <option value="IN">Inflows</option>
                         <option value="OUT">Outflows</option>
@@ -430,7 +430,7 @@
 
                 <!-- Category Filter -->
                 <div class="relative">
-                    <select id="filter-category" onchange="applyLedgerFiltersAndSort()" class="bg-white dark:bg-space-950 border border-slate-200 dark:border-space-850 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
+                    <select id="filter-category" onchange="applyLedgerFiltersAndSort()" class="bg-white/60 dark:bg-space-950/60 border border-slate-200/50 dark:border-space-850/40 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan focus:bg-white/80 dark:focus:bg-space-950/80 text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
                         <option value="ALL">All Categories</option>
                     </select>
                     <i data-lucide="chevron-down" class="h-3.5 w-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-450 dark:text-slate-500"></i>
@@ -438,7 +438,7 @@
 
                 <!-- Sort Options -->
                 <div class="relative">
-                    <select id="sort-ledger" onchange="applyLedgerFiltersAndSort()" class="bg-white dark:bg-space-950 border border-slate-200 dark:border-space-850 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
+                    <select id="sort-ledger" onchange="applyLedgerFiltersAndSort()" class="bg-white/60 dark:bg-space-950/60 border border-slate-200/50 dark:border-space-850/40 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan focus:bg-white/80 dark:focus:bg-space-950/80 text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
                         <option value="DATE_DESC">Newest</option>
                         <option value="DATE_ASC">Oldest</option>
                         <option value="AMT_DESC">Highest</option>
@@ -449,7 +449,7 @@
 
                 <!-- Page Size Select -->
                 <div class="relative">
-                    <select id="ledger-page-size" onchange="resetLedgerPageAndReapply()" class="bg-white dark:bg-space-950 border border-slate-200 dark:border-space-850 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
+                    <select id="ledger-page-size" onchange="resetLedgerPageAndReapply()" class="bg-white/60 dark:bg-space-950/60 border border-slate-200/50 dark:border-space-850/40 text-xs font-bold rounded-xl py-2 pl-3 pr-8 focus:outline-none focus:border-neon-cyan focus:bg-white/80 dark:focus:bg-space-950/80 text-slate-700 dark:text-slate-200 cursor-pointer transition appearance-none">
                         <option value="5">5 Per Page</option>
                         <option value="10" selected>10 Per Page</option>
                         <option value="20">20 Per Page</option>
@@ -1223,14 +1223,16 @@
     }
 
     // Chart.js global color configurations depending on active document theme
+    const chartFontFamily = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Helvetica, Inter, Arial, sans-serif';
+
     function getThemeColors() {
         const isDark = document.documentElement.classList.contains('dark');
         return {
-            text: isDark ? '#cbd5e1' : '#64748b',
-            grid: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(226, 232, 240, 0.6)',
-            tooltipBg: isDark ? '#1e293b' : '#ffffff',
-            tooltipText: isDark ? '#f8fafc' : '#0f172a',
-            tooltipBorder: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+            text: isDark ? '#f2f2f7' : '#2c2c2e', // Apple Light Gray vs System Dark Gray
+            grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+            tooltipBg: isDark ? '#161617' : '#ffffff',
+            tooltipText: isDark ? '#ffffff' : '#1c1c1e',
+            tooltipBorder: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         };
     }
 
@@ -1309,7 +1311,7 @@
                         position: 'top',
                         labels: {
                             color: colors.text,
-                            font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' }
+                            font: { family: chartFontFamily, size: 12, weight: '700' }
                         }
                     },
                     tooltip: {
@@ -1320,18 +1322,18 @@
                         borderWidth: 1,
                         padding: 12,
                         boxPadding: 6,
-                        titleFont: { family: 'Outfit', size: 12, weight: 'bold' },
-                        bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                        titleFont: { family: chartFontFamily, size: 13, weight: '700' },
+                        bodyFont: { family: chartFontFamily, size: 12, weight: '600' },
                     }
                 },
                 scales: {
                     x: {
                         grid: { display: false },
-                        ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                        ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '600' } }
                     },
                     y: {
                         grid: { color: colors.grid },
-                        ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                        ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '600' } }
                     }
                 }
             }
@@ -1412,7 +1414,7 @@
                             color: colors.text,
                             boxWidth: 10,
                             padding: 12,
-                            font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }
+                            font: { family: chartFontFamily, size: 11.5, weight: '700' }
                         }
                     },
                     tooltip: {
@@ -1422,8 +1424,8 @@
                         borderColor: colors.tooltipBorder,
                         borderWidth: 1,
                         padding: 10,
-                        titleFont: { family: 'Outfit', size: 11, weight: 'bold' },
-                        bodyFont: { family: 'Plus Jakarta Sans', size: 11 },
+                        titleFont: { family: chartFontFamily, size: 12, weight: '700' },
+                        bodyFont: { family: chartFontFamily, size: 11.5, weight: '600' },
                     }
                 }
             }
@@ -1471,18 +1473,18 @@
                     scales: {
                         x: {
                             grid: { display: false },
-                            ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                            ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '600' } }
                         },
                         y: {
                             grid: { color: colors.grid },
-                            ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10 } }
+                            ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '600' } }
                         }
                     },
                     plugins: {
                         legend: {
                             labels: {
                                 color: colors.text,
-                                font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }
+                                font: { family: chartFontFamily, size: 12, weight: '700' }
                             }
                         },
                         tooltip: {
@@ -1492,8 +1494,8 @@
                             borderColor: colors.tooltipBorder,
                             borderWidth: 1,
                             padding: 10,
-                            titleFont: { family: 'Outfit', size: 11, weight: 'bold' },
-                            bodyFont: { family: 'Plus Jakarta Sans', size: 11 }
+                            titleFont: { family: chartFontFamily, size: 12, weight: '700' },
+                            bodyFont: { family: chartFontFamily, size: 11.5, weight: '600' }
                         }
                     }
                 }
@@ -1541,8 +1543,8 @@
                             borderColor: colors.tooltipBorder,
                             borderWidth: 1,
                             padding: 10,
-                            titleFont: { family: 'Outfit', size: 11, weight: 'bold' },
-                            bodyFont: { family: 'Plus Jakarta Sans', size: 11 },
+                            titleFont: { family: chartFontFamily, size: 12, weight: '700' },
+                            bodyFont: { family: chartFontFamily, size: 11.5, weight: '600' },
                             callbacks: {
                                 label: function(context) {
                                     return `${context.label}: ${context.raw}%`;
@@ -1597,18 +1599,18 @@
                 scales: {
                     x: {
                         grid: { color: colors.grid },
-                        ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 9 } }
+                        ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '600' } }
                     },
                     y: {
                         grid: { display: false },
-                        ticks: { color: colors.text, font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' } }
+                        ticks: { color: colors.text, font: { family: chartFontFamily, size: 11, weight: '700' } }
                     }
                 },
                 plugins: {
                     legend: {
                         labels: {
                             color: colors.text,
-                            font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }
+                            font: { family: chartFontFamily, size: 12, weight: '700' }
                         }
                     },
                     tooltip: {
@@ -1618,8 +1620,8 @@
                         borderColor: colors.tooltipBorder,
                         borderWidth: 1,
                         padding: 10,
-                        titleFont: { family: 'Outfit', size: 11, weight: 'bold' },
-                        bodyFont: { family: 'Plus Jakarta Sans', size: 11 }
+                        titleFont: { family: chartFontFamily, size: 12, weight: '700' },
+                        bodyFont: { family: chartFontFamily, size: 11.5, weight: '600' }
                     }
                 }
             }
@@ -1661,7 +1663,7 @@
                         angleLines: { color: colors.grid },
                         pointLabels: {
                             color: colors.text,
-                            font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }
+                            font: { family: chartFontFamily, size: 11.5, weight: '700' }
                         },
                         ticks: {
                             display: false
@@ -1677,8 +1679,8 @@
                         borderColor: colors.tooltipBorder,
                         borderWidth: 1,
                         padding: 10,
-                        titleFont: { family: 'Outfit', size: 11, weight: 'bold' },
-                        bodyFont: { family: 'Plus Jakarta Sans', size: 11 }
+                        titleFont: { family: chartFontFamily, size: 12, weight: '700' },
+                        bodyFont: { family: chartFontFamily, size: 11.5, weight: '600' }
                     }
                 }
             }

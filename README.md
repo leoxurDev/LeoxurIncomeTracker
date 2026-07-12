@@ -51,17 +51,42 @@ Visit the application at `http://127.0.0.1:8000/` and sign in.
 
 ---
 
+## ✨ Key Features
+
+1. **Leoxur AI Copilot (Interactive Assistant)**:
+   - Global floating popover interface in the bottom-right corner of all screens with a full-screen maximize toggle.
+   - Natural language regex commands (e.g. `add expense 45 Food desc dinner`, `set Food budget to 250`, `remind me to pay internet bill 60 on 2026-07-25`).
+   - Generates contextual cashflow diagnostics (e.g. `check budgets`, `predict savings`, `find Groceries`, `sync emails`, `help`).
+2. **Glassmorphic Apple-Inspired UI**:
+   - Clean typographic stacks (`SF Pro`, `Helvetica Neue`, `Inter`) with tight spacing adjustments (`-0.015em` to `-0.025em`) for a premium Swiss/macOS-style layout.
+   - Apple warm grey background (`#f5f5f7`) overlaying floating, heavily blurred gradient mesh blobs that bleed through card windows.
+   - High-density frosted glass containers (`.glass-panel`) with high-saturation blur (`backdrop-blur-xl saturate(180%)`) and tactile hover lift animations (`translateY(-5px)`).
+3. **Automated Document Exports**:
+   - Generates dynamic ledger listings, category targets, and bill reminders into Microsoft Excel workbooks (`openpyxl`) and alternating-row ReportLab PDFs (`reportlab`).
+4. **Email-to-Ledger Synchronizer (IMAP)**:
+   - Polling engine that scans configured inbox nodes, validates the sender against user accounts, parses transaction fields, and logs items automatically. Sends custom HTML email confirmation receipts.
+5. **Daily Alert Dispatchers (SMTP)**:
+   - Programmatic management commands to compile daily PDF/Excel statements and bill reminders due today and email them directly to users.
+6. **Live Multi-Currency Scaling**:
+   - Scales the value fields of all existing transactions, target category limits, and scheduled bill reminders instantly using live exchange rates.
+
+---
+
 ## 📐 Architecture & Telemetry Flow Diagram
 
 ```mermaid
 graph TD
     User([User's Browser / Device]) -->|HTTP Requests| Shell[Django Command Center]
+    User -->|Consults AI via AJAX| Copilot[Leoxur AI Copilot]
     EmailClient([User's Mail Client]) -->|Sends Transaction Email| Gmail[Gmail / Mail Server]
     
     subgraph "Django App Core (Leoxur Engine)"
         Shell -->|Manages Models| Models[Database Schema Layer]
-        Shell -->|Renders Views| Views[HTML5 / Tailwind Templates]
+        Shell -->|Renders Views| Views[HTML5 / Glassmorphic Templates]
         Shell -->|Visualizes Data| Charts[Chart.js / Analytics Engine]
+        
+        Copilot -->|Regex Command Parse| Models
+        Copilot -->|Spawns Thread| BackgroundSync[Background Sync Thread]
         
         CronReport[send_daily_report Script] -->|SMTP| MailOut[Outbound SMTP Server]
         CronReminders[send_bill_reminders Script] -->|SMTP| MailOut
@@ -69,6 +94,7 @@ graph TD
         
         IMAPParser[fetch_emails Script] -->|IMAP Polling| MailIn[Inbound IMAP Server]
         IMAPParser -->|Parses & Logs| Models
+        BackgroundSync -->|Triggers| IMAPParser
     end
 
     subgraph "Data & Mail Systems"

@@ -32,30 +32,30 @@ class Command(BaseCommand):
             recurrence_str = 'Yes (' + reminder.get_recurrence_period_display() + ')' if reminder.is_recurring else 'No'
 
             content_html = f"""
-            <div style="background-color: #3b82f6; color: #ffffff; padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 600; font-size: 13px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+            <div style="background-color: #a855f7; color: #ffffff; padding: 14px; border-radius: 10px; margin-bottom: 20px; font-weight: 700; font-size: 12px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
                 Scheduled Payment Due Today
             </div>
-            <div style="background-color: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 16px;">
+            <div style="background-color: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e5e5ea; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
                 <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding: 10px 0; font-size: 12px; color: #94a3b8;">Bill Description</td>
-                        <td style="padding: 10px 0; font-size: 12px; color: #ffffff; font-weight: 600; text-align: right;">{reminder.title}</td>
+                    <tr style="border-bottom: 1px solid #e5e5ea;">
+                        <td style="padding: 10px 0; font-size: 12px; color: #8e8e93; font-family: -apple-system, sans-serif;">Bill Description</td>
+                        <td style="padding: 10px 0; font-size: 12px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{reminder.title}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding: 10px 0; font-size: 12px; color: #94a3b8;">Amount Due</td>
-                        <td style="padding: 10px 0; font-size: 12px; color: #ffffff; font-weight: 600; text-align: right;">{currency}{reminder.amount:.2f}</td>
+                    <tr style="border-bottom: 1px solid #e5e5ea;">
+                        <td style="padding: 10px 0; font-size: 12px; color: #8e8e93; font-family: -apple-system, sans-serif;">Amount Due</td>
+                        <td style="padding: 10px 0; font-size: 12px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{currency}{reminder.amount:.2f}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding: 10px 0; font-size: 12px; color: #94a3b8;">Due Date</td>
-                        <td style="padding: 10px 0; font-size: 12px; color: #ffffff; font-weight: 600; text-align: right;">{due_date_str}</td>
+                    <tr style="border-bottom: 1px solid #e5e5ea;">
+                        <td style="padding: 10px 0; font-size: 12px; color: #8e8e93; font-family: -apple-system, sans-serif;">Due Date</td>
+                        <td style="padding: 10px 0; font-size: 12px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{due_date_str}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 10px 0; font-size: 12px; color: #94a3b8;">Recurrence</td>
-                        <td style="padding: 10px 0; font-size: 12px; color: #ffffff; font-weight: 600; text-align: right;">{recurrence_str}</td>
+                        <td style="padding: 10px 0; font-size: 12px; color: #8e8e93; font-family: -apple-system, sans-serif;">Recurrence</td>
+                        <td style="padding: 10px 0; font-size: 12px; color: #1c1c1e; font-weight: 600; text-align: right; font-family: -apple-system, sans-serif;">{recurrence_str}</td>
                     </tr>
                 </table>
             </div>
-            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6; margin-top: 16px;">
+            <p style="font-size: 12px; color: #8e8e93; line-height: 1.6; margin-top: 16px; font-family: -apple-system, sans-serif;">
                 This automated transmission has been dispatched to remind you that your scheduled payment is due today. Please log in to your dashboard to pay the reminder and update your records.
             </p>
             """

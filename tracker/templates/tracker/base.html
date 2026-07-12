@@ -8,7 +8,7 @@
     <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -18,8 +18,8 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', 'sans-serif'],
-                        outfit: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'sans-serif'],
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"Segoe UI"', '"Helvetica Neue"', 'Helvetica', 'Inter', 'sans-serif'],
+                        outfit: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', '"Helvetica Neue"', 'Helvetica', 'Inter', 'sans-serif'],
                     },
                     colors: {
                         space: {
@@ -64,12 +64,15 @@
 
     <style>
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Helvetica, Inter, Arial, sans-serif;
+            letter-spacing: -0.015em;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
         
         .font-outfit {
-            font-family: 'Outfit', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Helvetica, Inter, Arial, sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.025em;
         }
 
         /* Custom Scrollbar */
@@ -94,17 +97,31 @@
         
         /* Glassmorphism Classes */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.65) !important;
+            backdrop-filter: blur(24px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.45) !important;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
         }
         
         .dark .glass-panel {
-            background: rgba(29, 29, 31, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(29, 29, 31, 0.75) !important;
+            backdrop-filter: blur(24px) saturate(180%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
+        }
+
+        .glass-panel:not(.modal-container):hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .dark .glass-panel:not(.modal-container):hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
         }
         
         /* Neon glows */
@@ -120,14 +137,19 @@
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-slate-50 text-slate-800 dark:bg-space-950 dark:text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0">
+<body class="bg-[#f5f5f7] text-slate-800 dark:bg-space-950 dark:text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 relative overflow-x-hidden">
+    <!-- Apple Ambient Blurred Mesh Gradient Blobs -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">
+        <div class="absolute top-[-25%] right-[-15%] w-[65vw] h-[65vw] rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 blur-[130px] dark:from-neon-cyan/10 dark:to-neon-purple/10 opacity-70"></div>
+        <div class="absolute bottom-[-15%] left-[-15%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-neon-purple/15 to-neon-violet/15 blur-[130px] dark:from-neon-purple/8 dark:to-neon-violet/8 opacity-60"></div>
+    </div>
 
     {% if user.is_authenticated %}
     <!-- Main Shell Layout -->
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-screen overflow-hidden relative">
 
         <!-- Desktop Sidebar -->
-        <aside class="hidden md:flex flex-col w-64 bg-slate-100/50 dark:bg-space-900/50 border-r border-slate-200 dark:border-space-800/40 p-5 flex-shrink-0">
+        <aside class="hidden md:flex flex-col w-64 bg-white/40 dark:bg-space-900/40 backdrop-blur-xl border-r border-white/50 dark:border-space-800/40 p-5 flex-shrink-0">
             <!-- Logo / Brand -->
             <div class="flex items-center space-x-3 mb-8 px-2">
                 <div class="relative">
@@ -313,7 +335,7 @@
     </div>
 
     <!-- Mobile Bottom Navigation Bar (Glassmorphic) -->
-    <nav class="md:hidden fixed bottom-4 left-4 right-4 bg-white/70 dark:bg-space-900/70 border border-slate-200 dark:border-space-850 backdrop-blur-lg rounded-2xl py-3 px-6 shadow-lg z-40 flex items-center justify-between">
+    <nav class="md:hidden fixed bottom-4 left-4 right-4 bg-white/45 dark:bg-space-900/45 border border-white/50 dark:border-space-850/40 backdrop-blur-xl rounded-2xl py-3 px-6 shadow-xl z-40 flex items-center justify-between">
         <a href="{% url 'dashboard' %}" class="flex flex-col items-center space-y-1 text-neon-cyan">
             <i data-lucide="layout-dashboard" class="h-5.5 w-5.5"></i>
             <span class="text-[9px] font-bold tracking-wider">DASHBOARD</span>
