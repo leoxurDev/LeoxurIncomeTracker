@@ -1,0 +1,131 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Leoxur Financial Administration{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}" class="apple-admin-brand" title="Leoxur Financial Administration Home">
+    <div class="apple-admin-icon" style="background:linear-gradient(135deg, #0A84FF, #5E5CE6);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+        <path d="M16 3H4a2 2 0 0 0-2 2v2"/>
+        <circle cx="16" cy="14" r="1"/>
+      </svg>
+    </div>
+    <div class="apple-admin-titles">
+      <span class="apple-admin-title">Leoxur</span>
+      <span class="apple-admin-badge">Financial Admin</span>
+    </div>
+  </a>
+</div>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/apple_admin.css' %}">
+<script>
+  (function() {
+    const saved = localStorage.getItem('leoxur_theme') || localStorage.getItem('theme') || 'dark';
+    function resolveTheme(t) {
+      if (t === 'system' || t === 'auto') {
+        return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      return (t === 'dark') ? 'dark' : 'light';
+    }
+    const eff = resolveTheme(saved);
+    document.documentElement.setAttribute('data-theme', eff);
+    document.documentElement.dataset.theme = eff;
+  })();
+</script>
+{% endblock %}
+
+{% block userlinks %}
+  <div class="apple-admin-userlinks">
+    <!-- Server Time & Timezone Badge -->
+    <div class="admin-clock-pill" id="adminLiveClockPill" title="Server Synchronized Time">
+      <span class="clock-dot"></span>
+      <span id="adminLiveClockText">--:--:--</span>
+    </div>
+
+    <!-- Theme Toggle (Apple Dynamic Sun/Moon) -->
+    <button id="adminThemeToggleBtn" type="button" class="admin-theme-btn" title="Switch Appearance (Light / Dark)" aria-label="Toggle Appearance">
+      <span class="admin-theme-icon" id="adminThemeIconSlot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        </svg>
+      </span>
+    </button>
+
+    <!-- Main Leoxur App Link -->
+    <a href="{% url 'dashboard' %}" class="admin-app-link" title="Open Leoxur Financial Telemetry">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+        <polyline points="15 3 21 3 21 9"/>
+        <line x1="10" y1="14" x2="21" y2="3"/>
+      </svg>
+      <span>Leoxur App</span>
+    </a>
+
+    <!-- User Identity Chip -->
+    <div class="admin-user-identity" title="Active Superuser">
+      <span class="admin-user-avatar">{{ user.get_username|slice:":1"|upper }}</span>
+      <span class="admin-user-pill">{{ user.get_username }}</span>
+    </div>
+
+    {% if user.has_usable_password %}
+      <a href="{% url 'admin:password_change' %}" class="admin-action-link" title="Change Account Password">Password</a>
+    {% endif %}
+
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display:inline-flex; margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="admin-logout-btn" title="Sign Out of Administration">Sign Out</button>
+    </form>
+  </div>
+
+  <script>
+    (function() {
+      const moonSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+      const sunSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+
+      function updateThemeUi(effectiveTheme) {
+        document.documentElement.setAttribute('data-theme', effectiveTheme);
+        document.documentElement.dataset.theme = effectiveTheme;
+        if (document.body) document.body.setAttribute('data-theme', effectiveTheme);
+        const iconSlot = document.getElementById('adminThemeIconSlot');
+        if (iconSlot) iconSlot.innerHTML = (effectiveTheme === 'dark') ? sunSvg : moonSvg;
+      }
+
+      function applyTheme(themeName) {
+        let eff = themeName;
+        if (themeName === 'system' || themeName === 'auto') {
+          eff = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        updateThemeUi(eff);
+        localStorage.setItem('leoxur_theme', eff);
+        return eff;
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const currentSaved = localStorage.getItem('leoxur_theme') || 'dark';
+        applyTheme(currentSaved);
+
+        const btn = document.getElementById('adminThemeToggleBtn');
+        if (btn) {
+          btn.addEventListener('click', function() {
+            const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+            applyTheme(cur === 'dark' ? 'light' : 'dark');
+          });
+        }
+
+        function updateAdminClock() {
+          const clockEl = document.getElementById('adminLiveClockText');
+          if (!clockEl) return;
+          clockEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        updateAdminClock();
+        setInterval(updateAdminClock, 1000);
+      });
+    })();
+  </script>
+{% endblock %}

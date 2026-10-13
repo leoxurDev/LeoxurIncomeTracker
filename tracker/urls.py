@@ -19,6 +19,10 @@ urlpatterns = [
     path('settings/test-alert/', views.test_email_alert, name='test_email_alert'),
     path('settings/test-reminder/', views.test_email_reminder, name='test_email_reminder'),
     path('settings/sync-now/', views.sync_emails_now, name='sync_emails_now'),
+    path('settings/update-ai/', views.update_ai_settings, name='update_ai_settings'),
+    path('settings/test-smtp/', views.test_smtp_settings, name='test_smtp_settings'),
+    path('settings/test-imap/', views.test_imap_settings, name='test_imap_settings'),
+    path('settings/test-ai/', views.test_ai_settings, name='test_ai_settings'),
     
     # Transaction Management
     path('transaction/add/', views.add_transaction, name='add_transaction'),
@@ -43,10 +47,13 @@ urlpatterns = [
     path('export/csv/', views.export_csv_view, name='export_csv'),
     path('export/excel/', views.export_excel_view, name='export_excel'),
     path('export/pdf/', views.export_pdf_view, name='export_pdf'),
+    path('export-pdf/', views.export_pdf_view, name='export_pdf_alias'),
+    path('export-excel/', views.export_excel_view, name='export_excel_alias'),
     path('export/download-template/', views.download_template, name='download_template'),
     path('export/import-transactions/', views.import_transactions, name='import_transactions'),
     
     # API for Analytics Charts and Savings Analyst
     path('api/analytics-data/', views.analytics_data_api, name='analytics_data'),
     path('api/savings-analyst/', views.savings_analyst_chat, name='savings_analyst_chat'),
+    path('api/reminders/check/', views.reminders_check_api, name='reminders_check_api'),
 ]

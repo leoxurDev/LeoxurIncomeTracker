@@ -45,28 +45,40 @@ Displays upcoming bill payments. Click **"Settle"** next to any due reminder to 
 ---
 
 ## 🤖 Leoxur AI Copilot Manual
-The **Leoxur AI Copilot** is your virtual financial manager. You can access it via the trigger bubble at the bottom-right corner of the screen or by clicking **"Open Savings Copilot"** in the left sidebar.
+The **Leoxur AI Copilot** is your virtual financial manager. You can access it via the trigger bubble at the bottom-right corner of the screen or by clicking **"Copilot"** in the top navigation or bottom tab bar.
 
-### UI Controls
-- **Maximize Button (expand icon)**: Expands the chatbot panel into a full-screen console for heavy analysis.
-- **Minimize Button (minus icon)**: Slides the chatbot window back down into the trigger bubble.
-- **Clear Button (trash icon)**: Resets the chat logs.
-- **Enter Key Submission**: Simply type your query and press **Enter** to talk to the Copilot.
+### UI Controls & Ergonomics
+- **Apple Intelligence Welcome Card**: Features 4 instant one-tap quick action cards (`Email Report`, `50/30/20 Audit`, `Budget Caps`, `Sync Mail`).
+- **+ New Chat**: Instantly starts a fresh conversation thread with clean context.
+- **🕒 Chat History Drawer**: Access, switch between, and delete past conversations. All sessions are saved automatically.
+- **Full-Width Ergonomic Input**: A rounded pill input with a circular Apple-blue send button.
+- **Markdown & Code Rendering**: Mathematical operations, financial breakdowns, and markdown formatting are rendered with clean typography.
+- **In-Chat Report Buttons**: When requesting email statements, the assistant provides immediate in-chat download links:
+  - `📄 Open PDF Statement` (with ReportLab Pie Chart)
+  - `📊 Open Excel Spreadsheet` (with multi-sheet inflows/outflows)
+- **Maximize Button (⤢)**: Expands the Copilot window into a wide, focused desktop console.
+- **Minimize Button (–)**: Folds the window down smoothly.
+- **Close Button (✕)**: Closes the drawer.
 
 ### Natural Language Command Cheat Sheet
 Simply text the following commands to log transactions, target budgets, and query stats:
 
 | Action / Goal | Command Format | Example |
 | :--- | :--- | :--- |
+| **Email PDF & Excel Report** | `send [month] report to my email` | `send oct report to my mail with spreadsheet and pdf` |
+| **50/30/20 Cashflow Diagnostic** | `cashflow audit` or `give suggestions` | `Cashflow diagnostic` |
 | **Log Expense** | `add expense [amount] [Category] desc [description]` | `add expense 45 Food desc dinner at diner` |
+| **Log Multiple Expenses** | `spent [amount] on [category], [amount] on [category]...` | `spent 50 on food, 20 on fuel, and 100 on groceries` |
 | **Log Income** | `add income [amount] [Category] desc [description]` | `add income 3000 Salary desc salary payment` |
+| **Delete Transaction** | `delete last transaction` or `delete [amount] [category]` | `delete last transaction` |
 | **Set Budget Limit** | `set [Category] budget to [amount]` | `set Food budget to 350` |
-| **Schedule Bill Alert**| `remind me to pay [title] [amount] on [YYYY-MM-DD]` | `remind me to pay internet bill 60 on 2026-08-01` |
+| **Schedule Bill Alert**| `remind me to pay [title] [amount] on [YYYY-MM-DD]` | `remind me to pay internet bill 60 on 2026-11-01` |
+| **Settle Bill** | `mark [title] as paid` | `mark internet bill as paid` |
 | **Verify Budget Health**| `check budgets` | `check budgets` |
-| **Search Transaction Ledger**| `find [category/keyword]` | `find rent` |
-| **Forecast Savings** | `predict savings` or `forecast` | `predict savings` |
+| **Switch Theme** | `switch to dark mode` or `switch to light mode` | `switch to dark mode` |
+| **Convert Currency** | `change currency to [symbol] with rate [rate]` | `change currency to ₹ with conversion rate 84.5` |
 | **Scan Email Transactions**| `sync emails` or `fetch transactions` | `sync emails` |
-| **Command Help Menu** | `help` | `help` |
+| **Configure AI Key** | `set gemini api key to [KEY]` | `set gemini api key to AIzaSy...` |
 
 ---
 

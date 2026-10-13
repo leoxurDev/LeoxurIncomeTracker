@@ -31,6 +31,53 @@ class Profile(models.Model):
     imap_user = models.CharField(max_length=150, blank=True)
     imap_password = models.CharField(max_length=150, blank=True)
     auto_fetch_emails = models.BooleanField(default=True)
+    # AI Copilot & Agent Configurations
+    AI_MODE_CHOICES = [
+        ('cloud', 'Cloud AI (LLM / Agent Mode)'),
+        ('local', 'Local Engine (Deterministic & Offline)'),
+    ]
+    AI_PROVIDER_CHOICES = [
+        ('gemini', 'Google Gemini AI'),
+        ('groq', 'Groq (Ultra-Fast Llama 3)'),
+        ('openai', 'OpenAI (ChatGPT / GPT-4o)'),
+        ('anthropic', 'Anthropic Claude'),
+        ('openrouter', 'OpenRouter'),
+        ('custom', 'Custom OpenAI-Compatible API'),
+    ]
+    ai_mode = models.CharField(max_length=20, choices=AI_MODE_CHOICES, default='cloud')
+    ai_provider = models.CharField(max_length=30, choices=AI_PROVIDER_CHOICES, default='gemini')
+    ai_api_key = models.CharField(max_length=255, blank=True, default='')
+    gemini_api_key = models.CharField(max_length=255, blank=True, default='')
+    ai_model = models.CharField(max_length=100, blank=True, default='')
+    ai_custom_endpoint = models.CharField(max_length=255, blank=True, default='')
+
+    def get_saved_ai_key(self):
+        return (self.ai_api_key.strip() or self.gemini_api_key.strip())
+
+    def get_active_ai_key(self):
+        if getattr(self, 'ai_mode', 'cloud') == 'local':
+            return ''
+        return self.get_saved_ai_key()
+
+    def get_effective_ai_model(self):
+        if self.ai_model and self.ai_model.strip():
+            m = self.ai_model.strip()
+            # Automatically upgrade deprecated Gemini model names
+            if m not in ('gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'):
+                return m
+        defaults = {
+            'gemini': 'gemini-3.5-flash-lite',
+            'groq': 'llama-3.3-70b-versatile',
+            'openai': 'gpt-4o-mini',
+            'anthropic': 'claude-3-5-sonnet-20241022',
+            'openrouter': 'google/gemini-2.0-flash-exp:free',
+            'custom': 'default',
+        }
+        return defaults.get(self.ai_provider, 'gemini-3.5-flash-lite')
+
+    def get_ai_provider_display_name(self):
+        return dict(self.AI_PROVIDER_CHOICES).get(self.ai_provider, self.ai_provider.title())
+
     
     def __str__(self):
         return f"{self.user.username}'s Profile"

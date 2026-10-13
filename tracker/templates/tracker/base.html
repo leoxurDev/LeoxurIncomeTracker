@@ -1,55 +1,61 @@
+{% load static %}
+{% load apple_icons %}
 <!DOCTYPE html>
-<html lang="en" class="{% if profile.theme == 'dark' or not user.is_authenticated %}dark{% endif %}">
+<html lang="en" data-theme="{{ profile.theme|default:'dark' }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Leoxur Tracker{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}Leoxur // Financial Telemetry & AI Agent{% endblock %}</title>
     
-    <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+    <!-- Google Fonts: Inter, Outfit, Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS Play CDN -->
+    <!-- Apple iOS Standard Theme CSS (from Habit Tracker) -->
+    <link rel="stylesheet" href="{% static 'css/ios_theme.css' %}">
+    
+    <!-- Tailwind CSS Play CDN for utility support -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
+            darkMode: ['class', '[data-theme="dark"]'],
             theme: {
                 extend: {
                     fontFamily: {
                         sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"Segoe UI"', '"Helvetica Neue"', 'Helvetica', 'Inter', 'sans-serif'],
-                        outfit: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', '"Segoe UI"', '"Helvetica Neue"', 'Helvetica', 'Inter', 'sans-serif'],
+                        outfit: ['Outfit', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', 'sans-serif'],
                     },
                     colors: {
+                        apple: {
+                            blue: '#0071E3',
+                            green: '#34C759',
+                            indigo: '#5856D6',
+                            orange: '#FF9500',
+                            red: '#FF3B30',
+                            purple: '#AF52DE',
+                        },
                         space: {
-                            50: '#f5f5f7', // Apple Light Gray
-                            100: '#e8e8ed', // Apple Borders Gray
+                            50: '#f5f5f7',
+                            100: '#e8e8ed',
                             200: '#d2d2d7',
-                            300: '#86868b', // Apple Neutral Gray
+                            300: '#86868b',
                             400: '#6e6e73',
                             500: '#424245',
                             600: '#333336',
-                            700: '#1d1d1f', // Apple Space Gray Panel
-                            800: '#2d2d30', // Apple Border Dark Gray
-                            850: '#252528', // Apple Medium Dark Gray
-                            900: '#1c1c1e', // Apple iOS dark plate
-                            950: '#161617', // Apple macOS obsidian black background
+                            700: '#1d1d1f',
+                            800: '#2d2d30',
+                            850: '#252528',
+                            900: '#1c1c1e',
+                            950: '#141416',
                         },
                         neon: {
-                            cyan: '#007aff',   // Apple Blue
-                            purple: '#af52de', // Apple Purple
-                            violet: '#5856d6', // Apple Indigo
-                            rose: '#ff3b30',   // Apple Red
-                            green: '#34c759',  // Apple Green
+                            cyan: '#007aff',
+                            purple: '#af52de',
+                            violet: '#5856d6',
+                            rose: '#ff3b30',
+                            green: '#34c759',
                         }
-                    },
-                    boxShadow: {
-                        'neon-cyan': '0 4px 14px 0 rgba(0, 122, 255, 0.2)',
-                        'neon-purple': '0 4px 14px 0 rgba(175, 82, 222, 0.2)',
-                        'neon-violet': '0 4px 14px 0 rgba(88, 86, 214, 0.2)',
-                        'glass-dark': '0 8px 30px 0 rgba(0, 0, 0, 0.25)',
-                        'glass-light': '0 8px 30px 0 rgba(0, 0, 0, 0.04)',
                     }
                 }
             }
@@ -58,826 +64,1914 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Helvetica Neue", Helvetica, Inter, Arial, sans-serif;
-            letter-spacing: -0.015em;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        .font-outfit {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Helvetica, Inter, Arial, sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
-        }
-        .dark ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 240, 255, 0.4);
-        }
-        
-        /* Glassmorphism Classes */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.65) !important;
-            backdrop-filter: blur(24px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.45) !important;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
-        }
-        
-        .dark .glass-panel {
-            background: rgba(29, 29, 31, 0.75) !important;
-            backdrop-filter: blur(24px) saturate(180%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease !important;
-        }
-
-        .glass-panel:not(.modal-container):hover {
-            transform: translateY(-5px) !important;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08) !important;
-            border-color: rgba(255, 255, 255, 0.7) !important;
-        }
-
-        .dark .glass-panel:not(.modal-container):hover {
-            transform: translateY(-5px) !important;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.3) !important;
-            border-color: rgba(255, 255, 255, 0.15) !important;
-        }
-        
-        /* Neon glows */
-        .glow-cyan:hover {
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
-            border-color: rgba(0, 240, 255, 0.8);
-        }
-        
-        .glow-purple:hover {
-            box-shadow: 0 0 20px rgba(219, 70, 239, 0.6);
-            border-color: rgba(219, 70, 239, 0.8);
-        }
-    </style>
+    
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#f5f5f7] text-slate-800 dark:bg-space-950 dark:text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 relative overflow-x-hidden">
-    <!-- Apple Ambient Blurred Mesh Gradient Blobs -->
-    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">
-        <div class="absolute top-[-25%] right-[-15%] w-[65vw] h-[65vw] rounded-full bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 blur-[130px] dark:from-neon-cyan/10 dark:to-neon-purple/10 opacity-70"></div>
-        <div class="absolute bottom-[-15%] left-[-15%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-neon-purple/15 to-neon-violet/15 blur-[130px] dark:from-neon-purple/8 dark:to-neon-violet/8 opacity-60"></div>
+
+<body>
+    <!-- Apple Ambient background lighting orbs -->
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
     </div>
 
-    {% if user.is_authenticated %}
-    <!-- Main Shell Layout -->
-    <div class="flex h-screen overflow-hidden relative">
-
-        <!-- Desktop Sidebar -->
-        <aside class="hidden md:flex flex-col w-64 bg-white/40 dark:bg-space-900/40 backdrop-blur-xl border-r border-white/50 dark:border-space-800/40 p-5 flex-shrink-0">
-            <!-- Logo / Brand -->
-            <div class="flex items-center space-x-3 mb-8 px-2">
-                <div class="relative">
-                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-neon-purple rounded-lg blur opacity-70 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                    <div class="relative bg-white dark:bg-space-950 p-2 rounded-lg border border-slate-200 dark:border-space-850">
-                        <i data-lucide="orbit" class="h-6 w-6 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
+    <div class="ios-app-container">
+        {% if user.is_authenticated %}
+        <!-- Navigation Bar — Apple macOS / iOS Executive Floating Glass Bar -->
+        <header class="ios-nav">
+            <div class="nav-left">
+                <a href="{% url 'dashboard' %}" class="nav-brand" title="Leoxur — Financial Telemetry">
+                    <div class="brand-icon">
+                        {% sf_icon "wallet" "sf-icon-brand" %}
                     </div>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-semibold">Financial Core</p>
-                </div>
+                    <div class="brand-info">
+                        <span class="brand-title">Leoxur</span>
+                        <span class="brand-badge">FIN</span>
+                    </div>
+                </a>
             </div>
 
-            <!-- Sidebar Navigation Links -->
-            <nav class="flex-1 space-y-2 px-1">
-                <a href="{% url 'dashboard' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition duration-200 bg-gradient-to-r from-slate-200 to-slate-200/50 dark:from-space-800/40 dark:to-transparent border-l-4 border-neon-cyan text-slate-900 dark:text-white font-semibold">
-                    <i data-lucide="layout-dashboard" class="h-5 w-5 text-neon-cyan"></i>
-                    <span>Dashboard</span>
-                </a>
-                
-                <!-- Quick triggers for dashboard actions -->
-                <button onclick="openModal('transactionModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    <i data-lucide="plus-circle" class="h-5 w-5 text-slate-400 dark:text-slate-500 group-hover:text-neon-cyan"></i>
-                    <span>Log Outflow / In</span>
+            <nav class="nav-center-links" aria-label="Primary Navigation">
+                <button type="button" class="nav-segment-btn active" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
+                    {% sf_icon "clock" "sf-icon-xs" %}
+                    <span>Today</span>
                 </button>
-                
-                <button onclick="openBudgetModal('Total')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    <i data-lucide="sliders" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
-                    <span>Set Target Budgets</span>
+                <button type="button" class="nav-segment-btn" data-nav="ledger" onclick="smoothNavigateTo('ledgerSection', 'ledger', event)">
+                    {% sf_icon "list" "sf-icon-xs" %}
+                    <span>Ledger</span>
                 </button>
-
-                <button onclick="openModal('reminderModal')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-200/50 dark:hover:bg-space-800/30 transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    <i data-lucide="bell-ring" class="h-5 w-5 text-slate-400 dark:text-slate-500"></i>
-                    <span>Add Bill Reminder</span>
+                <button type="button" class="nav-segment-btn" data-nav="budgets" onclick="smoothNavigateTo('budgetsSection', 'budgets', event)">
+                    {% sf_icon "target" "sf-icon-xs" %}
+                    <span>Budgets</span>
+                </button>
+                <button type="button" class="nav-segment-btn" data-nav="bills" onclick="smoothNavigateTo('remindersSection', 'bills', event)">
+                    {% sf_icon "bell" "sf-icon-xs" %}
+                    <span>Bills</span>
+                </button>
+                <button type="button" class="nav-segment-btn" data-nav="analytics" onclick="smoothNavigateTo('analyticsSection', 'analytics', event)">
+                    {% sf_icon "analytics" "sf-icon-xs" %}
+                    <span>Analytics</span>
                 </button>
             </nav>
 
-            <!-- User footer / Quick settings info -->
-            <div class="mt-auto border-t border-slate-200 dark:border-space-800/40 pt-4 px-2">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-neon-cyan to-neon-purple p-[2px]">
-                            <div class="w-full h-full rounded-full bg-white dark:bg-space-950 flex items-center justify-center font-bold text-slate-800 dark:text-white font-outfit uppercase">
-                                {{ user.username|slice:":2" }}
+            <div class="nav-actions">
+                <!-- Live System Clock Pill (Interactive) -->
+                <button id="topBarLiveClock" class="topbar-live-clock" type="button" onclick="openClockModal()" title="System Clock & Realtime Telemetry">
+                    <span class="live-clock-dot"></span>
+                    <span id="topBarClockText">--:--:--</span>
+                </button>
+
+                <!-- Version Pill (Interactive) -->
+                <button id="versionHelpBtn" class="version-help-badge" type="button" onclick="openVersionModal()" title="Version v2.5.0 • System Specs & Telemetry Node">
+                    <span class="version-text">v2.5.0</span>
+                    <span class="version-qmark" aria-hidden="true">?</span>
+                </button>
+
+                <!-- Currency Selector Pill (Interactive Button) -->
+                <button id="currencyPillBtn" class="currency-pill-capsule" type="button" onclick="openCurrencyModal()" title="Currency Switcher & FX Conversion" style="background:var(--bg-subtle); border:1px solid var(--border-hairline); border-radius:var(--radius-full); padding:4px 12px; display:inline-flex; align-items:center; gap:5px; cursor:pointer; transition:all 0.15s ease;">
+                    <span style="font-size:12px; font-weight:800; color:var(--apple-blue);">{{ profile.currency|default:'$' }}</span>
+                    <span style="font-size:11px; font-weight:700; color:var(--text-primary); text-transform:uppercase;">
+                        {% if profile.currency == '$' %}USD
+                        {% elif profile.currency == '€' %}EUR
+                        {% elif profile.currency == '₹' %}INR
+                        {% elif profile.currency == '£' %}GBP
+                        {% else %}FX{% endif %}
+                    </span>
+                    {% sf_icon "chevron_down" "sf-icon-xs" %}
+                </button>
+
+                <!-- Telemetry Alerts Bell -->
+                <button onclick="toggleAlertsDropdown(event)" class="ios-toolbar-btn" id="alerts-bell-btn" type="button" title="Telemetry Alerts" style="position:relative;">
+                    {% sf_icon "bell" "sf-icon-sm" %}
+                    {% if alerts %}
+                    <span style="position:absolute; top:2px; right:2px; width:14px; height:14px; border-radius:50%; background:var(--apple-red); color:white; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center;">{{ alerts|length }}</span>
+                    {% endif %}
+                </button>
+
+                <!-- Dropdown Menu for Alerts -->
+                <div id="alerts-dropdown" class="apple-account-popover" style="display:none; width:300px; right:120px; top:54px; z-index:99999;">
+                    <div style="padding:10px 14px; border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Telemetry Alerts</span>
+                        {% if alerts %}<span style="font-size:10px; font-weight:600; color:var(--apple-red);">{{ alerts|length }} Active</span>{% endif %}
+                    </div>
+                    <div style="max-height:220px; overflow-y:auto; padding:8px;">
+                        {% for alert in alerts %}
+                        <div style="padding:8px 10px; border-radius:8px; margin-bottom:6px; font-size:11px; background:var(--bg-subtle); display:flex; gap:8px;">
+                            <span style="color:var(--apple-red); font-weight:700;">●</span>
+                            <span>{{ alert.message }}</span>
+                        </div>
+                        {% empty %}
+                        <div style="padding:16px; text-align:center; color:var(--text-tertiary); font-size:12px;">All telemetries normal</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Leoxur AI Copilot Trigger -->
+                <button id="topBarAiBtn" class="ios-toolbar-btn apple-ai-toolbar-btn" type="button" title="Leoxur AI Copilot" aria-label="Leoxur AI Copilot">
+                    {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+                </button>
+
+                <!-- Appearance Toggle (Dark / Light) -->
+                <button id="themeToggleBtn" class="ios-toolbar-btn" type="button" title="Toggle Appearance" aria-label="Toggle Appearance">
+                    <span class="theme-icon-slot">{% sf_icon "theme" "sf-icon-sm" %}</span>
+                </button>
+
+                <!-- Apple Account Profile Menu Capsule -->
+                <div class="apple-account-menu-wrapper" style="position:relative;">
+                    <button id="accountMenuBtn" class="apple-account-chip" type="button" aria-haspopup="true" aria-expanded="false" title="Account & Preferences">
+                        <span class="account-avatar-ring" style="background:var(--apple-blue);">
+                            {{ user.username|slice:":1"|upper }}
+                        </span>
+                        <span class="account-name">{{ user.username }}</span>
+                        <span class="account-chevron">{% sf_icon "chevron_down" "sf-icon-xs" %}</span>
+                    </button>
+
+                    <!-- Popover Menu Sheet -->
+                    <div id="accountPopover" class="apple-account-popover" hidden style="z-index:999999;">
+                        <div class="popover-profile-header">
+                            <div class="popover-avatar-lg" style="background:var(--apple-blue);">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="popover-profile-meta">
+                                <span class="popover-name">{{ user.username }}</span>
+                                <span class="popover-subtitle">Portfolio Node</span>
                             </div>
                         </div>
-                        <div>
-                            <div class="text-sm font-semibold text-slate-700 dark:text-slate-300 font-outfit leading-tight">{{ user.username }}</div>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500">Active Node</div>
+                        <div class="popover-menu-list">
+                            <a href="javascript:void(0)" onclick="openSettingsModal('ai')" class="popover-menu-item">
+                                {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+                                <span>AI Agent Settings</span>
+                            </a>
+                            <a href="javascript:void(0)" onclick="openSettingsModal('email')" class="popover-menu-item">
+                                {% sf_icon "envelope" "sf-icon-sm" %}
+                                <span>Email Node (IMAP & SMTP)</span>
+                            </a>
+                            <a href="javascript:void(0)" onclick="toggleCustomizationMode()" class="popover-menu-item">
+                                {% sf_icon "sliders" "sf-icon-sm" %}
+                                <span>Customize Dashboard Layout</span>
+                            </a>
+                            <a href="{% url 'sync_emails_now' %}" class="popover-menu-item">
+                                {% sf_icon "bolt" "sf-icon-sm" %}
+                                <span>Sync Mailbox Now</span>
+                            </a>
+                            <div class="popover-separator"></div>
+                            <a href="{% url 'logout' %}" class="popover-menu-item popover-item-logout">
+                                {% sf_icon "signout" "sf-icon-sm" %}
+                                <span>Sign Out</span>
+                            </a>
                         </div>
                     </div>
-                    <button onclick="openModal('emailSettingsModal')" class="text-slate-400 hover:text-neon-cyan transition p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-space-850/50" title="Email Settings Integration">
-                        <i data-lucide="settings" class="h-4.5 w-4.5"></i>
-                    </button>
                 </div>
-                
-                <a href="{% url 'logout' %}" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-500/10 transition text-xs font-semibold">
-                    <i data-lucide="log-out" class="h-4 w-4"></i>
-                    <span>Terminate Session</span>
+
+                <!-- Quick Sign Out -->
+                <a href="{% url 'logout' %}" class="ios-toolbar-btn ios-signout-btn" title="Sign Out" aria-label="Sign Out">
+                    {% sf_icon "signout" "sf-icon-sm" %}
                 </a>
             </div>
-        </aside>
+        </header>
+        {% endif %}
 
-        <!-- Main Workspace Area -->
-        <main class="flex-1 flex flex-col overflow-y-auto">
-            
-            <!-- Global Top Bar -->
-            <header class="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-slate-200 dark:border-space-800/40 bg-white/40 dark:bg-space-950/20 backdrop-blur-md z-10 sticky top-0">
-                <div class="flex items-center space-x-1.5 md:hidden">
-                    <i data-lucide="orbit" class="h-5 w-5 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
-                    <h1 class="text-base sm:text-lg font-bold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
+        <!-- Apple Dynamic Notification Banners -->
+        {% if messages %}
+        <div id="messagesContainer" style="padding:12px 24px;">
+            {% for message in messages %}
+            <div class="ios-banner-alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="color:{% if message.tags == 'error' %}var(--apple-red){% else %}var(--apple-green){% endif %};">
+                        {% if message.tags == 'error' %}{% sf_icon "xmark" "sf-icon-sm" %}{% else %}{% sf_icon "checkmark" "sf-icon-sm" %}{% endif %}
+                    </span>
+                    <span>{{ message }}</span>
                 </div>
-                <div class="hidden md:block">
-                    <h2 class="text-lg font-bold font-outfit text-slate-800 dark:text-white">COMMAND CENTER</h2>
-                    <p class="text-xs text-slate-500">Node sync: <span class="text-neon-cyan font-mono font-semibold">ESTABLISHED</span></p>
-                </div>
-                
-                <!-- Quick Settings Actions -->
-                <div class="flex items-center space-x-2 md:space-x-4">
-                    <!-- Global Currency Selector -->
-                    <div class="relative flex items-center">
-                        <select name="currency" onchange="promptCurrencyConversion(this);" class="bg-transparent border-0 p-0 text-xs font-extrabold focus:outline-none focus:ring-0 appearance-none pr-4 cursor-pointer text-slate-800 dark:text-slate-200 font-outfit uppercase tracking-wider">
-                            <option value="$" {% if profile.currency == '$' %}selected{% endif %}>USD ($)</option>
-                            <option value="€" {% if profile.currency == '€' %}selected{% endif %}>EUR (€)</option>
-                            <option value="₹" {% if profile.currency == '₹' %}selected{% endif %}>INR (₹)</option>
-                            <option value="£" {% if profile.currency == '£' %}selected{% endif %}>GBP (£)</option>
-                        </select>
-                        <i data-lucide="chevron-down" class="h-3 w-3 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-300"></i>
-                    </div>
-
-                    <!-- Telemetry Alerts Bell -->
-                    <div class="relative flex items-center">
-                        <button onclick="toggleAlertsDropdown(event)" class="bg-slate-200/50 dark:bg-space-850 hover:bg-slate-200 dark:hover:bg-space-800 border border-slate-300 dark:border-space-700/60 p-2 rounded-xl text-slate-600 dark:text-slate-300 transition duration-300 relative group" id="alerts-bell-btn" title="System Warnings">
-                            <div class="absolute -inset-0.5 bg-gradient-to-r from-neon-purple to-neon-rose rounded-xl opacity-0 group-hover:opacity-30 blur transition"></div>
-                            <i data-lucide="bell" class="h-4.5 w-4.5 text-slate-700 dark:text-slate-200 group-hover:text-neon-rose transition"></i>
-                            {% if alerts %}
-                            <span style="width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; line-height: 1;" class="absolute -top-1.5 -right-1.5 rounded-full bg-[#ff3b30] text-[8px] font-extrabold text-white ring-2 ring-white dark:ring-space-950 shadow-[0_1px_4px_rgba(255,59,48,0.4)] animate-pulse">
-                                {{ alerts|length }}
-                            </span>
-                            {% endif %}
-                        </button>
-                        
-                        <!-- Dropdown Menu -->
-                        <div id="alerts-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white/95 dark:bg-space-950/90 backdrop-blur-xl border border-slate-200 dark:border-space-800/80 rounded-2xl p-4 shadow-2xl z-50 transform origin-top-right transition-all duration-200 scale-95 opacity-0">
-                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200 dark:border-space-850">
-                                <span class="text-[10px] font-extrabold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Telemetry Alerts</span>
-                                {% if alerts %}
-                                <span class="text-[9px] font-bold text-[#ff3b30] bg-red-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">{{ alerts|length }} Active</span>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                                {% for alert in alerts %}
-                                <div class="p-3 rounded-xl flex items-start space-x-2.5 border text-xs leading-normal font-semibold transition {% if alert.type == 'danger' %}bg-red-500/5 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400{% else %}bg-amber-500/5 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400{% endif %}">
-                                    {% if alert.type == 'danger' %}
-                                    <i data-lucide="shield-alert" class="h-4 w-4 flex-shrink-0 mt-0.5 text-red-600 dark:text-red-500 animate-bounce"></i>
-                                    {% else %}
-                                    <i data-lucide="info" class="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-500"></i>
-                                    {% endif %}
-                                    <div class="flex-1">
-                                        <span class="text-[8px] font-extrabold uppercase tracking-widest block text-slate-500 dark:text-slate-400 opacity-80 mb-0.5">Telemetry Alert</span>
-                                        <span>{{ alert.message }}</span>
-                                    </div>
-                                </div>
-                                {% empty %}
-                                <div class="py-6 text-center text-slate-400 dark:text-slate-500 text-xs">
-                                    <i data-lucide="bell-off" class="h-8 w-8 mx-auto mb-2 opacity-40"></i>
-                                    <span>No active budget alerts.</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Apple Ecosystem-inspired Segmented Theme Selector -->
-                    <div class="flex items-center bg-slate-200/60 dark:bg-space-900 border border-slate-300 dark:border-space-850 p-[3px] rounded-xl backdrop-blur-md shadow-inner relative select-none">
-                        <!-- Light Theme Tab -->
-                        <button id="theme-btn-light" onclick="toggleThemeTo('light')" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200" title="Light Mode">
-                            <i data-lucide="sun" class="h-4 w-4"></i>
-                        </button>
-                        <!-- Dark Theme Tab -->
-                        <button id="theme-btn-dark" onclick="toggleThemeTo('dark')" class="flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200" title="Dark Mode">
-                            <i data-lucide="moon" class="h-4 w-4"></i>
-                        </button>
-                    </div>
-                    
-                    <a href="{% url 'logout' %}" class="md:hidden bg-red-500/10 border border-red-500/20 p-2 rounded-xl text-red-500" title="Logout">
-                        <i data-lucide="log-out" class="h-4.5 w-4.5"></i>
-                    </a>
-                </div>
-            </header>
-
-            <!-- Alert Toast Messages -->
-            {% if messages %}
-            <div class="fixed top-20 right-6 z-50 flex flex-col space-y-3 pointer-events-none">
-                {% for message in messages %}
-                <div class="toast-notification flex items-center space-x-3 px-4 py-3 rounded-xl border glass-panel shadow-lg pointer-events-auto transform translate-y-0 opacity-100 transition-all duration-300 {% if message.tags == 'error' %}border-red-500/30 text-red-500{% else %}border-emerald-500/30 text-emerald-500{% endif %}" style="animation: slideIn 0.3s ease;">
-                    {% if message.tags == 'error' %}
-                    <i data-lucide="alert-octagon" class="h-5 w-5"></i>
-                    {% else %}
-                    <i data-lucide="check-circle-2" class="h-5 w-5"></i>
-                    {% endif %}
-                    <span class="text-sm font-semibold">{{ message }}</span>
-                    <button onclick="dismissToast(this.parentElement)" class="text-slate-400 hover:text-slate-200 transition pl-2">
-                        <i data-lucide="x" class="h-4 w-4"></i>
-                    </button>
-                </div>
-                {% endfor %}
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:var(--text-tertiary); cursor:pointer;">
+                    {% sf_icon "xmark" "sf-icon-xs" %}
+                </button>
             </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Main Content -->
+        <main style="padding:20px 24px 60px 24px; min-height:80vh;">
+            {% if user.is_authenticated %}
+                {% block content %}{% endblock %}
+            {% else %}
+                {% block auth_content %}{% endblock %}
             {% endif %}
-
-            <!-- Core App View Area -->
-            <div class="flex-1 p-4 md:p-6 overflow-x-hidden flex flex-col justify-between">
-                <div class="flex-1">
-                    {% block content %}{% endblock %}
-                </div>
-                <footer class="mt-8 pt-4 border-t border-slate-200/60 dark:border-space-850/60 text-center text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-widest uppercase font-outfit">
-                    &copy; {% now "Y" %} Leoxur Inc. All Rights Reserved.
-                </footer>
-            </div>
         </main>
     </div>
 
-    <!-- Mobile Bottom Navigation Bar (Glassmorphic) -->
-    <nav class="md:hidden fixed bottom-4 left-4 right-4 bg-white/45 dark:bg-space-900/45 border border-white/50 dark:border-space-850/40 backdrop-blur-xl rounded-2xl py-3 px-6 shadow-xl z-40 flex items-center justify-between">
-        <a href="{% url 'dashboard' %}" class="flex flex-col items-center space-y-1 text-neon-cyan">
-            <i data-lucide="layout-dashboard" class="h-5.5 w-5.5"></i>
-            <span class="text-[9px] font-bold tracking-wider">DASHBOARD</span>
+    {% if user.is_authenticated %}
+    <!-- Mobile Bottom Tab Bar -->
+    <div class="ios-tab-bar">
+        <a href="{% url 'dashboard' %}" class="tab-item active">
+            <span class="tab-icon">{% sf_icon "clock" %}</span>
+            <span>Today</span>
         </a>
-        <button onclick="openModal('transactionModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
-            <i data-lucide="plus-circle" class="h-5.5 w-5.5 text-neon-cyan"></i>
-            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">LOG</span>
+        <button type="button" class="tab-item" onclick="smoothNavigateTo('budgetsSection', 'budgets', event)" style="background:none; border:none; cursor:pointer;">
+            <span class="tab-icon">{% sf_icon "target" %}</span>
+            <span>Budgets</span>
         </button>
-        <button onclick="openBudgetModal('Total')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
-            <i data-lucide="sliders" class="h-5.5 w-5.5 text-neon-purple"></i>
-            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">BUDGETS</span>
+        <button id="tabAssistantBtn" type="button" class="tab-item" style="background:none; border:none; cursor:pointer;">
+            <span class="tab-icon">{% sf_icon "apple_intelligence" %}</span>
+            <span>Copilot</span>
         </button>
-        <button onclick="openModal('reminderModal')" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-white transition">
-            <i data-lucide="bell-ring" class="h-5.5 w-5.5 text-neon-rose"></i>
-            <span class="text-[9px] tracking-wider text-slate-500 dark:text-slate-400">REMINDERS</span>
+        <button type="button" class="tab-item" onclick="smoothNavigateTo('remindersSection', 'bills', event)" style="background:none; border:none; cursor:pointer;">
+            <span class="tab-icon">{% sf_icon "bell" %}</span>
+            <span>Bills</span>
         </button>
-    </nav>
-    
-    <!-- Currency Conversion Modal -->
-    <div id="currencyModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-300">
-        <div class="modal-container glass-panel max-w-md w-full rounded-3xl border border-white/10 shadow-glass-dark relative overflow-hidden transform scale-95 opacity-0 transition-all duration-300">
-            <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-cyan"></div>
-            <div class="flex justify-between items-center p-6 border-b border-slate-200 dark:border-space-850">
-                <h3 class="font-bold font-outfit text-md text-slate-800 dark:text-white uppercase tracking-wider flex items-center space-x-2">
-                    <i data-lucide="refresh-cw" class="h-4.5 w-4.5 text-neon-cyan"></i>
-                    <span>Convert Portfolio Values</span>
-                </h3>
-                <button onclick="cancelCurrencyChange()" class="text-slate-400 hover:text-white transition">
-                    <i data-lucide="x" class="h-5 w-5"></i>
+        <button type="button" onclick="openSettingsModal('ai')" class="tab-item" style="background:none; border:none; cursor:pointer;">
+            <span class="tab-icon">{% sf_icon "gear" %}</span>
+            <span>Config</span>
+        </button>
+    </div>
+
+    <!-- Floating Siri / Copilot Dock Widget -->
+    <div id="aiFloatingDock" class="siri-float-dock" style="z-index:99990;">
+        <button id="siriFloatBtn" class="siri-float-btn" type="button" title="Leoxur AI Copilot" aria-label="Leoxur AI Copilot">
+            <span class="siri-float-halo" aria-hidden="true"></span>
+            {% sf_icon "apple_intelligence" "sf-icon-lg" %}
+        </button>
+        <button id="aiDockHideBtn" class="siri-dock-hide-btn" type="button" title="Hide Floating Button" onclick="document.getElementById('aiFloatingDock').style.display='none'">
+            {% sf_icon "xmark" "sf-icon-xs" %}
+        </button>
+    </div>
+
+    <!-- Copilot Backdrop (for Maximized Focus) -->
+    <div id="assistantBackdrop" class="assistant-backdrop" aria-hidden="true"></div>
+
+    <!-- Leoxur AI Copilot Drawer / Popover Panel -->
+    <div id="assistantPanel" class="assistant-panel" role="dialog" aria-labelledby="assistantTitle" style="z-index:99999;">
+        <!-- Sheet Grabber for Mobile -->
+        <div class="sheet-grabber-bar" aria-hidden="true"></div>
+
+        <div class="assistant-header" style="position:relative;">
+            <div class="assistant-header-title" id="assistantTitle">
+                <div class="assistant-ai-badge">
+                    {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+                </div>
+                <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span>Leoxur AI Copilot</span>
+                        {% if user.profile.get_saved_ai_key and user.profile.ai_mode != 'local' %}
+                        <span id="copilotBadge" style="font-size:10px; font-weight:600; padding:2px 8px; border-radius:999px; background:rgba(52,199,89,0.15); color:var(--apple-green); display:inline-flex; align-items:center; gap:4px;">
+                            <span style="width:5px; height:5px; border-radius:50%; background:var(--apple-green);"></span>
+                            <span id="copilotBadgeText">Cloud AI: {{ user.profile.get_ai_provider_display_name }}</span>
+                        </span>
+                        {% else %}
+                        <span id="copilotBadge" style="font-size:10px; font-weight:500; padding:2px 8px; border-radius:999px; background:rgba(0,122,255,0.12); color:var(--apple-blue); display:inline-flex; align-items:center; gap:4px;">
+                            <span style="width:5px; height:5px; border-radius:50%; background:var(--apple-blue);"></span>
+                            <span id="copilotBadgeText">Local Engine: Offline</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div style="font-size:11px; color:var(--text-secondary); font-weight:400;">Autonomous Financial Telemetry & Advisory</div>
+                </div>
+            </div>
+            <div class="assistant-window-controls" style="display:flex; align-items:center; gap:5px;">
+                <button id="assistantNewChatBtn" class="ios-btn-secondary" type="button" style="padding:3px 9px; font-size:11px; font-weight:600; border-radius:999px; height:26px; display:inline-flex; align-items:center; gap:4px;" title="Start a fresh chat conversation">
+                    <span>+</span> New
+                </button>
+                <button id="assistantHistoryBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Chat History">
+                    {% sf_icon "clock" "sf-icon-xs" %}
+                </button>
+                <button type="button" class="ios-icon-btn assistant-control-btn" onclick="openSettingsModal('ai')" title="AI Agent Settings">
+                    {% sf_icon "gear" "sf-icon-xs" %}
+                </button>
+                <button id="assistantMinimizeBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Minimize Drawer">
+                    {% sf_icon "minus" "sf-icon-xs" %}
+                </button>
+                <button id="assistantMaximizeBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Maximize Window">
+                    {% sf_icon "arrow_up_right" "sf-icon-xs" %}
+                </button>
+                <button id="assistantCloseBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Close">
+                    {% sf_icon "xmark" "sf-icon-xs" %}
                 </button>
             </div>
-            <form action="{% url 'update_currency' %}" method="post" class="p-6 space-y-4">
+        </div>
+
+        <!-- Slide-Over Chat History Drawer -->
+        <div id="assistantHistoryDrawer" class="assistant-history-drawer" style="display:none; position:absolute; inset:54px 0 0 0; background:var(--bg-elevated); z-index:100; padding:16px; overflow-y:auto; backdrop-filter:blur(24px); border-bottom-left-radius:var(--radius-xl); border-bottom-right-radius:var(--radius-xl);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-hairline); padding-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:700; font-size:13px; letter-spacing:-0.01em;">Saved Conversations</span>
+                    <span id="sessionCountBadge" style="font-size:10px; font-weight:700; background:var(--apple-blue); color:white; padding:1px 7px; border-radius:999px;">1</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" id="startNewChatFromHistoryBtn" class="ios-btn-primary" style="font-size:11px; padding:3px 10px; border-radius:999px;">+ New Chat</button>
+                    <button type="button" id="closeHistoryDrawerBtn" class="ios-icon-btn" style="width:26px; height:26px;" title="Back to Chat">
+                        {% sf_icon "xmark" "sf-icon-xs" %}
+                    </button>
+                </div>
+            </div>
+            <div id="sessionListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <div class="assistant-messages" id="assistantMessages">
+            <div class="welcome-card" style="padding:16px 14px; border-radius:18px; background:linear-gradient(135deg, rgba(0,113,227,0.09), rgba(191,90,242,0.07)); border:1px solid rgba(255,255,255,0.12); margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #0071E3, #BF5AF2); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,113,227,0.35); color:#fff; font-size:16px;">
+                        ✨
+                    </div>
+                    <div>
+                        <div style="font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I'm Leoxur Copilot</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">Your personal finance AI & telemetry companion</div>
+                    </div>
+                </div>
+                <div style="font-size:12px; line-height:1.45; color:var(--text-secondary); margin-bottom:12px;">
+                    Ask me to email your monthly statement with PDF charts & spreadsheets, perform 50/30/20 audits, or log expenses.
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                    <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('send oct report to my mail with spreadsheet and pdf')">
+                        <span style="font-size:14px;">📧</span>
+                        <div>
+                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Email Report</strong>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">PDF charts & Excel file</span>
+                        </div>
+                    </button>
+                    <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Cashflow diagnostic')">
+                        <span style="font-size:14px;">📊</span>
+                        <div>
+                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">50/30/20 Audit</strong>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">Leakages & blueprint</span>
+                        </div>
+                    </button>
+                    <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Check budgets')">
+                        <span style="font-size:14px;">🎯</span>
+                        <div>
+                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Budget Caps</strong>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">Monthly limits status</span>
+                        </div>
+                    </button>
+                    <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Fetch IMAP details')">
+                        <span style="font-size:14px;">📬</span>
+                        <div>
+                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Sync Mail</strong>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">IMAP bank receipts</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suggestion Chips Bar -->
+        <div class="suggestion-chips" style="padding:8px 14px; display:flex; gap:6px; overflow-x:auto; border-top:0.5px solid var(--border-hairline);">
+            <button type="button" class="suggestion-chip" data-prompt="send oct report to my mail with spreadsheet and pdf">📧 Email PDF & Excel Report</button>
+            <button type="button" class="suggestion-chip" data-prompt="Cashflow diagnostic">📊 Cashflow Audit</button>
+            <button type="button" class="suggestion-chip" data-prompt="Give me visual suggestions to utilize money properly">💡 Money Advice & Chart</button>
+            <button type="button" class="suggestion-chip" data-prompt="Check budgets">🎯 Check Budgets</button>
+            <button type="button" class="suggestion-chip" data-prompt="Fetch IMAP details">📬 IMAP Sync & Mail</button>
+            <button type="button" class="suggestion-chip" data-prompt="Switch to dark theme">🌙 Dark Mode</button>
+            <button type="button" class="suggestion-chip" data-prompt="Switch to light mode">☀️ Light Mode</button>
+            <button type="button" class="suggestion-chip" onclick="openSettingsModal('ai')">⚙️ Telemetry Config</button>
+        </div>
+
+        <!-- Prompt Input Bar -->
+        <div class="assistant-input-bar">
+            <input type="text" id="assistantInput" class="assistant-input" placeholder="Ask financial questions or give commands..." autocomplete="off">
+            <button type="button" id="assistantSendBtn" class="assistant-send-btn" title="Send Query">
+                {% sf_icon "arrow_up_right" "sf-icon-xs" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Master Unified Settings Modal (AI + IMAP + SMTP) -->
+    <div id="systemSettingsModal" class="ios-modal-backdrop" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:9999999; background:rgba(0,0,0,0.6); backdrop-filter:blur(12px); align-items:center; justify-content:center; padding:16px;">
+        <div class="ios-card" style="width:100%; max-width:620px; max-height:90vh; overflow-y:auto; padding:28px 24px; position:relative; box-shadow:var(--shadow-float); border:1px solid var(--border-strong);">
+            <button type="button" onclick="closeSettingsModal()" class="ios-icon-btn" style="position:absolute; top:20px; right:20px;">
+                {% sf_icon "xmark" "sf-icon-xs" %}
+            </button>
+
+            <!-- Header with Dual Tabs -->
+            <div style="margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                    <div style="width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg, #0A84FF, #BF5AF2); display:flex; align-items:center; justify-content:center; color:white;">
+                        {% sf_icon "gear" "sf-icon-sm" %}
+                    </div>
+                    <div>
+                        <h3 style="font-size:18px; font-weight:700; margin:0; letter-spacing:-0.02em;">System Telemetry Config</h3>
+                        <p style="font-size:11px; color:var(--text-secondary); margin:2px 0 0 0;">Manage your AI Copilot Engine & Automated Email IMAP/SMTP Pipeline</p>
+                    </div>
+                </div>
+
+                <!-- Tab Switcher -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; background:var(--bg-subtle); padding:4px; border-radius:12px; border:1px solid var(--border-hairline);">
+                    <button type="button" id="tabBtnAi" onclick="switchSettingsTab('ai')" style="padding:8px 12px; border-radius:8px; font-size:12px; font-weight:700; border:none; cursor:pointer; background:var(--apple-blue); color:white; transition:all 0.2s ease;">
+                        🤖 AI Agent & LLMs
+                    </button>
+                    <button type="button" id="tabBtnEmail" onclick="switchSettingsTab('email')" style="padding:8px 12px; border-radius:8px; font-size:12px; font-weight:700; border:none; cursor:pointer; background:transparent; color:var(--text-secondary); transition:all 0.2s ease;">
+                        ✉️ Email Node (IMAP & SMTP)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab 1: AI Agent Settings -->
+            <div id="settingsTabContentAi">
+                <form id="aiSettingsForm" onsubmit="saveAISettings(event)">
+                    {% csrf_token %}
+                    <!-- Engine Mode -->
+                    <div class="ios-form-group" style="margin-bottom:16px;">
+                        <label class="ios-label" style="font-weight:600; margin-bottom:8px;">Intelligence Mode</label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <label id="modeCardCloud" class="ios-card" style="padding:12px; cursor:pointer; background:var(--bg-subtle); display:flex; flex-direction:column; gap:4px; border:1px solid var(--border-hairline);">
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:13px; font-weight:700;">Cloud AI Agent</span>
+                                    <input type="radio" name="ai_mode" value="cloud" id="radioCloud" {% if user.profile.ai_mode == 'cloud' or not user.profile.ai_mode %}checked{% endif %} onchange="toggleAiModeDisplay()">
+                                </div>
+                                <span style="font-size:11px; color:var(--text-secondary);">Generative reasoning, multimodal LLMs</span>
+                            </label>
+                            <label id="modeCardLocal" class="ios-card" style="padding:12px; cursor:pointer; background:var(--bg-subtle); display:flex; flex-direction:column; gap:4px; border:1px solid var(--border-hairline);">
+                                <div style="display:flex; align-items:center; justify-content:space-between;">
+                                    <span style="font-size:13px; font-weight:700;">100% Offline Local</span>
+                                    <input type="radio" name="ai_mode" value="local" id="radioLocal" {% if user.profile.ai_mode == 'local' %}checked{% endif %} onchange="toggleAiModeDisplay()">
+                                </div>
+                                <span style="font-size:11px; color:var(--text-secondary);">On-device deterministic rules, 0 APIs</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Cloud Section -->
+                    <div id="cloudFieldsContainer" style="{% if user.profile.ai_mode == 'local' %}display:none;{% endif %}">
+                        <div class="ios-form-group" style="margin-bottom:16px;">
+                            <label class="ios-label" style="font-weight:600;">LLM Provider</label>
+                            <select name="ai_provider" id="aiProviderSelect" class="ios-select" onchange="handleProviderChange()">
+                                <option value="gemini" {% if user.profile.ai_provider == 'gemini' %}selected{% endif %}>Google Gemini AI (Recommended)</option>
+                                <option value="groq" {% if user.profile.ai_provider == 'groq' %}selected{% endif %}>Groq (Ultra-Fast Llama 3.3)</option>
+                                <option value="openai" {% if user.profile.ai_provider == 'openai' %}selected{% endif %}>OpenAI (ChatGPT / GPT-4o)</option>
+                                <option value="anthropic" {% if user.profile.ai_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude 3.5 Sonnet)</option>
+                                <option value="openrouter" {% if user.profile.ai_provider == 'openrouter' %}selected{% endif %}>OpenRouter</option>
+                                <option value="custom" {% if user.profile.ai_provider == 'custom' %}selected{% endif %}>Custom OpenAI-Compatible API (Ollama)</option>
+                            </select>
+                        </div>
+
+                        <div class="ios-form-group" style="margin-bottom:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <label class="ios-label" style="font-weight:600; margin:0;">API Key</label>
+                                {% if user.profile.get_saved_ai_key %}
+                                <span id="keyStatusBadge" style="font-size:11px; color:var(--apple-green); font-weight:600;">● Key Configured</span>
+                                {% else %}
+                                <span id="keyStatusBadge" style="font-size:11px; color:var(--text-tertiary);">No key configured</span>
+                                {% endif %}
+                            </div>
+                            <div style="position:relative;">
+                                <input type="password" name="ai_api_key" id="aiApiKeyInput" class="ios-input" placeholder="Paste your API key here..." value="{{ user.profile.get_saved_ai_key }}" style="padding-right:70px;">
+                                <button type="button" onclick="toggleApiKeyVisibility()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-tertiary); font-size:11px; cursor:pointer; padding:4px 8px;">Show</button>
+                            </div>
+                        </div>
+
+                        <div class="ios-form-group" style="margin-bottom:16px;">
+                            <label class="ios-label" style="font-weight:600;">Model (Optional)</label>
+                            <input type="text" name="ai_model" id="aiModelInput" class="ios-input" placeholder="Default: {{ user.profile.get_effective_ai_model }}" value="{{ user.profile.ai_model }}">
+                            <span style="font-size:11px; color:var(--text-tertiary); margin-top:3px; display:block;">Defaults: gemini-1.5-flash, llama-3.3-70b-versatile, gpt-4o-mini</span>
+                        </div>
+
+                        <div class="ios-form-group" id="customEndpointBox" style="margin-bottom:16px; {% if user.profile.ai_provider != 'custom' %}display:none;{% endif %}">
+                            <label class="ios-label" style="font-weight:600;">Custom Base URL (Ollama / LocalAI)</label>
+                            <input type="text" name="ai_custom_endpoint" class="ios-input" placeholder="http://localhost:11434/v1" value="{{ user.profile.ai_custom_endpoint }}">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:20px;">
+                        <button type="button" onclick="clearApiKeyAction()" class="ios-btn-secondary" style="flex:1;">Clear Key</button>
+                        <button type="button" onclick="testAiConnection()" id="aiTestBtn" class="ios-btn-secondary" style="flex:1.2;">🧪 Test AI</button>
+                        <button type="submit" id="aiSubmitBtn" class="ios-btn-primary" style="flex:1.8;">Save & Activate</button>
+                    </div>
+                    <div id="aiTestResultBox" style="display:none; margin-top:12px; font-size:11px; padding:10px 14px; border-radius:10px; border:1px solid transparent;"></div>
+                </form>
+            </div>
+
+            <!-- Tab 2: Email & IMAP/SMTP Pipeline Settings -->
+            <div id="settingsTabContentEmail" style="display:none;">
+                <form id="emailSettingsForm" method="post" action="{% url 'update_email_settings' %}">
+                    {% csrf_token %}
+                    <div class="ios-form-group" style="margin-bottom:14px;">
+                        <label class="ios-label" style="font-weight:600;">Functional Email Address</label>
+                        <input type="email" name="account_email" id="emailNodeAccountEmail" value="{{ user.email }}" placeholder="yourname@gmail.com" class="ios-input" required>
+                    </div>
+
+                    <!-- SMTP Section -->
+                    <div style="margin-top:16px; padding:14px; border-radius:12px; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="width:8px; height:8px; border-radius:50%; background:var(--apple-blue);"></span>
+                            <span style="font-size:12px; font-weight:700; text-transform:uppercase;">SMTP Outgoing Alerts (Disbursements & Reports)</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px; margin-bottom:10px;">
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">SMTP Host</label>
+                                <input type="text" name="smtp_host" id="emailNodeSmtpHost" value="{{ profile.smtp_host|default:'smtp.gmail.com' }}" required class="ios-input">
+                            </div>
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">Port</label>
+                                <input type="number" name="smtp_port" id="emailNodeSmtpPort" value="{{ profile.smtp_port|default:'587' }}" required class="ios-input">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">SMTP Username</label>
+                                <input type="text" name="smtp_user" id="emailNodeSmtpUser" value="{{ profile.smtp_user }}" placeholder="user@gmail.com" class="ios-input">
+                            </div>
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">SMTP App Password</label>
+                                <input type="password" name="smtp_password" id="emailNodeSmtpPassword" value="{{ profile.smtp_password }}" placeholder="App password" class="ios-input">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <button type="button" id="btnTestSmtp" onclick="testSmtpConnection()" class="ios-btn-secondary" style="font-size:11px; padding:6px 12px; display:inline-flex; align-items:center; gap:6px;">
+                                <span>🧪 Test SMTP Outbound</span>
+                            </button>
+                            <span id="smtpTestStatus" style="font-size:11px; color:var(--text-tertiary); font-weight:500;"></span>
+                        </div>
+                        <div id="smtpTestResultBox" style="display:none; margin-top:8px; font-size:11px; padding:8px 12px; border-radius:8px; border:1px solid transparent;"></div>
+                    </div>
+
+                    <!-- IMAP Section -->
+                    <div style="margin-top:14px; padding:14px; border-radius:12px; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                            <span style="width:8px; height:8px; border-radius:50%; background:var(--apple-purple);"></span>
+                            <span style="font-size:12px; font-weight:700; text-transform:uppercase;">IMAP Incoming Bank Ledger (Email Sync)</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px; margin-bottom:10px;">
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">IMAP Host</label>
+                                <input type="text" name="imap_host" id="emailNodeImapHost" value="{{ profile.imap_host|default:'imap.gmail.com' }}" required class="ios-input">
+                            </div>
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">Port</label>
+                                <input type="number" name="imap_port" id="emailNodeImapPort" value="{{ profile.imap_port|default:'993' }}" required class="ios-input">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">IMAP Username</label>
+                                <input type="text" name="imap_user" id="emailNodeImapUser" value="{{ profile.imap_user }}" placeholder="user@gmail.com" class="ios-input">
+                            </div>
+                            <div>
+                                <label class="ios-label" style="font-size:10px;">IMAP App Password</label>
+                                <input type="password" name="imap_password" id="emailNodeImapPassword" value="{{ profile.imap_password }}" placeholder="App password" class="ios-input">
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+                            <input type="checkbox" name="auto_fetch_emails" id="autoFetchCheck" {% if profile.auto_fetch_emails %}checked{% endif %} style="accent-color:var(--apple-blue); cursor:pointer;">
+                            <label for="autoFetchCheck" style="font-size:11px; color:var(--text-secondary); cursor:pointer;">Auto-parse bank transaction receipts on dashboard load</label>
+                        </div>
+                        <div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <button type="button" id="btnTestImap" onclick="testImapConnection()" class="ios-btn-secondary" style="font-size:11px; padding:6px 12px; display:inline-flex; align-items:center; gap:6px;">
+                                <span>📥 Test IMAP Fetching</span>
+                            </button>
+                            <span id="imapTestStatus" style="font-size:11px; color:var(--text-tertiary); font-weight:500;"></span>
+                        </div>
+                        <div id="imapTestResultBox" style="display:none; margin-top:8px; font-size:11px; padding:8px 12px; border-radius:8px; border:1px solid transparent;"></div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:20px;">
+                        <a href="{% url 'sync_emails_now' %}" class="ios-btn-secondary" style="flex:1; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">⚡ Sync Mail Now</a>
+                        <button type="submit" class="ios-btn-primary" style="flex:2;">Save Email & Server Config</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Currency Conversion & Selector Modal -->
+    <div id="currencyModal" class="ios-modal-backdrop" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:16px;">
+        <div class="ios-card" style="width:100%; max-width:460px; padding:28px; box-shadow:var(--shadow-float); border:1px solid var(--border-strong);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:var(--apple-blue); color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px;">
+                        {{ profile.currency|default:'$' }}
+                    </div>
+                    <div>
+                        <h3 style="font-size:16px; font-weight:700; margin:0;">Currency & FX Rates</h3>
+                        <p style="font-size:11px; color:var(--text-secondary); margin:2px 0 0 0;">Switch primary denomination with live multiplier</p>
+                    </div>
+                </div>
+                <button type="button" onclick="cancelCurrencyChange()" class="ios-icon-btn">{% sf_icon "xmark" "sf-icon-xs" %}</button>
+            </div>
+
+            <!-- Quick Currency Selector Pills -->
+            <div style="margin-bottom:16px;">
+                <label class="ios-label" style="font-size:11px; font-weight:600; margin-bottom:6px;">Target Denomination</label>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;">
+                    <button type="button" onclick="selectCurrencyPreset('$', 'USD')" class="ios-card" style="padding:8px 4px; text-align:center; cursor:pointer; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <strong style="display:block; font-size:14px; color:var(--apple-blue);">$</strong>
+                        <span style="font-size:10px; color:var(--text-secondary);">USD</span>
+                    </button>
+                    <button type="button" onclick="selectCurrencyPreset('€', 'EUR')" class="ios-card" style="padding:8px 4px; text-align:center; cursor:pointer; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <strong style="display:block; font-size:14px; color:var(--apple-blue);">€</strong>
+                        <span style="font-size:10px; color:var(--text-secondary);">EUR</span>
+                    </button>
+                    <button type="button" onclick="selectCurrencyPreset('₹', 'INR')" class="ios-card" style="padding:8px 4px; text-align:center; cursor:pointer; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <strong style="display:block; font-size:14px; color:var(--apple-blue);">₹</strong>
+                        <span style="font-size:10px; color:var(--text-secondary);">INR</span>
+                    </button>
+                    <button type="button" onclick="selectCurrencyPreset('£', 'GBP')" class="ios-card" style="padding:8px 4px; text-align:center; cursor:pointer; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                        <strong style="display:block; font-size:14px; color:var(--apple-blue);">£</strong>
+                        <span style="font-size:10px; color:var(--text-secondary);">GBP</span>
+                    </button>
+                </div>
+            </div>
+
+            <form action="{% url 'update_currency' %}" method="post">
                 {% csrf_token %}
-                <input type="hidden" name="currency" id="modal-currency-value">
-                
-                <div class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    You are shifting your portfolio from <span class="font-bold text-slate-700 dark:text-white" id="modal-old-currency"></span> to <span class="font-bold text-neon-cyan" id="modal-new-currency"></span>.
-                    Please supply the current exchange rate to scale all existing transaction amounts, budgets, and bills in the database.
+                <input type="hidden" name="currency" id="modal-currency-value" value="{{ profile.currency|default:'$' }}">
+                <div style="background:var(--bg-subtle); padding:10px 14px; border-radius:10px; margin-bottom:14px; font-size:11px; color:var(--text-secondary); border:1px solid var(--border-hairline);">
+                    Converting from <strong>{{ profile.currency|default:'$' }}</strong> to <strong id="modal-new-currency" style="color:var(--apple-blue); font-size:13px;">{{ profile.currency|default:'$' }}</strong>.
                 </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5" id="conversion-rate-label">Conversion Rate</label>
-                    <input type="number" step="0.000001" name="conversion_rate" id="modal-conversion-rate-input" required
-                        class="w-full bg-slate-200/50 dark:bg-space-900 border border-slate-300 dark:border-space-800/80 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan transition duration-300 dark:text-white font-mono"
-                        placeholder="1.000000">
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1 pl-1">
-                        Formula: <span class="font-mono text-neon-purple font-semibold">New Value = Old Value &times; Rate</span>.
-                        Enter <span class="font-mono text-neon-cyan font-semibold">1.0</span> if you only want to change the symbol without modifying actual amounts.
-                    </p>
+                <div class="ios-form-group" style="margin-bottom:14px;">
+                    <label class="ios-label" id="conversion-rate-label" style="font-weight:600;">Today's Exchange Multiplier</label>
+                    <input type="number" step="0.000001" name="conversion_rate" id="modal-conversion-rate-input" class="ios-input" value="1.000000" required>
+                    <span id="rateHintText" style="font-size:10px; color:var(--text-tertiary); margin-top:4px; display:block;">1 {{ profile.currency|default:'$' }} = <span id="rateHintVal">1.0</span> target currency. Adjust to today's bank rate if desired.</span>
                 </div>
-                
-                <div class="flex space-x-3 pt-2">
-                    <button type="button" onclick="cancelCurrencyChange()"
-                        class="flex-1 bg-slate-200/50 dark:bg-space-850 hover:bg-slate-200 dark:hover:bg-space-800 text-slate-700 dark:text-slate-300 font-bold font-outfit py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
-                        Cancel
-                    </button>
-                    <button type="submit" 
-                        class="flex-1 bg-gradient-to-r from-neon-cyan to-neon-purple hover:scale-[1.01] transition text-slate-950 font-bold font-outfit py-2.5 rounded-xl uppercase tracking-wider text-xs">
-                        Convert Ledger
-                    </button>
+                <div style="margin-bottom:16px; padding:12px; border-radius:10px; background:var(--bg-subtle); border:1px solid var(--border-hairline);">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:11px; cursor:pointer; margin-bottom:8px;">
+                        <input type="radio" name="scale_records" value="true" checked style="accent-color:var(--apple-blue);">
+                        <span><strong>Convert existing ledger</strong> (Recalculate past transactions & budgets with rate)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; font-size:11px; cursor:pointer;">
+                        <input type="radio" name="scale_records" value="false" style="accent-color:var(--apple-blue);">
+                        <span><strong>Keep numbers unchanged</strong> (Only switch currency symbol {{ profile.currency|default:'$' }} → new)</span>
+                    </label>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="cancelCurrencyChange()" class="ios-btn-secondary" style="flex:1;">Cancel</button>
+                    <button type="submit" class="ios-btn-primary" style="flex:1;">Apply Denomination</button>
                 </div>
             </form>
         </div>
     </div>
-    
-    {% else %}
-    <!-- Content container for Auth screens (Login / Register) -->
-    <div class="flex-1 flex flex-col justify-center items-center px-4 relative overflow-hidden">
-        <!-- Futuristic background nodes -->
-        <div class="absolute w-96 h-96 bg-neon-cyan/5 rounded-full blur-3xl -top-20 -left-20"></div>
-        <div class="absolute w-96 h-96 bg-neon-purple/5 rounded-full blur-3xl -bottom-20 -right-20"></div>
-        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center select-none pointer-events-none opacity-20 dark:opacity-10 z-0">
-            <h1 class="text-8xl md:text-[12rem] font-bold font-outfit tracking-tighter bg-gradient-to-b from-white to-transparent bg-clip-text text-transparent">LEOXUR</h1>
-        </div>
-        
-        <div class="w-full max-w-md z-10">
-            <!-- Branding -->
-            <div class="flex flex-col items-center justify-center mb-8">
-                <i data-lucide="orbit" class="h-12 w-12 text-neon-cyan animate-spin mb-4" style="animation-duration: 20s;"></i>
-                <h1 class="text-3xl font-extrabold font-outfit tracking-wider bg-gradient-to-r from-neon-cyan to-neon-purple bg-clip-text text-transparent">LEOXUR</h1>
-                <p class="text-xs text-slate-400 dark:text-slate-500 tracking-widest font-semibold uppercase mt-1">Lightweight Elegant Financials</p>
+
+    <!-- System Live Clock & Telemetry Modal -->
+    <div id="clockInfoModal" class="ios-modal-backdrop" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:16px;">
+        <div class="ios-card" style="width:100%; max-width:440px; padding:28px; box-shadow:var(--shadow-float); border:1px solid var(--border-strong);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:var(--apple-blue); color:white; display:flex; align-items:center; justify-content:center;">
+                        {% sf_icon "clock" "sf-icon-sm" %}
+                    </div>
+                    <div>
+                        <h3 style="font-size:16px; font-weight:700; margin:0;">System Clock Node</h3>
+                        <p style="font-size:11px; color:var(--text-secondary); margin:2px 0 0 0;">Synchronized Realtime Telemetry</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('clockInfoModal')" class="ios-icon-btn">{% sf_icon "xmark" "sf-icon-xs" %}</button>
             </div>
-            
-            {% block auth_content %}{% endblock %}
+
+            <div style="text-align:center; padding:18px; background:var(--bg-subtle); border-radius:14px; margin-bottom:16px; border:1px solid var(--border-hairline);">
+                <div id="modalClockLarge" style="font-size:32px; font-weight:800; font-family:monospace; letter-spacing:0.04em; color:var(--apple-blue);">--:--:--</div>
+                <div id="modalClockDate" style="font-size:12px; color:var(--text-secondary); margin-top:4px;">Today</div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:11px; margin-bottom:18px;">
+                <div class="ios-card" style="padding:10px; background:var(--bg-subtle);">
+                    <span style="color:var(--text-tertiary); display:block;">Telemetry Latency</span>
+                    <strong style="color:var(--apple-green);">0ms (Synchronized)</strong>
+                </div>
+                <div class="ios-card" style="padding:10px; background:var(--bg-subtle);">
+                    <span style="color:var(--text-tertiary); display:block;">Sync Protocol</span>
+                    <strong>NTP / UTC Auto-Clock</strong>
+                </div>
+            </div>
+
+            <button type="button" onclick="closeModal('clockInfoModal')" class="ios-btn-primary" style="width:100%;">Close Telemetry Window</button>
+        </div>
+    </div>
+
+    <!-- Leoxur Engine Version & Specs Modal -->
+    <div id="versionHelpModal" class="ios-modal-backdrop" aria-hidden="true" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:16px;">
+        <div class="ios-card" style="width:100%; max-width:480px; padding:28px; box-shadow:var(--shadow-float); border:1px solid var(--border-strong);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #0071E3, #34C759); color:white; display:flex; align-items:center; justify-content:center;">
+                        {% sf_icon "wallet" "sf-icon-sm" %}
+                    </div>
+                    <div>
+                        <h3 style="font-size:16px; font-weight:700; margin:0;">Leoxur Core Telemetry</h3>
+                        <p style="font-size:11px; color:var(--text-secondary); margin:2px 0 0 0;">System Architecture & Runtime Stack</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('versionHelpModal')" class="ios-icon-btn">{% sf_icon "xmark" "sf-icon-xs" %}</button>
+            </div>
+
+            <div style="space-y:8px; font-size:12px; margin-bottom:18px;">
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-hairline);">
+                    <span style="color:var(--text-secondary);">Core Engine</span>
+                    <strong>v2.5.0 Stable Release</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-hairline);">
+                    <span style="color:var(--text-secondary);">Framework & Runtime</span>
+                    <strong>Python 3.9 • Django 4.2 LTS</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-hairline);">
+                    <span style="color:var(--text-secondary);">AI Copilot Core</span>
+                    <strong>Hybrid (Gemini / Groq / Ollama / Local)</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-hairline);">
+                    <span style="color:var(--text-secondary);">Design Engine</span>
+                    <strong>Apple Sonoma Glassmorphism UI</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-hairline);">
+                    <span style="color:var(--text-secondary);">Email Node Support</span>
+                    <strong>IMAP SSL Receipt Parser + SMTP Alerts</strong>
+                </div>
+            </div>
+
+            <button type="button" onclick="closeModal('versionHelpModal')" class="ios-btn-primary" style="width:100%;">Got It</button>
         </div>
     </div>
     {% endif %}
 
-    <!-- Global Javascript functions -->
+    <!-- Global Floating Toast Container (Compact Apple Dynamic Capsule) -->
+    <div id="iosToastNotification" class="ios-toast" aria-live="polite" style="position:fixed; top:24px !important; bottom:auto !important; left:50%; transform:translateX(-50%) translateY(-60px); max-height:42px !important; height:auto !important; width:auto !important; max-width:90vw; padding:8px 20px !important; border-radius:999px !important; z-index:99999999 !important; display:inline-flex !important; align-items:center; justify-content:center; gap:8px;">
+        <span id="iosToastIcon">✓</span>
+        <span id="iosToastMsg">Action completed successfully</span>
+    </div>
+
+    <!-- Core Interactive Scripts (Clean, Single-Event Architecture) -->
     <script>
-        let currentCurrency = "{{ profile.currency }}";
+        // CSRF Token Helper
+        function getCsrfToken() {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === 'csrftoken=') {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
-        function promptCurrencyConversion(selectElement) {
-            const newCurrency = selectElement.value;
-            if (newCurrency === currentCurrency) return;
+        // Global iOS Toast Notification
+        function showiOSToast(msg, icon = '✓') {
+            const toast = document.getElementById('iosToastNotification');
+            const toastMsg = document.getElementById('iosToastMsg');
+            const toastIcon = document.getElementById('iosToastIcon');
+            if (!toast) return;
+            toastMsg.innerText = msg;
+            toastIcon.innerText = icon;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2600);
+        }
 
-            document.getElementById('modal-currency-value').value = newCurrency;
-            document.getElementById('modal-old-currency').innerText = currentCurrency;
-            document.getElementById('modal-new-currency').innerText = newCurrency;
-            document.getElementById('conversion-rate-label').innerText = `Conversion Rate (1 ${currentCurrency} = ? ${newCurrency})`;
-            
-            let defaultRate = "1.000000";
-            if (currentCurrency === "$" && newCurrency === "₹") defaultRate = "83.500000";
-            else if (currentCurrency === "₹" && newCurrency === "$") defaultRate = "0.012000";
-            else if (currentCurrency === "$" && newCurrency === "€") defaultRate = "0.920000";
-            else if (currentCurrency === "€" && newCurrency === "$") defaultRate = "1.080000";
-            else if (currentCurrency === "$" && newCurrency === "£") defaultRate = "0.780000";
-            else if (currentCurrency === "£" && newCurrency === "$") defaultRate = "1.280000";
-            else if (currentCurrency === "€" && newCurrency === "₹") defaultRate = "90.750000";
-            else if (currentCurrency === "₹" && newCurrency === "€") defaultRate = "0.011000";
-            else if (currentCurrency === "£" && newCurrency === "₹") defaultRate = "107.000000";
-            else if (currentCurrency === "₹" && newCurrency === "£") defaultRate = "0.009300";
-            else if (currentCurrency === "€" && newCurrency === "£") defaultRate = "0.850000";
-            else if (currentCurrency === "£" && newCurrency === "€") defaultRate = "1.180000";
+        // Live Clock Controller
+        function updateLiveClock() {
+            const el = document.getElementById('topBarClockText');
+            const modalEl = document.getElementById('modalClockLarge');
+            const modalDate = document.getElementById('modalClockDate');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (el) el.innerText = timeStr;
+            if (modalEl) modalEl.innerText = timeStr;
+            if (modalDate) modalDate.innerText = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
 
-            document.getElementById('modal-conversion-rate-input').value = defaultRate;
-            document.getElementById('modal-conversion-rate-input').placeholder = defaultRate;
+        function openClockModal() {
+            openModal('clockInfoModal');
+        }
 
+        function openVersionModal() {
+            openModal('versionHelpModal');
+        }
+
+        function openCurrencyModal() {
             openModal('currencyModal');
         }
 
         function cancelCurrencyChange() {
-            const select = document.querySelector('select[name="currency"]');
-            if (select) select.value = currentCurrency;
             closeModal('currencyModal');
         }
 
-        // Init Lucide Icons
-        lucide.createIcons();
+        const fxToUsd = { '$': 1.0, '€': 1.087, '£': 1.299, '₹': 0.0115 };
+        const currentProfileCurrency = '{{ profile.currency|default:"$" }}';
 
-        function syncThemeSegmentedControl(theme) {
-            const btnLight = document.getElementById('theme-btn-light');
-            const btnDark = document.getElementById('theme-btn-dark');
-            if (!btnLight || !btnDark) return;
+        function selectCurrencyPreset(symbol, name) {
+            document.getElementById('modal-currency-value').value = symbol;
+            document.getElementById('modal-new-currency').innerText = `${symbol} (${name})`;
             
-            if (theme === 'dark') {
-                btnLight.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200";
-                btnDark.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 bg-space-800 text-neon-cyan shadow-[0_1px_3px_rgba(0,0,0,0.3)] border border-space-700/30";
-            } else {
-                btnLight.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 bg-white text-amber-500 shadow-[0_1px_3px_rgba(0,0,0,0.15)] border border-slate-200/40";
-                btnDark.className = "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 text-slate-500 dark:text-slate-400 hover:text-slate-850 dark:hover:text-slate-200";
+            let rate = 1.0;
+            if (currentProfileCurrency !== symbol) {
+                const usdFrom = fxToUsd[currentProfileCurrency] || 1.0;
+                const usdTo = fxToUsd[symbol] || 1.0;
+                rate = usdFrom / usdTo;
+            }
+            const rateStr = (rate >= 1) ? rate.toFixed(4) : rate.toFixed(6);
+            document.getElementById('modal-conversion-rate-input').value = rateStr;
+            const hint = document.getElementById('rateHintVal');
+            if (hint) hint.innerText = `${rateStr} ${symbol}`;
+            showiOSToast(`Selected ${symbol} (${name})`, '✓');
+        }
+
+        // Smooth Navigation Controller with Header Offset and Active State
+        function smoothNavigateTo(targetId, navKey, e) {
+            if (e) e.preventDefault();
+
+            // Set active class on nav pills
+            document.querySelectorAll('.nav-segment-btn').forEach(btn => {
+                if (btn.getAttribute('data-nav') === navKey) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (targetId === 'top' || targetId === 'today') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            const el = document.getElementById(targetId);
+            if (el) {
+                const headerOffset = 85;
+                const elementPosition = el.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
             }
         }
 
-        function toggleThemeTo(mode) {
-            const html = document.documentElement;
-            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-            if (currentTheme === mode) return;
-            toggleTheme();
+        // Scroll-Spy to auto update active nav pill
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY + 120;
+            const sections = [
+                { id: 'analyticsSection', key: 'analytics' },
+                { id: 'remindersSection', key: 'bills' },
+                { id: 'budgetsSection', key: 'budgets' },
+                { id: 'ledgerSection', key: 'ledger' }
+            ];
+
+            let found = false;
+            for (const s of sections) {
+                const el = document.getElementById(s.id);
+                if (el) {
+                    const top = el.offsetTop;
+                    const height = el.offsetHeight;
+                    if (scrollPos >= top && scrollPos < top + height) {
+                        document.querySelectorAll('.nav-segment-btn').forEach(b => {
+                            b.classList.toggle('active', b.getAttribute('data-nav') === s.key);
+                        });
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found && window.scrollY < 200) {
+                document.querySelectorAll('.nav-segment-btn').forEach(b => {
+                    b.classList.toggle('active', b.getAttribute('data-nav') === 'today');
+                });
+            }
+        }, { passive: true });
+
+        // Appearance Theme Controller
+        function initThemeMode() {
+            const saved = localStorage.getItem('leoxur_theme') || document.documentElement.getAttribute('data-theme') || 'dark';
+            setThemeMode(saved);
+
+            const btn = document.getElementById('themeToggleBtn');
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+                    const next = cur === 'dark' ? 'light' : 'dark';
+                    setThemeMode(next);
+                    localStorage.setItem('leoxur_theme', next);
+                    showiOSToast(`Switched to ${next} mode`, next === 'dark' ? '🌙' : '☀️');
+                };
+            }
         }
 
-        // Theme Toggle Function
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            // Call API to save to django profile
-            fetch('{% url "toggle_theme" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFormToken': '{{ csrf_token }}',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    if (data.theme === 'dark') {
-                        html.classList.add('dark');
-                    } else {
-                        html.classList.remove('dark');
-                    }
-                    syncThemeSegmentedControl(data.theme);
-                    // Refresh custom components/charts if necessary
-                    if (typeof updateChartsTheme === 'function') {
-                        updateChartsTheme(data.theme);
-                    }
-                }
-            })
-            .catch(err => {
-                console.error("Theme toggle error: ", err);
-                // Fallback to local toggle if API fails
-                if (nextTheme === 'dark') {
-                    html.classList.add('dark');
-                } else {
-                    html.classList.remove('dark');
-                }
-                syncThemeSegmentedControl(nextTheme);
-                if (typeof updateChartsTheme === 'function') {
-                    updateChartsTheme(nextTheme);
+        function setThemeMode(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            if (t === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            const slot = document.querySelector('#themeToggleBtn .theme-icon-slot');
+            if (slot) {
+                slot.innerHTML = t === 'dark'
+                    ? `<svg class="sf-icon sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+                    : `<svg class="sf-icon sf-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+            }
+            if (typeof updateChartsTheme === "function") {
+                try { updateChartsTheme(t); } catch(e){}
+            }
+        }
+        initThemeMode();
+
+        // Account Profile Popover Toggle (Rock-Solid Click Handler)
+        const accountBtn = document.getElementById('accountMenuBtn');
+        const accountPopover = document.getElementById('accountPopover');
+        if (accountBtn && accountPopover) {
+            accountBtn.onclick = (e) => {
+                e.stopPropagation();
+                const isHidden = accountPopover.hidden;
+                accountPopover.hidden = !isHidden;
+                accountBtn.setAttribute('aria-expanded', !isHidden);
+            };
+            document.addEventListener('click', (e) => {
+                if (!accountPopover.contains(e.target) && !accountBtn.contains(e.target)) {
+                    accountPopover.hidden = true;
+                    accountBtn.setAttribute('aria-expanded', 'false');
                 }
             });
         }
 
-        // Run initial theme segmented control sync on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const initTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            syncThemeSegmentedControl(initTheme);
+        // Telemetry Alerts Dropdown Toggle
+        function toggleAlertsDropdown(e) {
+            e.stopPropagation();
+            const el = document.getElementById('alerts-dropdown');
+            if (el) {
+                el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+            }
+        }
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('alerts-dropdown');
+            const bell = document.getElementById('alerts-bell-btn');
+            if (dropdown && bell && !dropdown.contains(e.target) && !bell.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
         });
 
-        // Modal triggers
-        function openModal(id) {
-            const modal = document.getElementById(id);
+        // Unified Settings Modal Controller (AI + IMAP & SMTP)
+        function openSettingsModal(tab = 'ai') {
+            if (accountPopover) {
+                accountPopover.hidden = true;
+                if (accountBtn) accountBtn.setAttribute('aria-expanded', 'false');
+            }
+            const modal = document.getElementById('systemSettingsModal');
             if (modal) {
                 modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                modal.classList.add('open');
+                modal.style.display = 'flex';
+                modal.style.opacity = '1';
+                modal.style.pointerEvents = 'auto';
+                modal.style.zIndex = '9999999';
+                modal.setAttribute('aria-hidden', 'false');
+                switchSettingsTab(tab);
+            }
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('systemSettingsModal');
+            if (modal) {
+                modal.classList.remove('open');
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+                modal.style.opacity = '0';
+                modal.style.pointerEvents = 'none';
+                modal.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        function openAISettingsModal() {
+            openSettingsModal('ai');
+        }
+
+        function openEmailSettingsModal() {
+            openSettingsModal('email');
+        }
+
+        function switchSettingsTab(tab) {
+            const aiContent = document.getElementById('settingsTabContentAi');
+            const emailContent = document.getElementById('settingsTabContentEmail');
+            const tabBtnAi = document.getElementById('tabBtnAi');
+            const tabBtnEmail = document.getElementById('tabBtnEmail');
+
+            if (tab === 'ai') {
+                if (aiContent) aiContent.style.display = 'block';
+                if (emailContent) emailContent.style.display = 'none';
+                if (tabBtnAi) {
+                    tabBtnAi.style.background = 'var(--apple-blue)';
+                    tabBtnAi.style.color = '#ffffff';
+                }
+                if (tabBtnEmail) {
+                    tabBtnEmail.style.background = 'transparent';
+                    tabBtnEmail.style.color = 'var(--text-secondary)';
+                }
+            } else {
+                if (aiContent) aiContent.style.display = 'none';
+                if (emailContent) emailContent.style.display = 'block';
+                if (tabBtnEmail) {
+                    tabBtnEmail.style.background = 'var(--apple-blue)';
+                    tabBtnEmail.style.color = '#ffffff';
+                }
+                if (tabBtnAi) {
+                    tabBtnAi.style.background = 'transparent';
+                    tabBtnAi.style.color = 'var(--text-secondary)';
+                }
+            }
+        }
+
+        function toggleAiModeDisplay() {
+            const isLocal = document.getElementById('radioLocal').checked;
+            const container = document.getElementById('cloudFieldsContainer');
+            if (container) container.style.display = isLocal ? 'none' : 'block';
+        }
+
+        function handleProviderChange() {
+            const sel = document.getElementById('aiProviderSelect');
+            const customBox = document.getElementById('customEndpointBox');
+            if (customBox) customBox.style.display = (sel && sel.value === 'custom') ? 'block' : 'none';
+        }
+
+        function toggleApiKeyVisibility() {
+            const inp = document.getElementById('aiApiKeyInput');
+            if (!inp) return;
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+        }
+
+        async function saveAISettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('aiSubmitBtn');
+            btn.disabled = true;
+            btn.innerText = 'Saving & Verifying...';
+
+            const form = document.getElementById('aiSettingsForm');
+            const fd = new FormData(form);
+            const payload = {
+                ai_mode: fd.get('ai_mode'),
+                ai_provider: fd.get('ai_provider'),
+                ai_api_key: fd.get('ai_api_key'),
+                ai_model: fd.get('ai_model'),
+                ai_custom_endpoint: fd.get('ai_custom_endpoint'),
+            };
+
+            try {
+                const res = await fetch('/settings/update-ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    showiOSToast('AI Settings Saved Successfully', '✓');
+                    const badgeText = document.getElementById('copilotBadgeText');
+                    const badge = document.getElementById('copilotBadge');
+                    if (badgeText && badge) {
+                        if (data.has_key && data.ai_mode !== 'local') {
+                            badgeText.innerText = `Cloud AI: ${(data.ai_provider || 'ONLINE').toUpperCase()}`;
+                            badge.style.background = 'rgba(52,199,89,0.15)';
+                            badge.style.color = 'var(--apple-green)';
+                        } else {
+                            badgeText.innerText = 'Local Engine: Offline';
+                            badge.style.background = 'rgba(0,122,255,0.12)';
+                            badge.style.color = 'var(--apple-blue)';
+                        }
+                    }
+                    setTimeout(closeSettingsModal, 500);
+                } else {
+                    alert('Error saving AI settings: ' + data.message);
+                }
+            } catch (err) {
+                alert('Connection fault: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Save & Test AI Engine';
+            }
+        }
+
+        async function clearApiKeyAction() {
+            if (!confirm('Clear stored API key and revert to local engine?')) return;
+            const res = await fetch('/settings/update-ai/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ ai_mode: 'local', clear_key: true })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                document.getElementById('aiApiKeyInput').value = '';
+                document.getElementById('radioLocal').checked = true;
+                toggleAiModeDisplay();
+                showiOSToast('API Key Removed', '✓');
+                closeSettingsModal();
+            }
+        }
+
+        async function testAiConnection() {
+            const btn = document.getElementById('aiTestBtn');
+            const box = document.getElementById('aiTestResultBox');
+            const form = document.getElementById('aiSettingsForm');
+            const fd = new FormData(form);
+            const prov = fd.get('ai_provider');
+            const key = fd.get('ai_api_key');
+            const model = fd.get('ai_model');
+            const endpoint = fd.get('ai_custom_endpoint');
+            const mode = fd.get('ai_mode');
+
+            if (mode === 'local') {
+                if (box) {
+                    box.style.display = 'block';
+                    box.style.background = 'rgba(0, 122, 255, 0.12)';
+                    box.style.borderColor = 'rgba(0, 122, 255, 0.3)';
+                    box.style.color = 'var(--apple-blue)';
+                    box.innerHTML = '<strong>✓ Local Engine Active:</strong> Operating in 100% on-device deterministic mode with zero cloud calls.';
+                }
+                return;
+            }
+
+            if (!key) {
+                showiOSToast('Please paste an API key first', '⚠️');
+                if (box) {
+                    box.style.display = 'block';
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '⚠️ Please enter your AI provider API key before running the test.';
+                }
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Testing...';
+            if (box) {
+                box.style.display = 'block';
+                box.style.background = 'rgba(0, 122, 255, 0.08)';
+                box.style.borderColor = 'rgba(0, 122, 255, 0.2)';
+                box.style.color = 'var(--apple-blue)';
+                box.innerHTML = 'Connecting to ' + prov.toUpperCase() + ' API endpoint and verifying model handshake...';
+            }
+
+            try {
+                const res = await fetch('/settings/test-ai/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        ai_mode: mode,
+                        ai_provider: prov,
+                        ai_api_key: key,
+                        ai_model: model,
+                        ai_custom_endpoint: endpoint
+                    })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = '🧪 Test AI';
+                if (box) {
+                    if (data.status === 'success') {
+                        box.style.background = 'rgba(52, 199, 89, 0.12)';
+                        box.style.borderColor = 'rgba(52, 199, 89, 0.3)';
+                        box.style.color = '#30d158';
+                        box.innerHTML = '<strong>' + data.message + '</strong><br><span style="opacity:0.85; margin-top:4px; display:inline-block;">Handshake: ' + (data.reply || 'Ready') + '</span>';
+                        showiOSToast('AI Connection Live!', '✓');
+                    } else {
+                        box.style.background = 'rgba(255, 69, 58, 0.12)';
+                        box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                        box.style.color = '#ff453a';
+                        box.innerHTML = '<strong>' + data.message + '</strong>';
+                        showiOSToast('AI Connection Error', '✕');
+                    }
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '🧪 Test AI';
+                if (box) {
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '<strong>Network Error:</strong> ' + err.message;
+                }
+            }
+        }
+
+        async function testSmtpConnection() {
+            const btn = document.getElementById('btnTestSmtp');
+            const status = document.getElementById('smtpTestStatus');
+            const box = document.getElementById('smtpTestResultBox');
+            
+            const host = document.getElementById('emailNodeSmtpHost').value;
+            const port = document.getElementById('emailNodeSmtpPort').value;
+            const user = document.getElementById('emailNodeSmtpUser').value;
+            const password = document.getElementById('emailNodeSmtpPassword').value;
+            const account_email = document.getElementById('emailNodeAccountEmail').value;
+            
+            if (!user || !password) {
+                showiOSToast('Please enter SMTP User & App Password', '⚠️');
+                if (box) {
+                    box.style.display = 'block';
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '⚠️ Please enter your SMTP Username and 16-character App Password before testing.';
+                }
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Testing Outbound...';
+            if (status) status.innerText = 'Connecting...';
+            if (box) {
+                box.style.display = 'block';
+                box.style.background = 'rgba(0, 122, 255, 0.08)';
+                box.style.borderColor = 'rgba(0, 122, 255, 0.2)';
+                box.style.color = 'var(--apple-blue)';
+                box.innerHTML = 'Connecting to SMTP server (' + host + ':' + port + ') and dispatching verification message...';
+            }
+
+            try {
+                const res = await fetch('/settings/test-smtp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        smtp_host: host,
+                        smtp_port: port,
+                        smtp_user: user,
+                        smtp_password: password,
+                        account_email: account_email
+                    })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = '🧪 Test SMTP Outbound';
+                if (box) {
+                    if (data.status === 'success') {
+                        box.style.background = 'rgba(52, 199, 89, 0.12)';
+                        box.style.borderColor = 'rgba(52, 199, 89, 0.3)';
+                        box.style.color = '#30d158';
+                        box.innerHTML = '<strong>' + data.message + '</strong>';
+                        if (status) status.innerText = '● Connected';
+                        showiOSToast('SMTP Outbound Verified!', '✓');
+                    } else {
+                        box.style.background = 'rgba(255, 69, 58, 0.12)';
+                        box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                        box.style.color = '#ff453a';
+                        box.innerHTML = '<strong>' + data.message + '</strong>';
+                        if (status) status.innerText = '● Verification Failed';
+                        showiOSToast('SMTP Verification Failed', '✕');
+                    }
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '🧪 Test SMTP Outbound';
+                if (box) {
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '<strong>Network Error:</strong> ' + err.message;
+                }
+            }
+        }
+
+        async function testImapConnection() {
+            const btn = document.getElementById('btnTestImap');
+            const status = document.getElementById('imapTestStatus');
+            const box = document.getElementById('imapTestResultBox');
+            
+            const host = document.getElementById('emailNodeImapHost').value;
+            const port = document.getElementById('emailNodeImapPort').value;
+            const user = document.getElementById('emailNodeImapUser').value;
+            const password = document.getElementById('emailNodeImapPassword').value;
+            const account_email = document.getElementById('emailNodeAccountEmail').value;
+            
+            if (!user || !password) {
+                showiOSToast('Please enter IMAP User & App Password', '⚠️');
+                if (box) {
+                    box.style.display = 'block';
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '⚠️ Please enter your IMAP Username and 16-character App Password before testing.';
+                }
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Testing Inbound...';
+            if (status) status.innerText = 'Connecting...';
+            if (box) {
+                box.style.display = 'block';
+                box.style.background = 'rgba(0, 122, 255, 0.08)';
+                box.style.borderColor = 'rgba(0, 122, 255, 0.2)';
+                box.style.color = 'var(--apple-blue)';
+                box.innerHTML = 'Connecting to IMAP SSL server (' + host + ':' + port + ') and opening mailbox...';
+            }
+
+            try {
+                const res = await fetch('/settings/test-imap/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        imap_host: host,
+                        imap_port: port,
+                        imap_user: user,
+                        imap_password: password,
+                        account_email: account_email
+                    })
+                });
+                const data = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = '📥 Test IMAP Fetching';
+                if (box) {
+                    if (data.status === 'success') {
+                        box.style.background = 'rgba(52, 199, 89, 0.12)';
+                        box.style.borderColor = 'rgba(52, 199, 89, 0.3)';
+                        box.style.color = '#30d158';
+                        box.innerHTML = '<strong>' + data.message + '</strong>';
+                        if (status) status.innerText = '● Synced (' + (data.unread_emails || 0) + ' unread)';
+                        showiOSToast('IMAP Connection Verified!', '✓');
+                    } else {
+                        box.style.background = 'rgba(255, 69, 58, 0.12)';
+                        box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                        box.style.color = '#ff453a';
+                        box.innerHTML = '<strong>' + data.message + '</strong>';
+                        if (status) status.innerText = '● Verification Failed';
+                        showiOSToast('IMAP Connection Failed', '✕');
+                    }
+                }
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '📥 Test IMAP Fetching';
+                if (box) {
+                    box.style.background = 'rgba(255, 69, 58, 0.12)';
+                    box.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+                    box.style.color = '#ff453a';
+                    box.innerHTML = '<strong>Network Error:</strong> ' + err.message;
+                }
+            }
+        }
+
+        // Generic Modal Open/Close
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('open');
+                el.style.display = 'flex';
+                el.style.opacity = '1';
+                el.style.pointerEvents = 'auto';
+                el.setAttribute('aria-hidden', 'false');
                 setTimeout(() => {
-                    modal.querySelector('.modal-container').classList.remove('scale-95', 'opacity-0');
-                    modal.querySelector('.modal-container').classList.add('scale-100', 'opacity-100');
+                    const c = el.querySelector('.modal-container') || el.querySelector('.ios-card');
+                    if (c) {
+                        c.classList.remove('scale-95', 'opacity-0');
+                        c.classList.add('scale-100', 'opacity-100');
+                    }
                 }, 10);
             }
         }
 
-        function openBudgetModal(category) {
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                const c = el.querySelector('.modal-container') || el.querySelector('.ios-card');
+                if (c) {
+                    c.classList.remove('scale-100', 'opacity-100');
+                    c.classList.add('scale-95', 'opacity-0');
+                }
+                setTimeout(() => {
+                    el.classList.remove('open');
+                    el.classList.add('hidden');
+                    el.style.display = 'none';
+                    el.style.opacity = '0';
+                    el.style.pointerEvents = 'none';
+                    el.setAttribute('aria-hidden', 'true');
+                }, 180);
+            }
+        }
+
+        function openBudgetModal(cat) {
             const modal = document.getElementById('budgetModal');
             if (modal) {
-                const selectElement = modal.querySelector('select[name="category"]');
-                if (selectElement) {
-                    selectElement.value = category || 'Total';
+                const sel = modal.querySelector('select[name="category"]');
+                if (sel) {
+                    if (cat) sel.value = cat;
+                    else sel.value = 'Total';
                 }
                 openModal('budgetModal');
             }
         }
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.querySelector('.modal-container').classList.remove('scale-100', 'opacity-100');
-                modal.querySelector('.modal-container').classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    modal.classList.remove('flex');
-                    modal.classList.add('hidden');
-                }, 200);
+        // Global ESC and Backdrop Close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSettingsModal();
+                cancelCurrencyChange();
+                closeModal('clockInfoModal');
+                closeModal('versionHelpModal');
+                if (window.leoxurCopilotInstance) window.leoxurCopilotInstance.close();
+                document.querySelectorAll('.fixed.z-50, .ios-modal-backdrop').forEach(m => {
+                    if (m.style.display !== 'none' && !m.classList.contains('hidden')) {
+                        closeModal(m.id);
+                    }
+                });
             }
-        }
-
-        // Auto dismiss toast notifications after 5 seconds
-        document.addEventListener("DOMContentLoaded", () => {
-            const toasts = document.querySelectorAll('.toast-notification');
-            toasts.forEach(toast => {
-                setTimeout(() => {
-                    dismissToast(toast);
-                }, 5000);
-            });
         });
 
-        function toggleAlertsDropdown(event) {
-            event.stopPropagation();
-            const dropdown = document.getElementById('alerts-dropdown');
-            if (!dropdown) return;
-            
-            if (dropdown.classList.contains('hidden')) {
-                dropdown.classList.remove('hidden');
-                setTimeout(() => {
-                    dropdown.classList.remove('scale-95', 'opacity-0');
-                    dropdown.classList.add('scale-100', 'opacity-100');
-                }, 10);
-            } else {
-                dropdown.classList.remove('scale-100', 'opacity-100');
-                dropdown.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    dropdown.classList.add('hidden');
-                }, 200);
-            }
-        }
-        
         document.addEventListener('click', (e) => {
-            const dropdown = document.getElementById('alerts-dropdown');
-            if (dropdown && !dropdown.classList.contains('hidden')) {
-                const bellBtn = document.getElementById('alerts-bell-btn');
-                if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
-                    dropdown.classList.remove('scale-100', 'opacity-100');
-                    dropdown.classList.add('scale-95', 'opacity-0');
-                    setTimeout(() => {
-                        dropdown.classList.add('hidden');
-                    }, 200);
+            const backdrops = document.querySelectorAll('.ios-modal-backdrop, .fixed.z-50');
+            backdrops.forEach(b => {
+                if (e.target === b && b.style.display !== 'none' && !b.classList.contains('hidden')) {
+                    if (b.id === 'systemSettingsModal') closeSettingsModal();
+                    else if (b.id === 'currencyModal') cancelCurrencyChange();
+                    else closeModal(b.id);
                 }
-            }
-        });
-
-        function dismissToast(toast) {
-            if (toast) {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-2', 'opacity-0');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }
-        }
-    </script>
-    
-    <style>
-        @keyframes slideIn {
-            from { transform: translateY(1.5rem); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        #floating-chatbot-window.chatbot-maximized {
-            width: calc(100vw - 48px) !important;
-            height: calc(100vh - 120px) !important;
-            max-width: 1200px !important;
-            max-height: 85vh !important;
-        }
-    </style>
-    {% block extra_js %}{% endblock %}
-    
-    {% if user.is_authenticated %}
-    <!-- Floating Chatbot Widget -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <!-- Chat Window Popover -->
-        <div id="floating-chatbot-window" class="hidden mb-4 w-80 md:w-96 rounded-3xl overflow-hidden shadow-2xl border border-neon-cyan/20 dark:border-neon-cyan/15 bg-white/95 dark:bg-space-900/95 backdrop-blur-md transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right flex flex-col h-[400px] pointer-events-none">
-            <!-- Header -->
-            <div class="p-4 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/5 border-b border-slate-100 dark:border-space-850 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <div class="p-1 rounded-lg bg-neon-cyan/15 text-neon-cyan">
-                        <i data-lucide="cpu" class="h-4 w-4 animate-pulse"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold font-outfit text-xs text-slate-800 dark:text-white uppercase tracking-wider leading-none mb-0.5">Leoxur AI Copilot</h4>
-                        <p class="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-widest leading-none">Savings Analyst</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="clearAnalystChat()" class="text-slate-400 hover:text-neon-rose p-1 rounded transition" title="Clear Chat History">
-                        <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                    </button>
-                    <button onclick="toggleMaximizeChat()" id="chatbot-maximize-btn" class="text-slate-400 hover:text-neon-cyan p-1 rounded transition" title="Maximize Chat">
-                        <i data-lucide="maximize-2" class="h-4 w-4"></i>
-                    </button>
-                    <button onclick="toggleFloatingChat()" class="text-slate-400 hover:text-neon-cyan p-1 rounded transition" title="Minimize Chat">
-                        <i data-lucide="minus" class="h-4 w-4"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Chat logs scroll box -->
-            <div id="analyst-chat-box" class="flex-1 overflow-y-auto p-4 space-y-3 pr-1 scroll-smooth">
-                <!-- Greeting Message -->
-                <div class="flex items-start space-x-2.5 max-w-[85%]">
-                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                        <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
-                    </div>
-                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
-                        Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-900 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
-                    </div>
-                </div>
-            </div>
-
-            <!-- Typing Indicator (Hidden by default) -->
-            <div id="analyst-typing" class="hidden flex items-start space-x-2.5 max-w-[85%] mb-3 px-4 animate-fade-in">
-                <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                    <i data-lucide="cpu" class="h-3.5 w-3.5 animate-spin"></i>
-                </div>
-                <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-400 dark:text-slate-500 leading-relaxed shadow-sm flex items-center space-x-1.5">
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-                </div>
-            </div>
-
-            <!-- Input Box -->
-            <div class="p-3 bg-slate-50/50 dark:bg-space-950/50 border-t border-slate-100 dark:border-space-850 flex space-x-2">
-                <input id="analyst-query" type="text" onkeypress="if(event.key === 'Enter') askSavingsAnalyst()" placeholder="Type a message or command..." class="flex-1 px-4 py-2 text-xs rounded-xl bg-white dark:bg-space-900 border border-slate-200 dark:border-space-800 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-neon-cyan/50 focus:ring-1 focus:ring-neon-cyan/20 transition duration-200">
-                <button onclick="askSavingsAnalyst()" class="px-3.5 py-2 rounded-xl bg-neon-cyan text-white text-xs font-bold hover:bg-neon-cyan/90 transition duration-200 flex items-center justify-center shadow-lg shadow-neon-cyan/15">
-                    <i data-lucide="send" class="h-3.5 w-3.5"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Trigger Button -->
-        <button id="floating-chatbot-trigger" onclick="toggleFloatingChat()" class="bg-gradient-to-tr from-neon-cyan to-neon-violet text-white p-3.5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition duration-300 flex items-center justify-center border border-white/20" title="Consult Leoxur AI Assistant">
-            <i data-lucide="message-square" class="h-5 w-5"></i>
-        </button>
-    </div>
-
-    <!-- Chatbot Script -->
-    <script>
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
-        }
-
-        function toggleFloatingChat() {
-            const windowEl = document.getElementById('floating-chatbot-window');
-            if (!windowEl) return;
-            
-            if (windowEl.classList.contains('hidden')) {
-                windowEl.classList.remove('hidden');
-                setTimeout(() => {
-                    windowEl.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
-                    windowEl.classList.add('scale-100', 'opacity-100', 'pointer-events-auto');
-                    const chatBox = document.getElementById('analyst-chat-box');
-                    if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-                }, 10);
-            } else {
-                windowEl.classList.remove('scale-100', 'opacity-100', 'pointer-events-auto');
-                windowEl.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
-                setTimeout(() => {
-                    windowEl.classList.add('hidden');
-                }, 300);
-            }
-        }
-
-        function toggleMaximizeChat() {
-            const windowEl = document.getElementById('floating-chatbot-window');
-            const btn = document.getElementById('chatbot-maximize-btn');
-            if (!windowEl || !btn) return;
-            
-            if (windowEl.classList.contains('chatbot-maximized')) {
-                windowEl.classList.remove('chatbot-maximized');
-                btn.innerHTML = `<i data-lucide="maximize-2" class="h-4 w-4"></i>`;
-                btn.setAttribute('title', 'Maximize Chat');
-            } else {
-                windowEl.classList.add('chatbot-maximized');
-                btn.innerHTML = `<i data-lucide="minimize-2" class="h-4 w-4"></i>`;
-                btn.setAttribute('title', 'Restore Normal Size');
-            }
-            lucide.createIcons();
-        }
-
-        function clearAnalystChat() {
-            const chatBox = document.getElementById('analyst-chat-box');
-            if (!chatBox) return;
-            chatBox.innerHTML = `
-                <div class="flex items-start space-x-2.5 max-w-[85%]">
-                    <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                        <i data-lucide="sparkles" class="h-3.5 w-3.5 animate-pulse"></i>
-                    </div>
-                    <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm">
-                        Hello! I am your Leoxur savings copilot. Query budgets, search transaction history, project savings, or type <code class="bg-slate-200 dark:bg-space-900 px-1 py-0.5 rounded font-mono text-[10px] text-slate-800 dark:text-slate-200">help</code> to see commands!
-                    </div>
-                </div>
-            `;
-            lucide.createIcons();
-        }
-
-        function askSavingsAnalyst() {
-            const input = document.getElementById('analyst-query');
-            const query = input.value.trim();
-            if (!query) return;
-
-            const chatBox = document.getElementById('analyst-chat-box');
-            const typingIndicator = document.getElementById('analyst-typing');
-
-            // Append User Message bubble
-            const userMsgHtml = `
-                <div class="flex items-start justify-end space-x-2.5 ml-auto max-w-[85%] animate-fade-in">
-                    <div class="p-2.5 rounded-2xl rounded-tr-none bg-neon-cyan/10 border border-neon-cyan/20 text-xs text-slate-800 dark:text-white leading-relaxed shadow-sm">
-                        ${escapeHTML(query)}
-                    </div>
-                </div>
-            `;
-            chatBox.insertAdjacentHTML('beforeend', userMsgHtml);
-            
-            // Clear input and scroll down
-            input.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            // Show typing indicator at the very bottom
-            if (typingIndicator) {
-                typingIndicator.classList.remove('hidden');
-                chatBox.appendChild(typingIndicator);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-
-            fetch('/api/savings-analyst/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ query: query })
-            })
-            .then(res => res.json())
-            .then(data => {
-                // Hide typing indicator
-                if (typingIndicator) {
-                    typingIndicator.classList.add('hidden');
-                }
-
-                let responseHtml = "";
-                if (data.status === 'success') {
-                    responseHtml = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                } else {
-                    responseHtml = `<span class="text-neon-rose">Error: ${escapeHTML(data.message)}</span>`;
-                }
-
-                // Append bot message bubble
-                const botMsgHtml = `
-                    <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
-                        <div class="p-1.5 rounded-lg bg-neon-cyan/15 border border-neon-cyan/20 text-neon-cyan flex-shrink-0 mt-0.5">
-                            <i data-lucide="cpu" class="h-3.5 w-3.5"></i>
-                        </div>
-                        <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-sm w-full">
-                            ${responseHtml}
-                        </div>
-                    </div>
-                `;
-                chatBox.insertAdjacentHTML('beforeend', botMsgHtml);
-                
-                // Re-render Lucide icons dynamically
-                lucide.createIcons();
-                
-                // Scroll to bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
-            })
-            .catch(err => {
-                console.error("Savings Analyst consult failed:", err);
-                if (typingIndicator) {
-                    typingIndicator.classList.add('hidden');
-                }
-                const errorMsgHtml = `
-                    <div class="flex items-start space-x-2.5 max-w-[85%] animate-fade-in">
-                        <div class="p-1.5 rounded-lg bg-neon-rose/15 border border-neon-rose/20 text-neon-rose flex-shrink-0 mt-0.5">
-                            <i data-lucide="alert-triangle" class="h-3.5 w-3.5"></i>
-                        </div>
-                        <div class="p-2.5 rounded-2xl rounded-tl-none bg-slate-100/60 dark:bg-space-950 border border-slate-200/50 dark:border-space-800/60 text-xs text-neon-rose leading-relaxed shadow-sm">
-                            System offline. Failed to consult savings analyst.
-                        </div>
-                    </div>
-                `;
-                chatBox.insertAdjacentHTML('beforeend', errorMsgHtml);
-                lucide.createIcons();
-                chatBox.scrollTop = chatBox.scrollHeight;
             });
+        });
+
+        // Toggle Floating Copilot Chat
+        function toggleFloatingChat() {
+            if (window.leoxurCopilotInstance) {
+                window.leoxurCopilotInstance.toggle();
+            } else {
+                const panel = document.getElementById('assistantPanel');
+                if (panel) panel.classList.toggle('open');
+            }
         }
 
-        // Initialize Lucide icons on page load for the chatbot components defined at the bottom
-        document.addEventListener("DOMContentLoaded", () => {
-            if (window.lucide) {
-                lucide.createIcons();
+        // Leoxur Copilot UI Controller with Full Multi-Session History & Persistence
+        class LeoxurCopilotUI {
+            constructor() {
+                window.leoxurCopilot = this;
+                this.panel = document.getElementById('assistantPanel');
+                this.backdrop = document.getElementById('assistantBackdrop');
+                this.siriBtn = document.getElementById('siriFloatBtn');
+                this.topBarBtn = document.getElementById('topBarAiBtn');
+                this.tabBtn = document.getElementById('tabAssistantBtn');
+                this.closeBtn = document.getElementById('assistantCloseBtn');
+                this.minimizeBtn = document.getElementById('assistantMinimizeBtn');
+                this.maximizeBtn = document.getElementById('assistantMaximizeBtn');
+                this.msgContainer = document.getElementById('assistantMessages');
+                this.input = document.getElementById('assistantInput');
+                this.sendBtn = document.getElementById('assistantSendBtn');
+
+                // History & New Chat controls
+                this.newChatBtn = document.getElementById('assistantNewChatBtn');
+                this.historyBtn = document.getElementById('assistantHistoryBtn');
+                this.historyDrawer = document.getElementById('assistantHistoryDrawer');
+                this.closeHistoryBtn = document.getElementById('closeHistoryDrawerBtn');
+                this.startNewFromHistoryBtn = document.getElementById('startNewChatFromHistoryBtn');
+                this.sessionListContainer = document.getElementById('sessionListContainer');
+                this.sessionCountBadge = document.getElementById('sessionCountBadge');
+
+                // Storage keys
+                this.sessionsKey = 'leoxur_copilot_sessions_v2';
+                this.activeSessionKey = 'leoxur_copilot_active_session_v2';
+                this.openStateKey = 'leoxur_copilot_open_state';
+
+                this.initSessions();
+                this.bindEvents();
+
+                // Restore open state: NEVER close automatically unless user explicitly clicked close
+                const shouldBeOpen = localStorage.getItem(this.openStateKey) === 'true';
+                if (shouldBeOpen) {
+                    this.open();
+                }
             }
+
+            getWelcomeCardHtml() {
+                return `
+                <div class="welcome-card" style="padding:16px 14px; border-radius:18px; background:linear-gradient(135deg, rgba(0,113,227,0.09), rgba(191,90,242,0.07)); border:1px solid rgba(255,255,255,0.12); margin-bottom:6px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                        <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #0071E3, #BF5AF2); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,113,227,0.35); color:#fff; font-size:16px;">
+                            ✨
+                        </div>
+                        <div>
+                            <div style="font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I'm Leoxur Copilot</div>
+                            <div style="font-size:11px; color:var(--text-secondary);">Your personal finance AI & telemetry companion</div>
+                        </div>
+                    </div>
+                    <div style="font-size:12px; line-height:1.45; color:var(--text-secondary); margin-bottom:12px;">
+                        Ask me to email your monthly statement with PDF charts & spreadsheets, perform 50/30/20 audits, or log expenses.
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                        <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('send oct report to my mail with spreadsheet and pdf')">
+                            <span style="font-size:14px;">📧</span>
+                            <div>
+                                <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Email Report</strong>
+                                <span style="font-size:9.5px; color:var(--text-secondary);">PDF charts & Excel file</span>
+                            </div>
+                        </button>
+                        <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Cashflow diagnostic')">
+                            <span style="font-size:14px;">📊</span>
+                            <div>
+                                <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">50/30/20 Audit</strong>
+                                <span style="font-size:9.5px; color:var(--text-secondary);">Leakages & blueprint</span>
+                            </div>
+                        </button>
+                        <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Check budgets')">
+                            <span style="font-size:14px;">🎯</span>
+                            <div>
+                                <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Budget Caps</strong>
+                                <span style="font-size:9.5px; color:var(--text-secondary);">Monthly limits status</span>
+                            </div>
+                        </button>
+                        <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Fetch IMAP details')">
+                            <span style="font-size:14px;">📬</span>
+                            <div>
+                                <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Sync Mail</strong>
+                                <span style="font-size:9.5px; color:var(--text-secondary);">IMAP bank receipts</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }
+
+            sendPrompt(text) {
+                if (this.input) {
+                    this.input.value = text;
+                    this.send();
+                }
+            }
+
+            formatMarkdown(str) {
+                if (!str) return '';
+                if (str.includes('<div') || str.includes('<table') || str.includes('<svg') || str.includes('<button') || str.includes('<a ')) {
+                    return str;
+                }
+                return str
+                    .replace(/\n\n/g, '<br><br>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; font-size:11px;">$1</code>');
+            }
+
+            initSessions() {
+                try {
+                    const raw = localStorage.getItem(this.sessionsKey);
+                    this.sessions = raw ? JSON.parse(raw) : [];
+                } catch(e) {
+                    this.sessions = [];
+                }
+
+                this.activeSessionId = localStorage.getItem(this.activeSessionKey);
+
+                if (!this.sessions.length) {
+                    this.createDefaultSession();
+                } else {
+                    const found = this.sessions.find(s => s.id === this.activeSessionId);
+                    if (!found) {
+                        this.activeSessionId = this.sessions[0].id;
+                        localStorage.setItem(this.activeSessionKey, this.activeSessionId);
+                    }
+                }
+                this.renderActiveSessionMessages();
+            }
+
+            createDefaultSession() {
+                const defaultSess = {
+                    id: 'sess_' + Date.now(),
+                    title: 'Financial Intelligence Greeting',
+                    createdAt: new Date().toISOString(),
+                    messages: [
+                        {
+                            sender: 'assistant',
+                            html: this.getWelcomeCardHtml()
+                        }
+                    ]
+                };
+                this.sessions = [defaultSess];
+                this.activeSessionId = defaultSess.id;
+                this.saveSessions();
+            }
+
+            saveSessions() {
+                try {
+                    localStorage.setItem(this.sessionsKey, JSON.stringify(this.sessions));
+                    localStorage.setItem(this.activeSessionKey, this.activeSessionId);
+                } catch(e) {}
+                this.updateHistoryBadge();
+            }
+
+            updateHistoryBadge() {
+                if (this.sessionCountBadge) {
+                    this.sessionCountBadge.innerText = this.sessions.length;
+                }
+            }
+
+            getActiveSession() {
+                return this.sessions.find(s => s.id === this.activeSessionId) || this.sessions[0];
+            }
+
+            renderActiveSessionMessages() {
+                if (!this.msgContainer) return;
+                this.msgContainer.innerHTML = '';
+                const session = this.getActiveSession();
+                if (!session || !session.messages || !session.messages.length) {
+                    this.createDefaultSession();
+                    return this.renderActiveSessionMessages();
+                }
+
+                session.messages.forEach(msg => {
+                    // Migrate old raw text greeting to welcome card if applicable
+                    let content = msg.html || msg.text || '';
+                    if (msg.sender === 'assistant' && (content.includes('I am **Leoxur AI Copilot**') || content.includes('Transaction Management: Instantly log'))) {
+                        content = this.getWelcomeCardHtml();
+                        msg.html = content;
+                    }
+
+                    const bubble = document.createElement('div');
+                    bubble.className = msg.sender === 'user' ? 'msg-bubble msg-user' : 'msg-bubble msg-assistant';
+                    if (msg.sender === 'user') {
+                        bubble.innerText = msg.text || '';
+                    } else {
+                        bubble.innerHTML = this.formatMarkdown(content);
+                    }
+                    this.msgContainer.appendChild(bubble);
+                });
+                this.scrollToBottom();
+            }
+
+            newChat() {
+                const newSess = {
+                    id: 'sess_' + Date.now(),
+                    title: 'New Conversation',
+                    createdAt: new Date().toISOString(),
+                    messages: [
+                        {
+                            sender: 'assistant',
+                            html: this.getWelcomeCardHtml()
+                        }
+                    ]
+                };
+                this.sessions.unshift(newSess);
+                this.activeSessionId = newSess.id;
+                this.saveSessions();
+                this.renderActiveSessionMessages();
+                this.hideHistory();
+                if (this.input) this.input.focus();
+            }
+
+            selectSession(id) {
+                this.activeSessionId = id;
+                this.saveSessions();
+                this.renderActiveSessionMessages();
+                this.hideHistory();
+            }
+
+            deleteSession(id, e) {
+                if (e) e.stopPropagation();
+                this.sessions = this.sessions.filter(s => s.id !== id);
+                if (!this.sessions.length) {
+                    this.createDefaultSession();
+                } else if (this.activeSessionId === id) {
+                    this.activeSessionId = this.sessions[0].id;
+                }
+                this.saveSessions();
+                this.renderActiveSessionMessages();
+                this.renderHistoryList();
+            }
+
+            toggleHistory() {
+                if (!this.historyDrawer) return;
+                const isVisible = this.historyDrawer.style.display !== 'none';
+                if (isVisible) {
+                    this.hideHistory();
+                } else {
+                    this.showHistory();
+                }
+            }
+
+            showHistory() {
+                if (!this.historyDrawer) return;
+                this.renderHistoryList();
+                this.historyDrawer.style.display = 'block';
+            }
+
+            hideHistory() {
+                if (!this.historyDrawer) return;
+                this.historyDrawer.style.display = 'none';
+            }
+
+            renderHistoryList() {
+                if (!this.sessionListContainer) return;
+                this.sessionListContainer.innerHTML = '';
+                this.updateHistoryBadge();
+
+                if (!this.sessions.length) {
+                    this.sessionListContainer.innerHTML = '<div style="font-size:12px; color:var(--text-secondary); text-align:center; padding:20px 0;">No previous conversations.</div>';
+                    return;
+                }
+
+                this.sessions.forEach(sess => {
+                    const isActive = sess.id === this.activeSessionId;
+                    const dateObj = new Date(sess.createdAt);
+                    const timeLabel = isNaN(dateObj) ? 'Recent' : dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const msgCount = (sess.messages || []).length;
+
+                    const item = document.createElement('div');
+                    item.style.cssText = `
+                        padding: 10px 14px;
+                        border-radius: 12px;
+                        background: ${isActive ? 'rgba(0,122,255,0.12)' : 'var(--bg-subtle)'};
+                        border: 1px solid ${isActive ? 'var(--apple-blue)' : 'var(--border-hairline)'};
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    `;
+                    item.onmouseover = () => {
+                        if (!isActive) item.style.background = 'var(--bg-hover)';
+                    };
+                    item.onmouseout = () => {
+                        if (!isActive) item.style.background = 'var(--bg-subtle)';
+                    };
+                    item.onclick = () => this.selectSession(sess.id);
+
+                    item.innerHTML = `
+                        <div style="overflow:hidden; padding-right:10px;">
+                            <div style="font-size:12px; font-weight:${isActive ? '700' : '600'}; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                                ${isActive ? '👉 ' : ''}${sess.title || 'Conversation'}
+                            </div>
+                            <div style="font-size:10px; color:var(--text-secondary); margin-top:2px;">
+                                ${timeLabel} • ${msgCount} message${msgCount === 1 ? '' : 's'}
+                            </div>
+                        </div>
+                        <button type="button" class="ios-icon-btn" style="width:24px; height:24px; min-width:24px; color:var(--apple-red); opacity:0.8;" title="Delete chat">
+                            ✕
+                        </button>
+                    `;
+
+                    const delBtn = item.querySelector('button');
+                    if (delBtn) {
+                        delBtn.onclick = (e) => this.deleteSession(sess.id, e);
+                    }
+
+                    this.sessionListContainer.appendChild(item);
+                });
+            }
+
+            bindEvents() {
+                if (this.siriBtn) this.siriBtn.onclick = () => this.toggle();
+                if (this.topBarBtn) this.topBarBtn.onclick = () => this.toggle();
+                if (this.tabBtn) this.tabBtn.onclick = () => this.toggle();
+                if (this.closeBtn) this.closeBtn.onclick = () => this.close();
+                if (this.minimizeBtn) this.minimizeBtn.onclick = () => this.close();
+                if (this.maximizeBtn) this.maximizeBtn.onclick = () => this.toggleMaximize();
+                if (this.sendBtn) this.sendBtn.onclick = () => this.send();
+
+                if (this.newChatBtn) this.newChatBtn.onclick = () => this.newChat();
+                if (this.historyBtn) this.historyBtn.onclick = () => this.toggleHistory();
+                if (this.closeHistoryBtn) this.closeHistoryBtn.onclick = () => this.hideHistory();
+                if (this.startNewFromHistoryBtn) this.startNewFromHistoryBtn.onclick = () => this.newChat();
+
+                if (this.input) {
+                    this.input.onkeydown = (e) => {
+                        if (e.key === 'Enter') this.send();
+                    };
+                }
+
+                document.querySelectorAll('.suggestion-chip').forEach(chip => {
+                    chip.onclick = () => {
+                        const prompt = chip.getAttribute('data-prompt');
+                        if (prompt && this.input) {
+                            this.input.value = prompt;
+                            this.send();
+                        }
+                    };
+                });
+            }
+
+            toggle() {
+                if (!this.panel) return;
+                if (this.panel.classList.contains('open')) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+            }
+
+            open() {
+                if (!this.panel) return;
+                this.panel.classList.add('open');
+                localStorage.setItem(this.openStateKey, 'true');
+                if (this.input) {
+                    setTimeout(() => this.input.focus(), 100);
+                }
+                this.scrollToBottom();
+            }
+
+            close() {
+                if (!this.panel) return;
+                this.panel.classList.remove('open', 'maximized');
+                if (this.backdrop) this.backdrop.classList.remove('open');
+                localStorage.setItem(this.openStateKey, 'false');
+                this.hideHistory();
+            }
+
+            toggleMaximize() {
+                if (!this.panel) return;
+                const isMax = this.panel.classList.toggle('maximized');
+                if (this.backdrop) this.backdrop.classList.toggle('open', isMax);
+                this.scrollToBottom();
+            }
+
+            scrollToBottom() {
+                if (this.msgContainer) {
+                    this.msgContainer.scrollTop = this.msgContainer.scrollHeight;
+                }
+            }
+
+            async send() {
+                if (!this.input) return;
+                const text = this.input.value.trim();
+                if (!text) return;
+
+                // Append to UI
+                const userBubble = document.createElement('div');
+                userBubble.className = 'msg-bubble msg-user';
+                userBubble.innerText = text;
+                this.msgContainer.appendChild(userBubble);
+
+                // Save to active session
+                const activeSess = this.getActiveSession();
+                activeSess.messages.push({ sender: 'user', text: text });
+                if (activeSess.title === 'New Conversation' || activeSess.title === 'Financial Intelligence Greeting') {
+                    activeSess.title = text.length > 28 ? text.slice(0, 28) + '...' : text;
+                }
+                activeSess.createdAt = new Date().toISOString();
+                this.saveSessions();
+
+                this.input.value = '';
+                this.scrollToBottom();
+
+                const loadingBubble = document.createElement('div');
+                loadingBubble.className = 'msg-bubble msg-assistant';
+                loadingBubble.innerHTML = '<span class="opacity-60 italic">Analyzing telemetry...</span>';
+                this.msgContainer.appendChild(loadingBubble);
+                this.scrollToBottom();
+
+                try {
+                    const res = await fetch('/api/savings-analyst/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ query: text })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        let respHtml = data.response || data.reply || 'Analysis complete.';
+                        
+                        // Mutating actions add a discreet refresh pill inside the chat bubble
+                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
+                            respHtml += `
+                                <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end;">
+                                    <button type="button" onclick="window.location.reload()" class="ios-btn-secondary" style="font-size:11px; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
+                                        ↻ Refresh Dashboard
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        loadingBubble.innerHTML = respHtml;
+                        activeSess.messages.push({ sender: 'assistant', html: respHtml });
+                        this.saveSessions();
+
+                        // Dynamic client-side actions
+                        if (data.action_type === 'change_theme' && data.payload && data.payload.theme) {
+                            if (typeof setThemeMode === 'function') {
+                                setThemeMode(data.payload.theme);
+                            }
+                            localStorage.setItem('leoxur_theme', data.payload.theme);
+                        }
+                    } else {
+                        const errHtml = `<span style="color:var(--apple-red);">Error: ${data.message || 'Unable to process query.'}</span>`;
+                        loadingBubble.innerHTML = errHtml;
+                        activeSess.messages.push({ sender: 'assistant', html: errHtml });
+                        this.saveSessions();
+                    }
+                } catch (err) {
+                    const faultHtml = `<span style="color:var(--apple-red);">Offline fault: ${err.message}</span>`;
+                    loadingBubble.innerHTML = faultHtml;
+                    activeSess.messages.push({ sender: 'assistant', html: faultHtml });
+                    this.saveSessions();
+                }
+                this.scrollToBottom();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            window.leoxurCopilotInstance = new LeoxurCopilotUI();
+            if (window.lucide) lucide.createIcons();
         });
     </script>
-    {% endif %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

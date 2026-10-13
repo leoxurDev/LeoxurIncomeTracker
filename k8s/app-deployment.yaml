@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leoxur-app
+  namespace: leoxur
+  labels:
+    app: leoxur-app
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: leoxur-app
+  template:
+    metadata:
+      labels:
+        app: leoxur-app
+    spec:
+      initContainers:
+        - name: wait-for-db-and-migrate
+          image: ghcr.io/leoxurdev/leoxur-income-tracker:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              python3 wait_for_db.py && \
+              python3 manage.py migrate --noinput && \
+              python3 manage.py collectstatic --noinput
+          envFrom:
+            - configMapRef:
+                name: leoxur-config
+            - secretRef:
+                name: leoxur-secrets
+          volumeMounts:
+            - name: static-data
+              mountPath: /app/staticfiles
+      containers:
+        - name: web
+          image: ghcr.io/leoxurdev/leoxur-income-tracker:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - gunicorn
+            - income_tracker.wsgi:application
+            - --bind
+            - 0.0.0.0:8000
+            - --workers
+            - "3"
+            - --timeout
+            - "60"
+            - --access-logfile
+            - "-"
+            - --error-logfile
+            - "-"
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: leoxur-config
+            - secretRef:
+                name: leoxur-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+          volumeMounts:
+            - name: static-data
+              mountPath: /app/staticfiles
+          readinessProbe:
+            httpGet:
+              path: /login/
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /login/
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+      volumes:
+        - name: static-data
+          emptyDir: {}

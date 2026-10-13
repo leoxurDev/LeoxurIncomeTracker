@@ -378,441 +378,21 @@ def analytics_data_api(request):
 
 @login_required
 def savings_analyst_chat(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         import json
-        import re
-        from datetime import datetime, date
-        import calendar
-        from decimal import Decimal
-        from django.db.models import Sum, Q
-        from django.core.management import call_command
-        import threading
-
         try:
             body = json.loads(request.body)
-            query = body.get('query', '').strip()
+            query = body.get("query", "").strip()
         except Exception:
-            return JsonResponse({'status': 'error', 'message': 'Invalid JSON body'}, status=400)
-            
+            return JsonResponse({"status": "error", "message": "Invalid JSON body"}, status=400)
         if not query:
-            return JsonResponse({'status': 'error', 'message': 'Query cannot be empty'}, status=400)
-            
-        user = request.user
-        profile = user.profile
-        currency = profile.currency
-        today = date.today()
-        start_of_month = date(today.year, today.month, 1)
-        _, last_day = calendar.monthrange(today.year, today.month)
-        end_of_month = date(today.year, today.month, last_day)
+            return JsonResponse({"status": "error", "message": "Query cannot be empty"}, status=400)
+        from .assistant import LeoxurIntelligence
+        intel = LeoxurIntelligence(user=request.user, client_context=body.get("client_context", {}))
+        result = intel.process_message(query)
+        return JsonResponse(result)
+    return JsonResponse({"status": "error", "message": "Invalid request method"}, status=400)
 
-        def parse_date(date_str):
-            for fmt in ('%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%Y/%m/%d'):
-                try:
-                    return datetime.strptime(date_str.strip(), fmt).date()
-                except ValueError:
-                    pass
-            return today
-
-        # ----------------- PARSE COMMANDS -----------------
-        q = query.strip()
-        q_lower = q.lower()
-
-        # 1. Sync Emails Command
-        if re.match(r'^(?:sync\s+emails|fetch\s+emails|sync\s+transactions)$', q_lower):
-            from django.db import connections
-            def run_background_sync():
-                try:
-                    call_command('fetch_emails')
-                except Exception as e:
-                    print(f"Background email sync failed: {e}")
-                finally:
-                    connections.close_all()
-            try:
-                threading.Thread(target=run_background_sync).start()
-                response = (
-                    f"<div class='space-y-2'>"
-                    f"  <div class='flex items-center space-x-1.5'>"
-                    f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>System Link</span>"
-                    f"    <strong class='text-xs text-slate-800 dark:text-white'>Inbox Sync Initiated</strong>"
-                    f"  </div>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>I've triggered a secure fetch sequence to scan your configured email node in the background. Fresh incoming transactions will populate your dashboard momentarily.</p>"
-                    f"</div>"
-                )
-            except Exception as e:
-                response = f"Failed to initiate background sync: {e}"
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # 2. Add Transaction Command
-        tx_match = re.match(
-            r"^(?:add|log|record)\s+(expense|outflow|spend|income|inflow)\s+(?:of\s+)?([\d.,]+)\s+(?:for|on|in|to)?\s*([a-zA-Z0-9_ -]+?)(?:\s+(?:with\s+)?(?:description|desc)\s+(.+))?$",
-            q,
-            re.IGNORECASE
-        )
-        if tx_match:
-            tx_type_str = tx_match.group(1).lower()
-            amount_val = Decimal(tx_match.group(2).replace(',', ''))
-            category_name = tx_match.group(3).strip().title()
-            description = tx_match.group(4).strip() if tx_match.group(4) else ""
-
-            tx_type = 'OUT' if tx_type_str in ('expense', 'outflow', 'spend') else 'IN'
-            
-            # Ensure category exists
-            Category.objects.get_or_create(user=user, name=category_name, is_income=(tx_type == 'IN'))
-
-            # Create Transaction
-            tx = Transaction.objects.create(
-                user=user,
-                amount=amount_val,
-                transaction_type=tx_type,
-                category=category_name,
-                date=today,
-                description=description
-            )
-            
-            if tx_type == 'OUT':
-                check_and_send_budget_alerts(user, category_name, today)
-                
-            type_label = "Outflow logged" if tx_type == 'OUT' else "Inflow logged"
-            color_class = "text-neon-rose bg-neon-rose/10 border-neon-rose/20" if tx_type == 'OUT' else "text-neon-green bg-neon-green/10 border-neon-green/20"
-            
-            response = (
-                f"<div class='space-y-2'>"
-                f"  <div class='flex items-center space-x-1.5'>"
-                f"    <span class='px-2 py-0.5 text-[9px] font-bold rounded border uppercase {color_class}'>{type_label}</span>"
-                f"    <strong class='text-xs text-slate-800 dark:text-white'>Operation Successful</strong>"
-                f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Successfully added transaction to the financial ledger:</p>"
-                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
-                f"    <li><strong>Amount:</strong> {currency}{tx.amount:.2f}</li>"
-                f"    <li><strong>Category:</strong> {tx.category}</li>"
-                f"    <li><strong>Date:</strong> {tx.date.strftime('%b %d, %Y')}</li>"
-                f"    <li><strong>Description:</strong> {tx.description or 'None'}</li>"
-                f"  </ul>"
-                f"</div>"
-            )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # 3. Set Budget Command
-        budget_match = re.match(
-            r"^(?:set|create|update)\s+(?:budget|limit)\s+(?:for|on)?\s*([a-zA-Z0-9_ -]+?)\s+(?:to|of)?\s*([\d.,]+)$",
-            q,
-            re.IGNORECASE
-        )
-        if not budget_match:
-            budget_match = re.match(
-                r"^budget\s+([a-zA-Z0-9_ -]+?)\s+([\d.,]+)$",
-                q,
-                re.IGNORECASE
-            )
-        if budget_match:
-            category_name = budget_match.group(1).strip().title()
-            amount_val = Decimal(budget_match.group(2).replace(',', ''))
-
-            # Ensure category exists as expense
-            Category.objects.get_or_create(user=user, name=category_name, is_income=False)
-
-            budget, created = Budget.objects.update_or_create(
-                user=user,
-                category=category_name,
-                period='MONTHLY',
-                month=today.month,
-                year=today.year,
-                defaults={'amount': amount_val}
-            )
-
-            status_label = "Budget configured" if created else "Budget updated"
-            response = (
-                f"<div class='space-y-2'>"
-                f"  <div class='flex items-center space-x-1.5'>"
-                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-purple/10 text-neon-purple rounded border border-neon-purple/20 uppercase'>{status_label}</span>"
-                f"    <strong class='text-xs text-slate-800 dark:text-white'>Target Established</strong>"
-                f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Configured category limit successfully:</p>"
-                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
-                f"    <li><strong>Category:</strong> {budget.category}</li>"
-                f"    <li><strong>Limit:</strong> {currency}{budget.amount:.2f}</li>"
-                f"    <li><strong>Period:</strong> Monthly ({today.strftime('%B %Y')})</li>"
-                f"  </ul>"
-                f"</div>"
-            )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # 4. Add Bill Reminder Command
-        reminder_match = re.match(
-            r"^(?:remind\s+me|add\s+reminder)\s+(?:to\s+pay\s+)?(.+?)\s+(?:of|amount)?\s*([\d.,]+)\s+(?:due\s+)?(?:on|by)?\s*([\d\-\/]+)$",
-            q,
-            re.IGNORECASE
-        )
-        if reminder_match:
-            title = reminder_match.group(1).strip().title()
-            amount_val = Decimal(reminder_match.group(2).replace(',', ''))
-            date_str = reminder_match.group(3).strip()
-            due_date = parse_date(date_str)
-
-            reminder = Reminder.objects.create(
-                user=user,
-                title=title,
-                amount=amount_val,
-                due_date=due_date,
-                is_recurring=False,
-                is_paid=False
-            )
-
-            response = (
-                f"<div class='space-y-2'>"
-                f"  <div class='flex items-center space-x-1.5'>"
-                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-violet/10 text-neon-violet rounded border border-neon-violet/20 uppercase'>Reminder Scheduled</span>"
-                f"    <strong class='text-xs text-slate-800 dark:text-white'>Outflow Alert Locked</strong>"
-                f"  </div>"
-                f"  <p class='text-xs text-slate-600 dark:text-slate-300'>Successfully added a new bill reminder:</p>"
-                f"  <ul class='list-disc pl-4 text-xs text-slate-600 dark:text-slate-300 space-y-0.5'>"
-                f"    <li><strong>Title:</strong> {reminder.title}</li>"
-                f"    <li><strong>Amount:</strong> {currency}{reminder.amount:.2f}</li>"
-                f"    <li><strong>Due Date:</strong> {reminder.due_date.strftime('%b %d, %Y')}</li>"
-                f"  </ul>"
-                f"</div>"
-            )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # ----------------- PARSE QUERIES / ANALYSIS -----------------
-        
-        # Help Menu
-        if q_lower in ('help', 'commands', 'menu', '?', 'what can you do'):
-            response = (
-                f"<div class='space-y-2 max-h-80 overflow-y-auto pr-1 text-xs text-slate-600 dark:text-slate-300'>"
-                f"  <div class='flex items-center space-x-1.5 mb-1'>"
-                f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>Node Support</span>"
-                f"    <strong class='text-xs text-slate-800 dark:text-white'>LEOXUR Analyst Commands</strong>"
-                f"  </div>"
-                f"  <p>I am your financial copilot. Here is a list of commands and queries you can run directly:</p>"
-                f"  <div class='space-y-2.5 mt-2 pl-1'>"
-                f"    <div>"
-                f"      <strong class='text-neon-cyan'>1. Ledger Logging (Database Write)</strong>"
-                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>add expense/income [amount] [category] desc [details]</p>"
-                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>add expense 45 for Food desc lunch at office</code>"
-                f"    </div>"
-                f"    <div>"
-                f"      <strong class='text-neon-cyan'>2. Budget Configuration</strong>"
-                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>set budget/limit [category] [amount]</p>"
-                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>set budget for Entertainment to 250</code>"
-                f"    </div>"
-                f"    <div>"
-                f"      <strong class='text-neon-cyan'>3. Outflow Alerts (Bill Reminders)</strong>"
-                f"      <p class='text-[10px] text-slate-400 dark:text-slate-500'>remind me to pay [title] [amount] on [YYYY-MM-DD]</p>"
-                f"      <code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px]'>remind me to pay internet bill 60 on 2026-07-25</code>"
-                f"    </div>"
-                f"    <div>"
-                f"      <strong class='text-neon-cyan'>4. General Analysis & Actions</strong>"
-                f"      <ul class='list-disc pl-4 space-y-1 text-[11px] mt-1'>"
-                f"        <li><strong>Cashflow Status:</strong> Ask <em>'how is my cashflow'</em> or <em>'savings rate'</em></li>"
-                f"        <li><strong>Check Budgets:</strong> Ask <em>'check budgets'</em> or <em>'are my budgets overspent?'</em></li>"
-                f"        <li><strong>Search Ledger:</strong> Ask <em>'find Rent'</em> or <em>'search Food'</em></li>"
-                f"        <li><strong>Savings Forecast:</strong> Ask <em>'predict savings'</em> or <em>'forecast'</em></li>"
-                f"        <li><strong>Email Sync:</strong> Type <em>'sync emails'</em> or <em>'fetch transactions'</em></li>"
-                f"      </ul>"
-                f"    </div>"
-                f"  </div>"
-                f"</div>"
-            )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # Gather general transaction aggregates
-        month_txs = Transaction.objects.filter(user=user, date__range=(start_of_month, end_of_month))
-        total_income = float(month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
-        total_expense = float(month_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
-        balance = total_income - total_expense
-        
-        category_totals = {}
-        for tx in month_txs.filter(transaction_type='OUT'):
-            category_totals[tx.category] = category_totals.get(tx.category, 0.0) + float(tx.amount)
-            
-        budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
-
-        # Budget Check query
-        if re.search(r'(?:budget|limit|overspent|spent)', q_lower):
-            if budgets.exists():
-                lines = []
-                overspent_count = 0
-                for b in budgets:
-                    spent = category_totals.get(b.category, 0.0)
-                    rem = float(b.amount) - spent
-                    if rem < 0:
-                        status_badge = "<span class='px-1.5 py-0.5 text-[9px] font-bold bg-neon-rose/10 text-neon-rose rounded border border-neon-rose/20 uppercase'>OVERSPENT</span>"
-                        overspent_count += 1
-                        val_str = f"<span class='text-neon-rose font-semibold'>-{currency}{abs(rem):.2f}</span>"
-                    else:
-                        status_badge = "<span class='px-1.5 py-0.5 text-[9px] font-bold bg-neon-green/10 text-neon-green rounded border border-neon-green/20 uppercase'>OK</span>"
-                        val_str = f"<span class='text-slate-400 dark:text-slate-500'>rem. {currency}{rem:.2f}</span>"
-                    
-                    lines.append(
-                        f"    <div class='flex justify-between items-center text-xs border-b border-slate-100 dark:border-space-850 pb-1.5'>"
-                        f"      <div>"
-                        f"        <strong class='text-slate-700 dark:text-slate-200'>{b.category}</strong>"
-                        f"        <p class='text-[10px] text-slate-400 dark:text-slate-500'>Limit: {currency}{b.amount:.2f} | Spent: {currency}{spent:.2f}</p>"
-                        f"      </div>"
-                        f"      <div class='flex items-center space-x-2'>"
-                        f"        {val_str} {status_badge}"
-                        f"      </div>"
-                        f"    </div>"
-                    )
-                
-                header_badge = (
-                    f"<span class='px-2 py-0.5 text-[9px] font-bold bg-neon-rose/10 text-neon-rose rounded border border-neon-rose/20 uppercase'>{overspent_count} Over Budget</span>"
-                    if overspent_count > 0 else
-                    f"<span class='px-2 py-0.5 text-[9px] font-bold bg-neon-green/10 text-neon-green rounded border border-neon-green/20 uppercase'>All Budgets Healthy</span>"
-                )
-
-                response = (
-                    f"<div class='space-y-3'>"
-                    f"  <div class='flex justify-between items-center'>"
-                    f"    <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Budget Health Audit</strong>"
-                    f"    {header_badge}"
-                    f"  </div>"
-                    f"  <div class='space-y-2.5 max-h-52 overflow-y-auto pr-1'>"
-                    f"    " + "\n".join(lines) + ""
-                    f"  </div>"
-                    f"</div>"
-                )
-            else:
-                response = (
-                    f"<div class='space-y-2'>"
-                    f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>No Active Limits</strong>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>You have no category budgets set for this month. Set one by typing: <br><code class='block bg-slate-100 dark:bg-space-950 p-1.5 rounded mt-1 border border-slate-200 dark:border-space-800 text-[10px] text-neon-cyan font-mono'>set Food budget to 300</code></p>"
-                    f"</div>"
-                )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # Transaction Search query
-        search_match = re.match(r'^(?:find|search|show|list)\s+(?:transactions|outflows|inflows|expenses|payments)?\s*(?:for|on|in|matching)?\s+(.+)$', q, re.IGNORECASE)
-        if not search_match and (q_lower.startswith("find ") or q_lower.startswith("search ")):
-            search_match = re.match(r'^(?:find|search)\s+(.+)$', q, re.IGNORECASE)
-            
-        if search_match:
-            search_term = search_match.group(1).strip()
-            txs = Transaction.objects.filter(user=user).filter(
-                Q(category__icontains=search_term) | Q(description__icontains=search_term)
-            )[:8]
-            
-            if txs.exists():
-                lines = []
-                for tx in txs:
-                    type_indicator = "<span class='text-neon-green font-bold'>+</span>" if tx.transaction_type == 'IN' else "<span class='text-neon-rose font-bold'>-</span>"
-                    amount_color = "text-neon-green" if tx.transaction_type == 'IN' else "text-slate-800 dark:text-white"
-                    desc_str = f" <span class='text-slate-400 dark:text-slate-500'>({tx.description})</span>" if tx.description else ""
-                    lines.append(
-                        f"    <div class='flex justify-between items-center text-xs border-b border-slate-100 dark:border-space-850 pb-1.5'>"
-                        f"      <div>"
-                        f"        <strong class='text-slate-700 dark:text-slate-200'>{tx.category}</strong>{desc_str}"
-                        f"        <p class='text-[10px] text-slate-400 dark:text-slate-500'>{tx.date.strftime('%b %d, %Y')}</p>"
-                        f"      </div>"
-                        f"      <div class='text-xs font-semibold {amount_color}'>"
-                        f"        {type_indicator}{currency}{tx.amount:.2f}"
-                        f"      </div>"
-                        f"    </div>"
-                    )
-                response = (
-                    f"<div class='space-y-3'>"
-                    f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Ledger Query: '{search_term}'</strong>"
-                    f"  <div class='space-y-2 max-h-52 overflow-y-auto pr-1'>"
-                    f"    " + "\n".join(lines) + ""
-                    f"  </div>"
-                    f"</div>"
-                )
-            else:
-                response = (
-                    f"<div class='space-y-2'>"
-                    f"  <strong class='text-xs text-slate-800 dark:text-white font-outfit uppercase tracking-wider'>No Matches Found</strong>"
-                    f"  <p class='text-xs text-slate-600 dark:text-slate-300'>No ledger records match your query term <strong>'{search_term}'</strong> in category names or descriptions.</p>"
-                    f"</div>"
-                )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # Forecast Query
-        if re.search(r'(?:predict|projection|forecast|future|extrapolate)', q_lower):
-            savings_rate = int((balance / total_income) * 100) if total_income > 0 and balance > 0 else 0
-            monthly_savings = balance if balance > 0 else 0.0
-            
-            p3 = monthly_savings * 3
-            p6 = monthly_savings * 6
-            p12 = monthly_savings * 12
-            
-            response = (
-                f"<div class='space-y-2.5'>"
-                f"  <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Savings Projections</strong>"
-                f"  <p class='text-[11px] text-slate-600 dark:text-slate-300'>Extrapolating your current monthly net surplus of <strong>{currency}{monthly_savings:.2f}</strong> ({savings_rate}% savings rate):</p>"
-                f"  <ul class='space-y-1.5 pl-1'>"
-                f"    <li class='flex justify-between items-center text-xs'>"
-                f"      <span class='text-slate-500 dark:text-slate-400'>3-Month Cumulative:</span>"
-                f"      <strong class='text-neon-cyan font-semibold'>{currency}{p3:.2f}</strong>"
-                f"    </li>"
-                f"    <li class='flex justify-between items-center text-xs'>"
-                f"      <span class='text-slate-500 dark:text-slate-400'>6-Month Cumulative:</span>"
-                f"      <strong class='text-neon-purple font-semibold'>{currency}{p6:.2f}</strong>"
-                f"    </li>"
-                f"    <li class='flex justify-between items-center text-xs'>"
-                f"      <span class='text-slate-500 dark:text-slate-400'>12-Month Cumulative:</span>"
-                f"      <strong class='text-neon-green font-semibold'>{currency}{p12:.2f}</strong>"
-                f"    </li>"
-                f"  </ul>"
-                f"  <p class='text-[10px] text-slate-400 dark:text-slate-500 italic mt-2'>Note: Projections assume cashflow remains uniform. Configure category budgets to prevent leakage.</p>"
-                f"</div>"
-            )
-            return JsonResponse({'status': 'success', 'response': response})
-
-        # Fallback & General Cashflow Analysis (Detailed 50/30/20 breakdown)
-        savings_rate = int((balance / total_income) * 100) if total_income > 0 and balance > 0 else 0
-        
-        tip_text = ""
-        highest_cat = max(category_totals, key=category_totals.get) if category_totals else None
-        highest_val = category_totals.get(highest_cat, 0.0) if highest_cat else 0.0
-        if highest_cat and highest_val > 0:
-            pct = int((highest_val / total_expense) * 100) if total_expense > 0 else 0
-            tip_text = f"Your highest outflow category is <strong>{highest_cat}</strong> ({currency}{highest_val:.2f}, {pct}% of expenses). Placing a strict monthly limit here is your best saving leverage."
-        else:
-            tip_text = "Logging category expenses is the first step. Allocate a target budget to structure your outflows."
-
-        needs_sum = 0.0
-        wants_sum = 0.0
-        for cat, val in category_totals.items():
-            c_l = cat.lower()
-            if any(n in c_l for n in ('rent', 'utility', 'utilities', 'food', 'bill', 'groceries')):
-                needs_sum += val
-            else:
-                wants_sum += val
-                
-        needs_pct = int((needs_sum / total_income) * 100) if total_income > 0 else 0
-        wants_pct = int((wants_sum / total_income) * 100) if total_income > 0 else 0
-        savings_pct = savings_rate
-        
-        fallback_note = ""
-        if not re.search(r'(?:save|saving|how to|cashflow|summary|status|health|analysis)', q_lower):
-            fallback_note = f"<div class='text-[10px] text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-space-850 pb-1 mb-1 italic'>Analyzed monthly cashflow. (Type 'help' to see my full commands list!)</div>"
-
-        response = (
-            f"{fallback_note}"
-            f"<div class='space-y-2 text-xs'>"
-            f"  <div class='flex justify-between items-center'>"
-            f"    <strong class='text-xs text-slate-800 dark:text-white uppercase tracking-wider font-outfit'>Cashflow Diagnostic</strong>"
-            f"    <span class='px-2 py-0.5 text-[9px] font-bold bg-neon-cyan/10 text-neon-cyan rounded border border-neon-cyan/20 uppercase'>{savings_rate}% Savings Rate</span>"
-            f"  </div>"
-            f"  <p class='text-slate-600 dark:text-slate-300'>Current Cashflow: Inflow <strong>{currency}{total_income:.2f}</strong> | Outflow <strong>{currency}{total_expense:.2f}</strong> | Net <strong>{currency}{balance:.2f}</strong>.</p>"
-            f"  <div class='space-y-1.5 pt-1'>"
-            f"    <strong class='text-[10px] text-slate-500 uppercase tracking-wide'>50/30/20 Allocation:</strong>"
-            f"    <div class='grid grid-cols-3 gap-2 text-center text-[10px] font-semibold'>"
-            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Needs: {needs_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 50%)</span></div>"
-            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Wants: {wants_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 30%)</span></div>"
-            f"      <div class='p-1 bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 rounded text-slate-700 dark:text-slate-300'>Savings: {savings_pct}% <span class='text-slate-400 dark:text-slate-500 font-normal'>(tgt 20%)</span></div>"
-            f"    </div>"
-            f"  </div>"
-            f"  <p class='text-slate-600 dark:text-slate-300 text-[11px] leading-normal pt-1'>{tip_text}</p>"
-            f"</div>"
-        )
-        return JsonResponse({'status': 'success', 'response': response})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-
-# ----------------- Settings Views -----------------
-
-@login_required
 def toggle_theme(request):
     if request.method == 'POST':
         profile = request.user.profile
@@ -825,46 +405,62 @@ def toggle_theme(request):
 @login_required
 def update_currency(request):
     if request.method == 'POST':
+        from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
         currency = request.POST.get('currency')
         rate_str = request.POST.get('conversion_rate', '1.0')
+        scale_records = request.POST.get('scale_records', 'true') == 'true'
+
         if currency in ['$', '€', '₹', '£']:
             try:
-                rate_str = rate_str.replace(',', '.')
+                rate_str = rate_str.replace(',', '.').strip()
                 rate = Decimal(rate_str)
             except Exception as e:
                 print(f"[Currency Convert Error] Failed to parse rate '{rate_str}': {e}")
                 rate = Decimal('1.00')
 
             profile = request.user.profile
-            
-            # If a conversion rate is supplied and it's not 1.0, scale all existing amounts
-            if rate != Decimal('1.00') and rate > 0:
+            MAX_VAL = Decimal('999999999.99')
+
+            # If scale_records is requested and rate is not 1.0, scale amounts safely
+            if scale_records and rate != Decimal('1.00') and rate > 0:
                 # 1. Transactions
                 txs = Transaction.objects.filter(user=request.user)
                 for tx in txs:
-                    tx.amount = tx.amount * rate
-                    tx.save()
-                    
+                    try:
+                        new_amt = (tx.amount * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        tx.amount = min(new_amt, MAX_VAL)
+                        tx.save(update_fields=['amount'])
+                    except Exception as err:
+                        print(f"[Currency Convert] Skipped tx {tx.id}: {err}")
+
                 # 2. Budgets
                 budgets = Budget.objects.filter(user=request.user)
                 for b in budgets:
-                    b.amount = b.amount * rate
-                    b.save()
-                    
+                    try:
+                        new_amt = (b.amount * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        b.amount = min(new_amt, MAX_VAL)
+                        b.save(update_fields=['amount'])
+                    except Exception as err:
+                        print(f"[Currency Convert] Skipped budget {b.id}: {err}")
+
                 # 3. Reminders
                 reminders = Reminder.objects.filter(user=request.user)
                 for r in reminders:
-                    r.amount = r.amount * rate
-                    r.save()
-                    
-                messages.success(request, f"Currency updated to {dict(Profile.CURRENCY_CHOICES).get(currency)}. Telemetry scaled by {rate}!")
+                    try:
+                        new_amt = (r.amount * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        r.amount = min(new_amt, MAX_VAL)
+                        r.save(update_fields=['amount'])
+                    except Exception as err:
+                        print(f"[Currency Convert] Skipped reminder {r.id}: {err}")
+
+                messages.success(request, f"Currency updated to {dict(Profile.CURRENCY_CHOICES).get(currency)}. Telemetry converted using rate ×{rate}!")
             else:
-                messages.success(request, f"Currency updated to {dict(Profile.CURRENCY_CHOICES).get(currency)} (values preserved).")
+                messages.success(request, f"Currency updated to {dict(Profile.CURRENCY_CHOICES).get(currency)} (historical values preserved).")
 
             profile.currency = currency
-            profile.save()
+            profile.save(update_fields=['currency'])
         else:
-            messages.error(request, "Invalid currency choice")
+            messages.error(request, "Invalid currency choice.")
     return redirect('dashboard')
 
 # ----------------- Action Views (CRUD) -----------------
@@ -1347,7 +943,51 @@ def generate_pdf_data(user, total_income, total_expense, balance, currency):
         ('PADDING', (0,0), (-1,-1), 5),
     ]))
     story.append(outflow_table)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 10))
+
+    # Visual Graphical Chart: Category Outflow Distribution
+    if total_expense > 0 and len(outflow_rows) > 1 and outflow_rows[1][0] != "N/A":
+        try:
+            from reportlab.graphics.shapes import Drawing
+            from reportlab.graphics.charts.piecharts import Pie
+            chart_drawing = Drawing(400, 140)
+            pie = Pie()
+            pie.x = 120
+            pie.y = 10
+            pie.width = 110
+            pie.height = 110
+            pie_vals = []
+            pie_lbls = []
+            palette = [
+                colors.HexColor('#0071E3'), colors.HexColor('#34C759'), colors.HexColor('#FF9500'),
+                colors.HexColor('#AF52DE'), colors.HexColor('#FF3B30'), colors.HexColor('#5AC8FA')
+            ]
+            for row in outflow_rows[1:7]:
+                cat_name = row[0]
+                amt_str = row[1].replace(currency, '').replace(',', '').strip()
+                try:
+                    amt_val = float(amt_str)
+                    if amt_val > 0:
+                        pie_vals.append(amt_val)
+                        pie_lbls.append(f"{cat_name} ({row[2]})")
+                except ValueError:
+                    pass
+            if pie_vals:
+                pie.data = pie_vals
+                pie.labels = pie_lbls
+                pie.sideLabels = 1
+                for idx in range(len(pie_vals)):
+                    pie.slices[idx].fillColor = palette[idx % len(palette)]
+                    pie.slices[idx].strokeColor = colors.white
+                    pie.slices[idx].strokeWidth = 1
+                chart_drawing.add(pie)
+                story.append(Paragraph("Visual Outflow Distribution Chart", h2_style))
+                story.append(chart_drawing)
+                story.append(Spacer(1, 12))
+        except Exception:
+            pass
+    else:
+        story.append(Spacer(1, 15))
 
     # 3. Weekly Flow Patterns Table
     story.append(Paragraph("Weekly Flow Patterns", h2_style))
@@ -1583,7 +1223,7 @@ def render_compact_transaction_email(category_name, amount, tx_type_str, date_st
     """
 
 
-def send_user_mail(user, subject, body, attachments=None, is_html=False):
+def send_user_mail(user, subject, body, attachments=None, is_html=False, recipient=None):
     from django.core.mail import get_connection, EmailMultiAlternatives
     import re
     profile = user.profile
@@ -1606,11 +1246,15 @@ def send_user_mail(user, subject, body, attachments=None, is_html=False):
     else:
         plain_text = body
 
+    target_to = (recipient or '').strip() or getattr(user, 'email', None) or (profile.smtp_user if profile else None)
+    if not target_to:
+        raise ValueError("No recipient email address specified.")
+
     email = EmailMultiAlternatives(
         subject=subject,
         body=plain_text,
         from_email=from_email,
-        to=[user.email],
+        to=[target_to],
         connection=connection
     )
     email.extra_headers['X-Leoxur-Auto'] = 'True'
@@ -2418,3 +2062,268 @@ def import_transactions(request):
         messages.error(request, "No file uploaded.")
         
     return redirect('dashboard')
+
+
+@login_required
+def update_ai_settings(request):
+    if request.method == 'POST':
+        import json
+        profile = request.user.profile
+        try:
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.POST
+            ai_mode = data.get('ai_mode', profile.ai_mode)
+            ai_provider = data.get('ai_provider', profile.ai_provider)
+            ai_api_key = (data.get('ai_api_key') or '').strip()
+            ai_model = (data.get('ai_model') or '').strip()
+            ai_custom_endpoint = (data.get('ai_custom_endpoint') or '').strip()
+
+            profile.ai_mode = ai_mode
+            profile.ai_provider = ai_provider
+            if ai_api_key:
+                profile.ai_api_key = ai_api_key
+                if ai_provider == 'gemini':
+                    profile.gemini_api_key = ai_api_key
+            elif data.get('clear_key'):
+                profile.ai_api_key = ''
+                profile.gemini_api_key = ''
+
+            profile.ai_model = ai_model
+            profile.ai_custom_endpoint = ai_custom_endpoint
+            profile.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': 'AI Settings updated successfully!',
+                'ai_mode': profile.ai_mode,
+                'ai_provider': profile.ai_provider,
+                'has_key': bool(profile.get_saved_ai_key()),
+                'model': profile.get_effective_ai_model(),
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+
+
+def reminders_check_api(request):
+    """Graceful JSON endpoint for background reminder checks"""
+    return JsonResponse({'status': 'ok', 'due_reminders': []})
+
+
+@login_required
+def test_smtp_settings(request):
+    """Real-time validation for SMTP outbound connection and test email dispatch."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    
+    import json
+    from django.core.mail import get_connection, EmailMultiAlternatives
+    from django.utils import timezone
+    profile = request.user.profile
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        host = data.get('smtp_host') or profile.smtp_host or 'smtp.gmail.com'
+        port = int(data.get('smtp_port') or profile.smtp_port or 587)
+        user = data.get('smtp_user') or profile.smtp_user or ''
+        pwd = data.get('smtp_password') or profile.smtp_password or ''
+        account_email = data.get('account_email') or request.user.email or user
+
+        if not user or not pwd:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'SMTP Username and App Password are required to test outbound mail.'
+            }, status=400)
+
+        # Attempt SMTP connection
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=host,
+            port=port,
+            username=user,
+            password=pwd,
+            use_tls=(port == 587),
+            use_ssl=(port == 465),
+            timeout=10,
+        )
+        connection.open()
+
+        # Send test verification message
+        recipient = account_email if account_email else user
+        msg = EmailMultiAlternatives(
+            subject="[Leoxur Financial] SMTP Outbound Verification Successful",
+            body=(
+                f"Hello {request.user.username},\n\n"
+                f"Your SMTP outbound node has been successfully verified!\n\n"
+                f"• SMTP Server: {host}:{port}\n"
+                f"• Authenticated User: {user}\n"
+                f"• Target Recipient: {recipient}\n"
+                f"• Timestamp: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n"
+                f"Automated email alerts, financial reports, and transaction receipts are fully operational.\n\n"
+                f"— Leoxur Financial Telemetry Engine"
+            ),
+            from_email=f"Leoxur Financial <{user}>",
+            to=[recipient],
+            connection=connection
+        )
+        msg.send()
+        connection.close()
+
+        # Persist tested credentials to profile
+        profile.smtp_host = host
+        profile.smtp_port = port
+        profile.smtp_user = user
+        profile.smtp_password = pwd
+        profile.save(update_fields=['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password'])
+        if account_email and account_email != request.user.email:
+            request.user.email = account_email
+            request.user.save(update_fields=['email'])
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f"✓ SMTP connection verified! Test email successfully delivered to {recipient}."
+        })
+    except Exception as e:
+        err_msg = str(e)
+        if "Authentication" in err_msg or "Username and Password not accepted" in err_msg:
+            err_msg = "Authentication failed. If using Gmail, please create and use a 16-character App Password (not your normal Google account password)."
+        return JsonResponse({
+            'status': 'error',
+            'message': f"SMTP Verification Failed: {err_msg}"
+        }, status=400)
+
+
+@login_required
+def test_imap_settings(request):
+    """Real-time validation for IMAP inbox connection and message search."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    
+    import json
+    import imaplib
+    profile = request.user.profile
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        host = data.get('imap_host') or profile.imap_host or 'imap.gmail.com'
+        port = int(data.get('imap_port') or profile.imap_port or 993)
+        user = data.get('imap_user') or profile.imap_user or ''
+        pwd = data.get('imap_password') or profile.imap_password or ''
+        account_email = data.get('account_email') or request.user.email or user
+
+        if not user or not pwd:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'IMAP Username and Password are required to test mailbox fetching.'
+            }, status=400)
+
+        # Connect to IMAP
+        mail = imaplib.IMAP4_SSL(host, port)
+        mail.login(user, pwd)
+        status, folder_info = mail.select("inbox", readonly=True)
+        if status != 'OK':
+            raise RuntimeError(f"Could not open INBOX on {host}.")
+
+        total_msgs = int(folder_info[0].decode('utf-8')) if folder_info and folder_info[0] else 0
+
+        # Check unread count
+        _, unseen_res = mail.search(None, 'UNSEEN')
+        unseen_count = len(unseen_res[0].split()) if unseen_res and unseen_res[0] else 0
+
+        # Check transactions from user's email if available
+        target_sender = account_email or user
+        _, sender_res = mail.search(None, f'(FROM "{target_sender}")')
+        sender_count = len(sender_res[0].split()) if sender_res and sender_res[0] else 0
+
+        mail.close()
+        mail.logout()
+
+        # Persist tested credentials to profile
+        profile.imap_host = host
+        profile.imap_port = port
+        profile.imap_user = user
+        profile.imap_password = pwd
+        profile.save(update_fields=['imap_host', 'imap_port', 'imap_user', 'imap_password'])
+
+        return JsonResponse({
+            'status': 'success',
+            'message': (
+                f"✓ IMAP connection verified! Successfully accessed INBOX on {host}:{port}. "
+                f"Total emails: {total_msgs} | Unread: {unseen_count} | From {target_sender}: {sender_count}."
+            ),
+            'total_emails': total_msgs,
+            'unread_emails': unseen_count,
+            'sender_emails': sender_count
+        })
+    except Exception as e:
+        err_msg = str(e)
+        if "AUTHENTICATIONFAILED" in err_msg or "Invalid credentials" in err_msg:
+            err_msg = "IMAP authentication failed. If using Gmail, make sure IMAP is enabled in Gmail settings and use an App Password."
+        return JsonResponse({
+            'status': 'error',
+            'message': f"IMAP Connection Failed: {err_msg}"
+        }, status=400)
+
+
+@login_required
+def test_ai_settings(request):
+    """Test AI LLM Connection and generate a test greeting/audit response."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    
+    import json
+    from .assistant import LeoxurIntelligence
+    profile = request.user.profile
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.POST
+
+        prov = data.get('ai_provider') or profile.ai_provider
+        key = (data.get('ai_api_key') or profile.get_saved_ai_key() or '').strip()
+        model = (data.get('ai_model') or profile.ai_model or '').strip()
+        endpoint = (data.get('ai_custom_endpoint') or profile.ai_custom_endpoint or '').strip()
+
+        if data.get('ai_mode') == 'local':
+            return JsonResponse({
+                'status': 'success',
+                'message': '✓ Local Deterministic Engine is active (Zero external API dependencies).'
+            })
+
+        if not key:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'API Key is required to test Cloud AI provider.'
+            }, status=400)
+
+        profile.ai_api_key = key
+        profile.ai_provider = prov
+        if prov == 'gemini':
+            profile.gemini_api_key = key
+        profile.ai_model = model
+        profile.ai_mode = 'cloud'
+        profile.ai_custom_endpoint = endpoint
+        profile.save()
+
+        intel = LeoxurIntelligence(user=request.user)
+        result = intel._call_cloud_ai("Perform quick handshake: confirm AI connection in 1 short sentence.", key)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f"✓ Successfully connected to {profile.get_ai_provider_display_name()} ({profile.get_effective_ai_model()})!",
+            'reply': result.get('reply', 'AI Connection Live'),
+            'model': profile.get_effective_ai_model()
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f"AI Connection Failed: {str(e)}"
+        }, status=400)

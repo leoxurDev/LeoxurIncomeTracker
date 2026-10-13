@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: leoxur
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - mysql-statefulset.yaml
+  - app-deployment.yaml
+  - app-service.yaml
+  - ingress.yaml
+  - hpa.yaml
+  - cronjobs.yaml

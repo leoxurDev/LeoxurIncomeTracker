@@ -5,3 +5,4 @@ reportlab>=4.0
 mysqlclient>=2.2
 psutil>=5.9
 gunicorn>=21.2
+Pillow>=10.0

@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: leoxur-daily-report
+  namespace: leoxur
+spec:
+  # Run daily at 08:00 AM UTC
+  schedule: "0 8 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: daily-report
+              image: ghcr.io/leoxurdev/leoxur-income-tracker:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python3", "manage.py", "send_daily_report"]
+              envFrom:
+                - configMapRef:
+                    name: leoxur-config
+                - secretRef:
+                    name: leoxur-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: leoxur-bill-reminders
+  namespace: leoxur
+spec:
+  # Run daily at 09:00 AM UTC
+  schedule: "0 9 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: bill-reminders
+              image: ghcr.io/leoxurdev/leoxur-income-tracker:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python3", "manage.py", "send_bill_reminders"]
+              envFrom:
+                - configMapRef:
+                    name: leoxur-config
+                - secretRef:
+                    name: leoxur-secrets
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: leoxur-fetch-emails
+  namespace: leoxur
+spec:
+  # Poll IMAP inbox every 15 minutes
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: fetch-emails
+              image: ghcr.io/leoxurdev/leoxur-income-tracker:latest
+              imagePullPolicy: IfNotPresent
+              command: ["python3", "manage.py", "fetch_emails"]
+              envFrom:
+                - configMapRef:
+                    name: leoxur-config
+                - secretRef:
+                    name: leoxur-secrets

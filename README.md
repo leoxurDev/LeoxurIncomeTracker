@@ -1,303 +1,398 @@
-# Leoxur Income & Expense Tracker
+# 🍎 Leoxur Income & Expense Tracker
+### Autonomous Financial Telemetry, AI Copilot & Multi-Cloud Ledger Engine
 
-A futuristic, highly interactive, and elegant web application designed to track financial telemetry (Ledger logs, Budget allowances, Bill reminders, and Exchange rates) with real-time dynamic visualizations. The core philosophy of this project is inspired by Python: the codebase remains lightweight, boilerplate-free, and feels like it "just works" out-of-the-box.
+[![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Django Version](https://img.shields.io/badge/Django-4.2%20LTS-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Production%20Ready-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Style](https://img.shields.io/badge/Design-Apple%20iOS%20Glassmorphism-0071E3?logo=apple&logoColor=white)](https://developer.apple.com/design/)
 
----
-
-## 🚀 Quick Start Guide
-
-### 1. Setup Environment & Install Dependencies
-Ensure you have Python 3 and pip installed. Run the following commands in the project root:
-```bash
-# Install core dependencies
-pip3 install django openpyxl reportlab
-```
-
-### 2. Database Migrations
-Initialize the SQLite database schema:
-```bash
-python3 manage.py makemigrations
-python3 manage.py migrate
-```
-
-### 3. Create Superuser (Admin Access)
-Since the standard `python` command is often unassigned on macOS, use **`python3`** to run the createsuperuser wizard:
-```bash
-python3 manage.py createsuperuser
-```
-Alternatively, we have pre-configured a programmatic superuser for you:
-* **Username:** `superuser`
-* **Password:** `adminpass123`
-* **Email:** `admin@example.com`
-
-### 4. Configure Environment Variables (Security)
-To enable automated budget breach emails, daily digests, and incoming mail transaction synchronization, export your email credentials in your terminal session before launching the server:
-```bash
-# Outgoing Mail (SMTP)
-export EMAIL_HOST_USER="your-email@gmail.com"
-export EMAIL_HOST_PASSWORD="your-google-app-password"
-
-# Incoming Mail (IMAP)
-export IMAP_USER="your-email@gmail.com"
-export IMAP_PASSWORD="your-google-app-password"
-```
-*Note: If these are not exported, the application defaults to local-only mode, and outbound/inbound mail features will run in dry-run mode.*
-
-### 5. Run Development Server
-```bash
-python3 manage.py runserver
-```
-Visit the application at `http://127.0.0.1:8000/` and sign in.
+**Leoxur Income & Expense Tracker** is an enterprise-grade personal finance, telemetry, and wealth management platform built with Python and Django. Designed with the precision aesthetics of **Apple iOS / macOS Glassmorphism**, Leoxur combines real-time cashflow analytics, automated ReportLab PDF statements with visual charts, multi-sheet OpenPyXL Excel spreadsheets, an inbound/outbound email synchronization engine (IMAP & SMTP), and an autonomous **AI Copilot** powered by multi-provider LLMs (Google Gemini, OpenAI, Anthropic Claude, Groq, OpenRouter) and an ultra-fast local deterministic financial brain.
 
 ---
 
-## ✨ Key Features
-
-1. **Leoxur AI Copilot (Interactive Assistant)**:
-   - Global floating popover interface in the bottom-right corner of all screens with a full-screen maximize toggle.
-   - Natural language regex commands (e.g. `add expense 45 Food desc dinner`, `set Food budget to 250`, `remind me to pay internet bill 60 on 2026-07-25`).
-   - Generates contextual cashflow diagnostics (e.g. `check budgets`, `predict savings`, `find Groceries`, `sync emails`, `help`).
-2. **Glassmorphic Apple-Inspired UI**:
-   - Clean typographic stacks (`SF Pro`, `Helvetica Neue`, `Inter`) with tight spacing adjustments (`-0.015em` to `-0.025em`) for a premium Swiss/macOS-style layout.
-   - Apple warm grey background (`#f5f5f7`) overlaying floating, heavily blurred gradient mesh blobs that bleed through card windows.
-   - High-density frosted glass containers (`.glass-panel`) with high-saturation blur (`backdrop-blur-xl saturate(180%)`) and tactile hover lift animations (`translateY(-5px)`).
-3. **Automated Document Exports**:
-   - Generates dynamic ledger listings, category targets, and bill reminders into Microsoft Excel workbooks (`openpyxl`) and alternating-row ReportLab PDFs (`reportlab`).
-4. **Email-to-Ledger Synchronizer (IMAP)**:
-   - Polling engine that scans configured inbox nodes, validates the sender against user accounts, parses transaction fields, and logs items automatically. Sends custom HTML email confirmation receipts.
-5. **Daily Alert Dispatchers (SMTP)**:
-   - Programmatic management commands to compile daily PDF/Excel statements and bill reminders due today and email them directly to users.
-6. **Live Multi-Currency Scaling**:
-   - Scales the value fields of all existing transactions, target category limits, and scheduled bill reminders instantly using live exchange rates.
+## 📑 Table of Contents
+- [🌟 Key Innovations & Highlights](#-key-innovations--highlights)
+- [🏗️ System Architecture & Telemetry Flow](#%EF%B8%8F-system-architecture--telemetry-flow)
+- [🤖 Leoxur AI Copilot & Autonomous Agent](#-leoxur-ai-copilot--autonomous-agent)
+- [📊 Visual Analytics, Charts & 50/30/20 Blueprints](#-visual-analytics-charts--503020-blueprints)
+- [📄 Financial Reports & Document Generation Engine](#-financial-reports--document-generation-engine)
+- [📬 Email Node & Automated Pipeline (IMAP & SMTP)](#-email-node--automated-pipeline-imap--smtp)
+- [🎨 Apple iOS Design System & Custom Admin](#-apple-ios-design-system--custom-admin)
+- [🗂️ Codebase Architecture & Line-by-Line File Directory](#%EF%B8%8F-codebase-architecture--line-by-line-file-directory)
+- [🚀 Quickstart & Local Installation](#-quickstart--local-installation)
+- [🐳 Production Deployment with Docker Compose](#-production-deployment-with-docker-compose)
+- [☸️ Production Deployment on Kubernetes (K8s)](#%EF%B8%8F-production-deployment-on-kubernetes-k8s)
+- [☁️ Enterprise Multi-Cloud Playbooks (AWS, GCP, Azure)](#%EF%B8%8F-enterprise-multi-cloud-playbooks-aws-gcp-azure)
+- [🔌 REST API & Endpoints Reference](#-rest-api--endpoints-reference)
+- [📄 License & Credits](#-license--credits)
 
 ---
 
-## 📐 Architecture & Telemetry Flow Diagram
+## 🌟 Key Innovations & Highlights
+
+- **Autonomous AI Copilot**: Conversational finance assistant supporting Google Gemini, OpenAI, Claude, Groq, and OpenRouter with seamless fallback to a zero-latency local deterministic regex brain.
+- **Natural Language Execution**: Log multiple transactions (`spent 50 on food, 20 on fuel`), adjust category limits, query 50/30/20 health, or dispatch monthly statements entirely via natural language.
+- **Apple Intelligence Welcome Card & Chat Ergonomics**: Full-width input pill, circular send button, 4 one-tap action cards, and client-side Markdown rendering.
+- **Multi-Session Chat History**: Create, switch between, and persist multiple conversation threads across browser refreshes using localStorage telemetry.
+- **ReportLab PDF Statement Generator**: Generates high-resolution PDF financial statements featuring custom vector Pie Charts, KPI metrics, and transaction itemization.
+- **Multi-Sheet OpenPyXL Excel Ledger**: Generates `.xlsx` spreadsheets containing monthly inflow/outflow balance sheets and budget targets.
+- **Inbound & Outbound Email Automation**:
+  - **IMAP Receipt Syncing**: Automated inbox scanner extracting amounts, categories, and vendors from transaction emails and bank alerts.
+  - **SMTP Dispatcher**: Automatically emails monthly PDF statements, spreadsheets, and bill reminders.
+- **Live Multi-Currency Scaling**: Dynamically switches currency symbols (`$`, `€`, `₹`, `£`) and re-calculates transactions and budgets using custom user exchange rates.
+- **Drag-and-Drop Dashboard Customization**: Reorder telemetry panels (Trends, Ledger, Budgets, Analytics) seamlessly.
+- **100% Vanilla CSS Glassmorphism**: High-saturation blur (`backdrop-filter: blur(28px)`), vibrant gradients, SF Pro typography, and Apple SF Symbols without requiring TailwindCSS dependencies.
+- **Enterprise Observability**: Full Prometheus metrics collection, Grafana dashboards, Node Exporter, and cAdvisor container telemetry.
+
+---
+
+## 🏗️ System Architecture & Telemetry Flow
 
 ```mermaid
-graph TD
-    User([User's Browser / Device]) -->|HTTP Requests| Shell[Django Command Center]
-    User -->|Consults AI via AJAX| Copilot[Leoxur AI Copilot]
-    EmailClient([User's Mail Client]) -->|Sends Transaction Email| Gmail[Gmail / Mail Server]
-    
-    subgraph "Django App Core (Leoxur Engine)"
-        Shell -->|Manages Models| Models[Database Schema Layer]
-        Shell -->|Renders Views| Views[HTML5 / Glassmorphic Templates]
-        Shell -->|Visualizes Data| Charts[Chart.js / Analytics Engine]
-        
-        Copilot -->|Regex Command Parse| Models
-        Copilot -->|Spawns Thread| BackgroundSync[Background Sync Thread]
-        
-        CronReport[send_daily_report Script] -->|SMTP| MailOut[Outbound SMTP Server]
-        CronReminders[send_bill_reminders Script] -->|SMTP| MailOut
-        Shell -->|SMTP Alerts| MailOut
-        
-        IMAPParser[fetch_emails Script] -->|IMAP Polling| MailIn[Inbound IMAP Server]
-        IMAPParser -->|Parses & Logs| Models
-        BackgroundSync -->|Triggers| IMAPParser
+flowchart TB
+    subgraph ClientLayer["🖥️ Presentation Tier (Apple iOS / macOS Theme)"]
+        Browser["User Browser / Safari / Chrome"]
+        CopilotUI["Leoxur AI Copilot Drawer"]
+        Dashboard["Drag-and-Drop Telemetry Dashboard"]
     end
 
-    subgraph "Data & Mail Systems"
-        Models -->|CRUD Operations| DB[(SQLite Database)]
-        MailOut -->|Sends Alerts/Statements| EmailClient
-        Gmail -->|IMAP Stream| MailIn
+    subgraph ServerLayer["⚙️ Django Web Engine (WSGI / Gunicorn)"]
+        Router["URL Dispatcher (tracker/urls.py)"]
+        Views["Controller Views (tracker/views.py)"]
+        Assistant["Leoxur Intelligence Agent (tracker/assistant.py)"]
+        LLMProvider["Cloud LLM Engine (Gemini / OpenAI / Claude / Groq)"]
+        LocalBrain["Local Deterministic Financial Engine"]
     end
+
+    subgraph DataEngine["💾 Persistence & Processing Layer"]
+        Models["ORM Schema (tracker/models.py)"]
+        MySQL[(MySQL 8.0 / SQLite Store)]
+        PDFEngine["ReportLab Drawing & Pie Chart Builder"]
+        ExcelEngine["OpenPyXL Multi-Sheet Workbook Builder"]
+    end
+
+    subgraph MailPipeline["📬 Communication & Sync Pipeline"]
+        IMAP["Inbound IMAP Mail Scanner (fetch_emails)"]
+        SMTP["Outbound SMTP Mail Dispatcher (send_user_mail)"]
+        ExternalMail[("Gmail / Outlook / Corporate Mail Server")]
+    end
+
+    Browser -->|HTTP Requests| Router
+    CopilotUI -->|POST /api/savings-analyst/| Router
+    Router --> Views
+    Views --> Assistant
+    Assistant -->|API Key Configured| LLMProvider
+    Assistant -->|Fallback / Offline| LocalBrain
+    Assistant --> Models
+    Views --> Models
+    Models --> MySQL
+
+    Views --> PDFEngine
+    Views --> ExcelEngine
+    Assistant --> PDFEngine
+    Assistant --> ExcelEngine
+
+    Assistant -->|Dispatch Email Report| SMTP
+    SMTP -->|TLS Port 587| ExternalMail
+    IMAP -->|SSL Port 993| ExternalMail
+    IMAP -->|Log Transactions| Models
 ```
 
 ---
 
-## 🛠️ Technology Stack
-* **Backend Framework:** Django (Python)
-* **Database Layer:** SQLite (embedded, zero-configuration)
-* **Frontend Design:** HTML5, CSS3, Tailwind CSS (sleek glassmorphic theme)
-* **Interactive Elements:** Lucide Icons (vector UI glyphs), Vanilla JavaScript
-* **Data Visualization:** Chart.js (animated responsive charts)
-* **Reporting Engines:** `openpyxl` (Excel spreadsheets) and `reportlab` (PDF rendering)
+## 🤖 Leoxur AI Copilot & Autonomous Agent
+
+The **Leoxur AI Copilot** is an autonomous personal finance companion embedded directly in the application.
+
+### Supported Providers & Models
+- **Google Gemini**: Gemini 2.5 Flash, Gemini Flash-Lite, Gemini Pro (`gemini_api_key`)
+- **OpenAI**: GPT-4o, GPT-4o-mini
+- **Groq**: LLaMA-3.3-70b-versatile, Mixtral-8x7b
+- **Anthropic**: Claude 3.5 Sonnet
+- **OpenRouter**: DeepSeek, Mistral, LLaMA
+- **Local Deterministic Brain**: Built-in regex and heuristic financial intelligence operating with zero API key dependencies and zero network latency.
+
+### Autonomous Action Capabilities
+
+| Action Type | Example User Query | Executed Action |
+| :--- | :--- | :--- |
+| `log_transaction` | *"Spent ₹450 on groceries today"* | Parses amount, category, date, and logs entry into ledger. |
+| `log_multiple_transactions` | *"Spent 200 on fuel, 150 on snacks, and 50 on coffee"* | Batch-creates multiple transactions in a single transaction block. |
+| `delete_transaction` | *"Delete last transaction"* or *"Remove the 450 grocery bill"* | Deletes latest entry or matches by category and amount. |
+| `set_budget` | *"Set food budget to 8000"* | Sets or updates monthly category budget limit. |
+| `reset_budgets` | *"Rebalance my budgets to standard 50/30/20"* | Normalizes budget targets to healthy financial benchmarks. |
+| `set_reminder` | *"Remind me to pay electric bill 1200 on 2026-11-05"* | Schedules a bill reminder with automated due date tracking. |
+| `pay_reminder` | *"Mark electric bill as paid"* | Settles scheduled reminder. |
+| `change_currency` | *"Change currency to ₹ with conversion rate 84.5"* | Converts all existing ledger records and budgets using rate. |
+| `sync_emails` | *"Check my inbox for bank receipts"* | Polls IMAP node and imports unread transaction receipts. |
+| `change_theme` | *"Switch to dark mode"* or *"Switch to light mode"* | Toggles interface theme instantly without reloading. |
+| `send_email_report` | *"Email my October report with PDF charts & spreadsheet"* | Generates PDF charts & Excel ledger, emails them as attachments, and provides in-chat download links. |
+| `cashflow_audit` | *"Perform 50/30/20 audit and give visual chart"* | Renders visual SVG telemetry blueprint with spending leakages. |
 
 ---
 
-## 📂 Code-by-Code Explanation
+## 📊 Visual Analytics, Charts & 50/30/20 Blueprints
 
-This section breaks down the application component-by-component, explaining the architectural logic behind every file.
+Leoxur implements visual telemetry to assess financial health at a glance:
+
+1. **50/30/20 Rule Telemetry**:
+   - **50% Needs**: Essential living costs (Rent, Groceries, Utilities).
+   - **30% Wants**: Discretionary spending (Dining, Entertainment, Shopping).
+   - **20% Savings / Debt**: Surplus capital allocated to investments or emergency funds.
+   - Generates an interactive SVG progress bar showing current budget utilization against target limits with an autonomous **Health Score (0–100)**.
+2. **Dynamic Cashflow Progression**: Interactive line graphs plotting cumulative inflow vs. outflow throughout the month.
+3. **Category Outflow Doughnut**: Breakdown of spending by category with percentage contributions and hover tooltips.
+4. **Draggable Cards**: Custom dashboard layout allowing users to rearrange metric cards via smooth drag-and-drop.
 
 ---
 
-### 1. Database Schema & Architecture (`tracker/models.py`)
-This file defines the application's data layer using Django's ORM models.
+## 📄 Financial Reports & Document Generation Engine
 
-```python
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    theme = models.CharField(max_length=10, choices=[('light', 'Light'), ('dark', 'Dark')], default='dark')
-    currency = models.CharField(max_length=5, choices=[...], default='$')
+Leoxur provides built-in programmatic export capabilities without requiring third-party SaaS services:
+
+### 1. ReportLab Vector PDF Statements
+- **Vector Pie Charts**: Built with ReportLab graphics shapes, illustrating category spending distribution.
+- **KPI Summary Matrix**: Monthly inflow, outflow, net cashflow surplus, and savings rate.
+- **Itemized Ledger Table**: Alternating row colors (`#0071E3` headers), formatted currencies, and transaction dates.
+- Accessible via `/export/pdf/` and `/export-pdf/`.
+
+### 2. Multi-Sheet Microsoft Excel Workbooks (`.xlsx`)
+- Generated with `openpyxl` with styled headers, custom cell borders, and numeric formatting.
+- **Sheet 1 — Executive Summary**: High-level financial KPIs.
+- **Sheet 2 — Inflows & Outflows**: Full transaction activity log.
+- **Sheet 3 — Category Budgets**: Monthly budget allowances vs. actual spending.
+- Accessible via `/export/excel/` and `/export-excel/`.
+
+---
+
+## 📬 Email Node & Automated Pipeline (IMAP & SMTP)
+
+### Inbound IMAP Mail Scanner (`tracker/management/commands/fetch_emails.py`)
+- Connects securely over SSL (Port 993) to Gmail, Outlook, or corporate IMAP servers.
+- Searches for unread receipts and transaction alerts.
+- Uses regex parsing to extract:
+  - **Amount**: Numerical currency amounts (`$XX.XX`, `₹XX.XX`, etc.).
+  - **Vendor / Category**: Matches keywords against categories (Food, Travel, Utilities, Salary).
+  - **Type**: Categorizes as income (`credited`, `received`, `deposited`) or expense (`debited`, `spent`, `paid`).
+- Deduplicates messages using `ProcessedEmail` (`message_id`) to ensure transactions are never logged twice.
+- Dispatches an automated HTML confirmation receipt back to the sender.
+
+### Outbound SMTP Mail Node (`tracker/views.py:send_user_mail`)
+- Connects via TLS (Port 587) using user-configured credentials.
+- Dispatches multi-part HTML reports with binary attachments (`application/pdf` and `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`).
+- Provides a testing feature in the Settings Modal to verify SMTP and IMAP configurations.
+
+---
+
+## 🎨 Apple iOS Design System & Custom Admin
+
+- **Design System Tokens** ([`tracker/static/css/ios_theme.css`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/tracker/static/css/ios_theme.css)):
+  - Apple System Colors: `--apple-blue` (`#0071E3`), `--apple-green` (`#34C759`), `--apple-red` (`#FF3B30`), `--apple-orange` (`#FF9500`), `--apple-purple` (`#AF52DE`).
+  - Glassmorphic panels with dynamic blur (`backdrop-filter: blur(28px) saturate(180%)`).
+  - Light and Dark Mode system theme synchronizer.
+- **Apple SF Symbols Templatetag** ([`tracker/templatetags/apple_icons.py`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/tracker/templatetags/apple_icons.py)):
+  - Custom `{% sf_icon "icon_name" "class_name" %}` syntax rendering crisp, lightweight inline SVG icons.
+- **Custom Themed Django Admin** ([`templates/admin/`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/templates/admin/)):
+  - Redesigned Django administration interface matching the Apple aesthetic.
+
+---
+
+## 🗂️ Codebase Architecture & Line-by-Line File Directory
+
 ```
-* **Explanation:** Extends Django's built-in `User` model to persist customizable UI preferences (such as Light/Dark mode and current functional Currency symbol: `$`, `€`, `₹`, `£`).
-* **Signals:** A `post_save` Django signal automatically creates a `Profile` instance whenever a new `User` joins, ensuring instant customization availability.
-
-```python
-class Category(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='categories')
-    name = models.CharField(max_length=50)
-    is_income = models.BooleanField(default=False)
+LeoxurIncomeTracker/
+├── Dockerfile                     # Multi-stage Python 3.10 production container spec
+├── docker-compose.yml             # 8-service Docker orchestration (Django, MySQL, Nginx, Prometheus, Grafana)
+├── requirements.txt               # Production Python dependencies (Django, ReportLab, OpenPyXL, Pillow)
+├── manage.py                      # Django execution binary
+├── seed_data.py                   # Initial mock transactions, budgets, and categories seeder
+├── wait_for_db.py                 # TCP handshake script ensuring database readiness before migrations
+├── nginx.conf                     # Nginx reverse proxy template with Let's Encrypt SSL config
+├── prometheus.yml                 # Prometheus metrics scraping configuration
+├── init-ssl.sh                    # Automated Let's Encrypt SSL certificate issuance script
+├── DEPLOYMENT.md                  # Enterprise Multi-Cloud, Docker & Kubernetes Deployment Manual
+├── USER_GUIDE.md                  # End-user operational manual
+│
+├── income_tracker/                # Django Project Root
+│   ├── __init__.py
+│   ├── settings.py                # Core configuration (MySQL/SQLite toggle, Auth, Static, Templates)
+│   ├── urls.py                    # Master URL routing
+│   ├── wsgi.py                    # Gunicorn production WSGI gateway
+│   └── asgi.py                    # ASGI asynchronous gateway
+│
+├── tracker/                       # Core Financial Application
+│   ├── __init__.py
+│   ├── admin.py                   # Django admin model registrations
+│   ├── apps.py                    # Application configuration
+│   ├── assistant.py               # Leoxur Intelligence Copilot (Cloud AI + Local Deterministic Engine)
+│   ├── models.py                  # Database Models (Profile, Transaction, Category, Budget, Reminder)
+│   ├── urls.py                    # Application endpoints, export routes, and REST APIs
+│   ├── views.py                   # Controllers, export builders, PDF/Excel generators, auth handlers
+│   │
+│   ├── management/commands/       # Automation & Telemetry Commands
+│   │   ├── fetch_emails.py        # IMAP automated receipt scanner and transaction parser
+│   │   ├── monitor_system.py      # Hardware CPU, memory, and container health monitor
+│   │   ├── send_bill_reminders.py # Scheduled bill alert dispatcher
+│   │   └── send_daily_report.py   # Daily financial statement compiler and dispatcher
+│   │
+│   ├── templatetags/
+│   │   ├── __init__.py
+│   │   └── apple_icons.py         # Apple SF Symbols inline SVG templatetag
+│   │
+│   ├── static/                    # Frontend Assets
+│   │   ├── css/
+│   │   │   └── ios_theme.css      # Core Apple design system, glassmorphism, and responsive layouts
+│   │   └── js/
+│   │       └── tracker_app.js     # Drag-and-drop dashboard, Chart.js bindings, modals, and copilot UI
+│   │
+│   └── templates/tracker/         # Glassmorphic View Templates
+│       ├── base.html              # Master layout, navigation bar, settings modal, and Copilot drawer
+│       ├── dashboard.html         # Main financial telemetry dashboard, charts, ledger, and budget grid
+│       ├── login.html             # Apple-style blurred authentication login card
+│       └── signup.html            # Registration interface
+│
+├── templates/admin/               # Apple iOS Custom Themed Django Admin
+│   ├── base_site.html             # Custom admin navbar, branding, and typography
+│   ├── index.html                 # Admin dashboard model overview
+│   └── login.html                 # Custom admin login card
+│
+└── k8s/                           # Production Kubernetes Manifests
+    ├── namespace.yaml             # Dedicated 'leoxur' namespace
+    ├── configmap.yaml             # System configurations and non-sensitive environment variables
+    ├── secrets.yaml               # Encrypted database passwords, Django keys, and mail credentials
+    ├── mysql-statefulset.yaml     # MySQL 8.0 StatefulSet with 20Gi Persistent Volume Claim
+    ├── app-deployment.yaml        # Django 2-replica Deployment with rolling updates and probes
+    ├── app-service.yaml           # ClusterIP service definition
+    ├── ingress.yaml               # Ingress controller routing with cert-manager SSL
+    ├── hpa.yaml                   # Horizontal Pod Autoscaler (2–10 pods based on CPU/RAM)
+    ├── cronjobs.yaml              # Scheduled CronJobs (Daily report, bill alerts, IMAP fetcher)
+    └── kustomization.yaml         # Single-command Kustomize deployment manifest
 ```
-* **Explanation:** Manages custom categories. Each category belongs to a specific user and is classified either as an Income category (inflow) or an Expense category (outflow).
-* **Seeding Logic:** On profile registration, a signal automatically seeds 9 standard categories (`Salary`, `Freelance`, `Investment`, `Food`, `Rent`, `Utilities`, `Entertainment`, `Travel`, `Other`) to the user's ledger so the dashboard works instantly.
-
-```python
-class Transaction(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transactions')
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    transaction_type = models.CharField(max_length=3, choices=[('IN', 'Income'), ('OUT', 'Expense')])
-    category = models.CharField(max_length=50)
-    date = models.DateField()
-    description = models.CharField(max_length=255, blank=True)
-```
-* **Explanation:** Stores transactional ledger records. By omitting strict model-level choice validations on `category`, this field natively accepts any custom string name created dynamically by the user.
-
-```python
-class Budget(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='budgets')
-    category = models.CharField(max_length=50)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    period = models.CharField(max_length=10, choices=[('MONTHLY', 'Monthly'), ('YEARLY', 'Yearly')], default='MONTHLY')
-    month = models.IntegerField(null=True, blank=True)
-    year = models.IntegerField()
-```
-* **Explanation:** Models overall and category-specific budget limits for a given month and year. Tracks allowance amount against logged expenses.
-
-```python
-class Reminder(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reminders')
-    title = models.CharField(max_length=100)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    due_date = models.DateField()
-    is_recurring = models.BooleanField(default=False)
-    recurrence_period = models.CharField(max_length=10, choices=[('DAILY', 'Daily'), ...], blank=True, null=True)
-    is_paid = models.BooleanField(default=False)
-```
-* **Explanation:** Houses calendar events for unpaid bill schedules. Supports recurrence frequencies which are automatically evaluated when a user marks a bill as "Settled".
 
 ---
 
-### 2. View Actions & Controllers (`tracker/views.py`)
-This file coordinates application state updates, calculations, and content generation.
+## 🚀 Quickstart & Local Installation
 
-#### A. The Main Core Controller (`dashboard_view`)
-* **Dynamic Seeding Fallback:** Checks if the logged-in user lacks categories (e.g. legacy migrated accounts) and provisions default category nodes automatically.
-* **Monthly Calculations:** Dynamically queries transactions for the current calendar month and calculates total inflows, total outflows, and net savings.
-* **Budget Tracking:** Looks up the user's active budgets. For each budget category, it calculates the percentage spent. If it exceeds $80\%$, it appends a Warning alert; if it matches/breaches $100\%$, it displays a Critical alert.
-* **Context Payload:** Bundles ledger records, limits, alerts, user preference profile variables, and categories to render the main template.
+### Prerequisites
+- Python 3.10, 3.11, or 3.12
+- `pip` and `virtualenv`
+- MySQL 8.0 (Optional; SQLite is used by default if MySQL is not configured)
 
-#### B. The Conversion Rates Engine (`update_currency`)
-* **Explanation:** Receives target currency (e.g., `₹`) and a user-provided conversion rate (e.g., `83.5`) via POST. Dynamically loops over **all** transactions, budgets, and bill reminders, scaling their decimal values by the exchange rate before saving, ensuring all legacy financial history accurately transforms into the new denomination.
+### Step-by-Step Setup
 
-#### C. Ledger & Reminder Modifiers
-* **`add_category`:** Processes custom flow tag creation (Inflow/Outflow).
-* **`edit_transaction`:** Pre-fetches an entry by primary key, updates fields dynamically, and commits back to SQLite.
-* **`delete_transaction_bulk`:** Receives a comma-separated array string of ID integers (e.g., `"1,4,7"`) from the checkbox selection UI, deleting multiple transaction rows in a single batch query.
-* **`edit_reminder` / `delete_reminder`:** Facilitates modifications for scheduled bill alarms.
-
-#### D. Document Exporter Framework
-* **CSV (`export_csv_view`):** Compiles financial ledger records, active budgets, and bill schedules into comma-separated text using python's built-in `csv` engine.
-* **Excel (`export_excel_view`):** Spawns a multi-sheet spreadsheet workbook utilizing `openpyxl`, separation-categorizing transactions, targets, and reminders into tabbed worksheets.
-* **PDF Report (`export_pdf_view`):** Builds a print-ready document using `reportlab`. Defines page geometry rules, typographic stylesheets, canvas grids, dynamic currency values, and generates tables with alternating row styling.
-
----
-
-### 3. URL Router Mappings (`tracker/urls.py`)
-Maps incoming browser paths directly to their Python controller views:
-
-* `/` (Home) $\rightarrow$ `dashboard_view`
-* `/signup/` & `/login/` & `/logout/` $\rightarrow$ Auth endpoints
-* `/settings/update-currency/` $\rightarrow$ Denomination rate scaling controller
-* `/transaction/add/` $\rightarrow$ Creates new ledger items
-* `/transaction/edit/<id>/` $\rightarrow$ Modify existing transactions
-* `/transaction/delete-bulk/` $\rightarrow$ Delete selected ledger records
-* `/category/add/` $\rightarrow$ Deploy custom category rules
-* `/reminder/edit/<id>/` & `/reminder/delete/<id>/` $\rightarrow$ Modify bill alerts
-* `/export/csv/` | `/export/excel/` | `/export/pdf/` $\rightarrow$ Attachment delivery endpoints
-* `/api/analytics-data/` $\rightarrow$ Serialized data API feeding Chart.js graphs
-
----
-
-### 4. Interactive Frontend Template (`tracker/templates/tracker/dashboard.html`)
-Combines aesthetic user experience patterns with real-time UI manipulation scripts.
-
-#### A. Visual Interface Design
-* **Glassmorphic Layout:** Employs dark-mode backgrounds, semi-transparent layout containers (`glass-panel`), blurred drop-shadow borders (`backdrop-blur`), and vibrant colored neon accents.
-* **Interactive Modals:** Dynamic panels (Add/Edit Transaction, Edit Reminder, Setup Budget, Create Category) that toggle visibility.
-
-#### B. Client-side JavaScript Engines
-* **Browser Workaround for Form Nesting:** Standard HTML specifications prohibit putting forms directly inside `<tr>` or `<td>` tags, which causes Google Chrome to close them prematurely. To resolve this, this project routes click buttons to custom JS handlers:
-  ```javascript
-  function triggerDeleteTransaction(id) {
-      if (confirm("Confirm deletion of this transaction record?")) {
-          const form = document.getElementById('delete-tx-form');
-          form.action = `/transaction/delete/${id}/`;
-          form.submit();
-      }
-  }
-  ```
-  This submits actions via a single global hidden form located at the base of the page, ensuring flawless operational stability in Google Chrome, Safari, and Firefox.
-* **Interactive Category Filtering:** The transaction modals filter category choices dynamically on type select change. When the user changes flow type between "Outflow" and "Inflow", JS updates the available dropdown options dynamically using seeded arrays (`incomeCategories` and `expenseCategories`), eliminating category entry errors.
-* **Bulk Checkbox Engine:**
-  - `toggleSelectAllTransactions`: Toggles every table row's checkbox state matching the header selector.
-  - `updateBulkDeleteButton`: Detects selected rows, displays the floating "Delete Selected" badge, and counts the selection.
-  - `submitBulkDelete`: Collects the verified array of IDs and submits them to the backend controller.
-
----
-
-### 5. Email Automation & Integrations (SMTP & IMAP)
-Leoxur supports real-time email-based interactions for both outgoing alerts and incoming transaction registrations.
-
-#### A. SMTP Configurations (settings.py)
-To configure outgoing mail for budget breach alerts:
-1. Open [settings.py](file:///Users/hariprasathm/VirtualBox VMs/Income Tracker/income_tracker/settings.py).
-2. Set your SMTP provider credentials under the `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, and `EMAIL_HOST_PASSWORD` settings. (If using Gmail, configure a Google Account App Password).
-3. If an expense triggers a category budget or overall monthly budget breach, an automated warning message is instantly emailed to the user's email address.
-
-#### B. IMAP Email-to-Ledger Parser (management/commands/fetch_emails.py)
-You can log transaction entries in the app simply by sending an email from your registered user account email:
-1. Configure your IMAP inbox settings in [settings.py](file:///Users/hariprasathm/VirtualBox VMs/Income Tracker/income_tracker/settings.py) (e.g. `imap.gmail.com`).
-2. Compose a new mail to your inbox.
-3. In either the **Subject** or **Body** line, write your transaction using the comma-separated format:
-   `Category, Amount, Flow_Type, Description`
-   * *Example 1 (Expense):* `Food, 25.50, OUT, Lunch at local diner`
-   * *Example 2 (Income):* `Salary, 3500.00, IN, Monthly Salary payout`
-4. Run the synchronization command in your terminal:
+1. **Clone the Repository**:
    ```bash
-   python3 manage.py fetch_emails
+   git clone https://github.com/leoxurDev/LeoxurIncomeTracker.git
+   cd LeoxurIncomeTracker
    ```
-5. The automation engine will securely:
-   - Connect to the inbox.
-   - Filter unread messages.
-   - Match the sender against your registered user database account (security validation).
-   - Parse the transaction values.
-   - Automatically log the new entry to the database.
-   - Send a confirmation email acknowledging the success of the log (or an instructions email if the format could not be parsed).
-   - Mark the processed email as read (`Seen`).
 
-#### C. Daily Automated Reports (`tracker/management/commands/send_daily_report.py`)
-To dispatch a comprehensive email report to all active registered users containing transaction values, active budget levels, and attached statements:
-1. Run the daily dispatcher command in your terminal:
+2. **Create and Activate Virtual Environment**:
    ```bash
-   python3 manage.py send_daily_report
+   python3 -m venv venv
+   source venv/bin/activate
    ```
-2. The automation engine will:
-   - Calculate month-to-date inflows, outflows, and net balances.
-   - Summarize active budget targets (and check for breach statuses).
-   - Generate the complete ReportLab PDF statement in memory.
-   - Generate the OpenPyXL Excel spreadsheet in memory.
-   - Dispatch an email to the user attaching both files (e.g. `Statement_YYYYMMDD.pdf`, `Statement_YYYYMMDD.xlsx`).
-3. You can set this command up on a server cron schedule (e.g. executing once daily at midnight) to receive your reports automatically.
 
-#### D. Daily Bill Reminder Email Alerts (`tracker/management/commands/send_bill_reminders.py`)
-To scan the ledger and send automated notification email alerts for unpaid bills due on the current day:
-1. Run the reminders dispatcher command in your terminal:
+3. **Install Dependencies**:
    ```bash
-   python3 manage.py send_bill_reminders
+   pip install -r requirements.txt
    ```
-2. The automation engine will:
-   - Identify all active (unpaid) reminders due today.
-   - For each matching reminder, email the respective user (using their customized SMTP settings if configured).
-3. We recommend running this command daily on a server cron task alongside the daily reports to ensure timely alerts.
+
+4. **Initialize Database Schema**:
+   ```bash
+   python3 manage.py makemigrations
+   python3 manage.py migrate
+   ```
+
+5. **Create Superuser Account**:
+   ```bash
+   python3 manage.py createsuperuser
+   ```
+
+6. **Seed Initial Mock Data (Optional)**:
+   ```bash
+   python3 seed_data.py
+   ```
+
+7. **Launch Local Development Server**:
+   ```bash
+   python3 manage.py runserver 127.0.0.1:8000
+   ```
+   Open your browser to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) and sign in.
+
+---
+
+## 🐳 Production Deployment with Docker Compose
+
+To deploy the entire production stack (Django, MySQL, Nginx, Certbot, Prometheus, Grafana) with a single command:
+
+```bash
+# 1. Configure environment variables
+cp .env.example .env
+
+# 2. Build and start containers
+docker-compose up -d --build
+
+# 3. Apply database migrations
+docker-compose exec web python3 manage.py migrate
+
+# 4. Bootstrap Let's Encrypt SSL certificates
+chmod +x init-ssl.sh && ./init-ssl.sh
+```
+
+---
+
+## ☸️ Production Deployment on Kubernetes (K8s)
+
+Deploy Leoxur on any Kubernetes cluster (EKS, GKE, AKS, or k3s) using the production manifests in [`k8s/`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/):
+
+```bash
+# 1. Update secrets and domain names
+nano k8s/secrets.yaml
+nano k8s/ingress.yaml
+
+# 2. Deploy the entire stack using Kustomize
+kubectl apply -k k8s/
+
+# 3. Verify pod status
+kubectl get pods -n leoxur -o wide
+
+# 4. Check horizontal pod autoscaler
+kubectl get hpa -n leoxur
+```
+
+---
+
+## ☁️ Enterprise Multi-Cloud Playbooks (AWS, GCP, Azure)
+
+For detailed step-by-step instructions on deploying Leoxur across cloud providers:
+- **AWS**: Amazon EKS + RDS MySQL + AWS ALB Ingress Controller + S3 Static Storage.
+- **GCP**: Google Kubernetes Engine (GKE) + Cloud SQL + Google Managed Certificates.
+- **Azure**: Azure Kubernetes Service (AKS) + Azure Database for MySQL Flexible Server + AGIC.
+- **Bare Metal / Self-Hosted VPS**: Ubuntu 22.04 LTS with k3s or Docker Compose.
+
+👉 **Refer to the [Complete Multi-Cloud Deployment Manual (DEPLOYMENT.md)](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/DEPLOYMENT.md)**.
+
+---
+
+## 🔌 REST API & Endpoints Reference
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/api/savings-analyst/` | `POST` | Processes natural language queries for the AI Copilot. Accepts `{ "query": "..." }`. |
+| `/api/analytics-data/` | `GET` | Returns monthly income, expense, and category telemetry in JSON format. |
+| `/api/reminders/check/` | `GET` | Returns count and details of overdue and upcoming bill reminders. |
+| `/export/pdf/` or `/export-pdf/` | `GET` | Downloads the official ReportLab PDF Financial Statement with Pie Charts. |
+| `/export/excel/` or `/export-excel/` | `GET` | Downloads the OpenPyXL multi-sheet financial workbook (`.xlsx`). |
+| `/export/csv/` | `GET` | Downloads raw transaction records in CSV format. |
+| `/export/download-template/` | `GET` | Downloads CSV template for importing external transaction batches. |
+| `/export/import-transactions/` | `POST` | Uploads and parses CSV files to batch-insert transactions. |
+
+---
+
+## 📄 License & Credits
+
+- **Author**: Leoxur Development Team
+- **Design Language**: Apple Human Interface Guidelines (SF Pro, iOS Glassmorphism)
+- **License**: Released under the [MIT License](LICENSE).

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: leoxur
+  labels:
+    app.kubernetes.io/name: leoxur-income-tracker
+    app.kubernetes.io/part-of: leoxur-financial-telemetry

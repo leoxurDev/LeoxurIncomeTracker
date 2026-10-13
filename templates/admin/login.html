@@ -1,0 +1,62 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/apple_admin.css' %}">
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} login apple-admin-login{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="apple-login-card">
+  <div class="apple-login-brand">
+    <div class="apple-login-badge" style="background:linear-gradient(135deg, #0A84FF, #5E5CE6); color:white; width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+        <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+        <path d="M16 3H4a2 2 0 0 0-2 2v2"/>
+        <circle cx="16" cy="14" r="1"/>
+      </svg>
+    </div>
+    <h1 class="apple-login-title">Leoxur Admin</h1>
+    <p class="apple-login-subtitle">Financial Telemetry & Core Administration</p>
+  </div>
+
+  {% if form.errors and not form.non_field_errors %}
+    <p class="apple-login-error">
+      {% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
+    </p>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    {% for error in form.non_field_errors %}
+      <p class="apple-login-error">{{ error }}</p>
+    {% endfor %}
+  {% endif %}
+
+  <form action="{{ app_path }}" method="post" id="login-form">
+    {% csrf_token %}
+    <div class="form-row">
+      {{ form.username.errors }}
+      <label for="id_username">{% translate 'Username' %}</label>
+      <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" class="apple-input" placeholder="Superuser ID">
+    </div>
+    <div class="form-row">
+      {{ form.password.errors }}
+      <label for="id_password">{% translate 'Password' %}</label>
+      <input type="password" name="password" autocomplete="current-password" required id="id_password" class="apple-input" placeholder="••••••••">
+      <input type="hidden" name="next" value="{{ next }}">
+    </div>
+    <div class="submit-row">
+      <button type="submit" class="apple-btn-primary">Authenticate Session</button>
+    </div>
+  </form>
+
+  <div class="apple-login-footer">
+    <a href="{% url 'dashboard' %}" style="color:var(--admin-blue); text-decoration:none;">← Return to Leoxur App</a>
+  </div>
+</div>
+{% endblock %}

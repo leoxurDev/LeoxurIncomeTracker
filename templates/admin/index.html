@@ -1,0 +1,146 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard executive-admin-dashboard{% endblock %}
+
+{% block content %}
+<div class="executive-dashboard-container">
+
+  <!-- 1. Executive Welcome Hero Header -->
+  <div class="executive-hero-header">
+    <div class="hero-header-left">
+      <div class="hero-greeting-line">
+        <h1 class="hero-title">
+          Good {% now "A" as am_pm %}{% if am_pm == "AM" %}morning{% else %}day{% endif %}, {{ user.first_name|default:user.username }}!
+        </h1>
+        <span class="hero-status-pill" title="System Status">
+          <span class="status-pulse-dot"></span>
+          <span>Leoxur Financial v2.5.0 • Live Telemetry</span>
+        </span>
+      </div>
+      <p class="hero-subtitle">
+        Executive Administration for ledger orchestration, budget telemetry, AI copilot agents, and user security.
+      </p>
+    </div>
+  </div>
+
+  <!-- 2. Live KPI Ribbon -->
+  <div class="executive-kpi-grid">
+    <a href="{% url 'admin:tracker_transaction_changelist' %}" class="kpi-card" title="Manage Ledger Transactions">
+      <div class="kpi-icon-wrap kpi-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Ledger</span>
+        <span class="kpi-label">Transactions</span>
+      </div>
+    </a>
+
+    <a href="{% url 'admin:tracker_budget_changelist' %}" class="kpi-card" title="Manage Category Budgets">
+      <div class="kpi-icon-wrap kpi-purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Budgets</span>
+        <span class="kpi-label">Monthly Limits</span>
+      </div>
+    </a>
+
+    <a href="{% url 'admin:tracker_reminder_changelist' %}" class="kpi-card" title="Manage Bill Reminders">
+      <div class="kpi-icon-wrap kpi-orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Bills</span>
+        <span class="kpi-label">Outflow Reminders</span>
+      </div>
+    </a>
+
+    <a href="{% url 'admin:tracker_category_changelist' %}" class="kpi-card" title="Manage Categories">
+      <div class="kpi-icon-wrap kpi-green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+          <line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Categories</span>
+        <span class="kpi-label">Income & Outflow</span>
+      </div>
+    </a>
+
+    <a href="{% url 'admin:tracker_profile_changelist' %}" class="kpi-card" title="User AI & Mail Profiles">
+      <div class="kpi-icon-wrap kpi-teal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <circle cx="12" cy="12" r="8"/>
+          <line x1="12" y1="2" x2="12" y2="6"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Profiles</span>
+        <span class="kpi-label">AI & Mail Nodes</span>
+      </div>
+    </a>
+
+    <a href="{% url 'admin:auth_user_changelist' %}" class="kpi-card" title="Manage Registered Users">
+      <div class="kpi-icon-wrap kpi-red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="kpi-meta">
+        <span class="kpi-value">Security</span>
+        <span class="kpi-label">Users & Groups</span>
+      </div>
+    </a>
+  </div>
+
+  <!-- 3. Standard Apps & Models Table (Preserves full Django Admin functionality) -->
+  <div class="executive-domains-layout" style="margin-top:24px;">
+    {% if app_list %}
+      {% for app in app_list %}
+        <div class="domain-card" style="margin-bottom:20px; background:var(--admin-card-bg); border:1px solid var(--admin-card-border); border-radius:16px; padding:20px;">
+          <div class="domain-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--admin-hairline); padding-bottom:10px;">
+            <h2 style="font-size:16px; font-weight:700; margin:0;">{{ app.name }}</h2>
+            <a href="{{ app.app_url }}" style="font-size:12px; color:var(--admin-blue); text-decoration:none; font-weight:600;">View App &rarr;</a>
+          </div>
+          <div class="domain-models-list">
+            {% for model in app.models %}
+              <div class="model-row" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:0.5px solid var(--admin-hairline);">
+                <div>
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" style="font-size:14px; font-weight:600; color:var(--admin-text-primary); text-decoration:none;">{{ model.name }}</a>
+                  {% else %}
+                    <span style="font-size:14px; font-weight:600;">{{ model.name }}</span>
+                  {% endif %}
+                </div>
+                <div style="display:flex; gap:10px;">
+                  {% if model.add_url %}
+                    <a href="{{ model.add_url }}" class="apple-btn-ghost" style="font-size:11px; padding:4px 10px; border-radius:6px; background:var(--admin-bg-subtle); text-decoration:none; color:var(--admin-text-primary);">+ Add</a>
+                  {% endif %}
+                  {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}" class="apple-btn-ghost" style="font-size:11px; padding:4px 10px; border-radius:6px; background:var(--admin-bg-subtle); text-decoration:none; color:var(--admin-blue);">Change</a>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>{% translate "You don’t have permission to view or edit anything." %}</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

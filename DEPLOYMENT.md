@@ -1,210 +1,401 @@
-# Leoxur Income Tracker - Production Deployment & Monitoring Manual
+# Leoxur Income Tracker — Enterprise Multi-Cloud, Docker & Kubernetes Deployment Guide
 
-This deployment guide is designed for administrators, operations engineers, and laymen. It outlines how to deploy the Leoxur Income Tracker application inside a multi-container Docker Compose architecture on any cloud virtual machine (AWS EC2, Google Compute Engine, or Azure VM) with a custom domain, HTTPS/SSL, MySQL database storage, and a Prometheus/Grafana hardware telemetry stack.
-
----
-
-## 🏗️ Dockerized Services Architecture
-
-When you start the application on a cloud server, the following 8 components run simultaneously, separated inside Docker isolation:
-
-1. **`leoxur_web` (Django + Gunicorn)**: Runs the core income tracker application and handles all page requests, ledger computations, and database reads/writes.
-2. **`leoxur_db` (MySQL Database)**: Stores all database records (transactions, users, categories, budgets, and reminders) persistently.
-3. **`leoxur_nginx` (Reverse Proxy)**: A high-performance web router that handles secure incoming SSL traffic (HTTPS port 443) and serves stylesheet files directly to users.
-4. **`leoxur_certbot` (Let's Encrypt Renewals)**: Automatically requests and renews security certificates for your custom domain.
-5. **`leoxur_prometheus` (Metrics Collector)**: Scrapes resource logs (CPU, RAM, container lifespans) and feeds them into the visualization dashboard.
-6. **`leoxur_grafana` (Analytics UI)**: Hosts a dashboard to graph CPU, memory, filesystem, and network stats over time.
-7. **`leoxur_node_exporter` (Host Scraper)**: Exposes hardware metrics of the underlying virtual machine.
-8. **`leoxur_cadvisor` (Container Scraper)**: Exposes performance statistics and up/down status logs for all docker containers.
+Welcome to the definitive deployment manual for the **Leoxur Income & Expense Tracker**. This document provides step-by-step, production-grade instructions for deploying and orchestrating the Leoxur platform across **Docker Compose**, **Kubernetes (K8s)**, and enterprise **Multi-Cloud environments (AWS, GCP, Azure, and Bare Metal VPS)** with automated SSL, hardware telemetry, and automated background jobs.
 
 ---
 
-## 🌐 1. Preparing Your Cloud VM
-
-Before launching the containers, set up your server in AWS, GCP, or Azure.
-
-### AWS EC2
-1. Launch an EC2 Instance (select **Ubuntu Server 22.04 LTS**).
-2. Choose instance size `t3.small` or `t3.medium` (recommended for Prometheus/Grafana memory scraping).
-3. Under **Security Group Config**, configure inbound firewall rules to allow:
-   - **Port 22**: SSH access (your IP only).
-   - **Port 80**: HTTP access (anywhere).
-   - **Port 443**: HTTPS access (anywhere).
-   - **Port 3306**: MySQL database (restricted to your IP only, if using external client UI database tools like TablePlus or DBeaver).
-   - **Port 3000**: Grafana UI (restricted to your IP only, if checking metrics visually).
-4. Allocate an **Elastic IP** and associate it with your instance.
-
-### GCP Compute Engine / Azure VM
-1. Create a VM instance using **Ubuntu Server 22.04 LTS**.
-2. Configure **Firewall Rules** to allow TCP traffic on ports **80**, **443**, **3306**, and **3000**.
-3. Allocate a static public IP address to the instance.
+## 📑 Table of Contents
+1. [🏗️ System Architecture & Topologies](#-system-architecture--topologies)
+2. [⚙️ Prerequisites & Environment Variables](#%EF%B8%8F-prerequisites--environment-variables)
+3. [🐳 Containerized Deployment with Docker Compose](#-containerized-deployment-with-docker-compose)
+4. [☸️ Production Kubernetes (K8s) Deployment](#%EF%B8%8F-production-kubernetes-k8s-deployment)
+5. [☁️ Multi-Cloud Deployment Playbooks](#%EF%B8%8F-multi-cloud-deployment-playbooks)
+   - [Amazon Web Services (AWS EKS & RDS)](#1-amazon-web-services-aws-eks--rds)
+   - [Google Cloud Platform (GCP GKE & Cloud SQL)](#2-google-cloud-platform-gcp-gke--cloud-sql)
+   - [Microsoft Azure (AKS & MySQL Flexible Server)](#3-microsoft-azure-aks--mysql-flexible-server)
+   - [Bare Metal / Self-Hosted VPS (Ubuntu 22.04 LTS)](#4-bare-metal--self-hosted-vps-ubuntu-2204-lts)
+6. [🔄 CI/CD Pipeline (GitHub Actions & Container Registry)](#-cicd-pipeline-github-actions--container-registry)
+7. [🛡️ Backup, Disaster Recovery & High Availability](#%EF%B8%8F-backup-disaster-recovery--high-availability)
+8. [🔍 Troubleshooting & Maintenance Matrix](#-troubleshooting--maintenance-matrix)
 
 ---
 
-## 🔗 2. Configure Domain Records
+## 🏗️ System Architecture & Topologies
 
-To run on HTTPS, map your domain name to your cloud server's static IP.
-1. Log in to your domain provider (e.g. GoDaddy, Namecheap, Google Domains).
-2. Go to your **DNS Zone Editor**.
-3. Create an **A Record**:
-   - **Host/Name**: `tracker` (for `tracker.yourdomain.com`) or `@` (for main domain `yourdomain.com`).
-   - **Value/Points To**: Your Cloud VM Static IP address.
-   - **TTL**: `600` or `1 Hour`.
+```mermaid
+flowchart TD
+    subgraph IngressLayer["🌐 Edge / Ingress Tier"]
+        DNS["Global DNS / Route 53 / Cloud DNS"] --> LB["Load Balancer / Ingress Controller (Nginx / ALB / AGIC)"]
+        CertBot["Cert-Manager / Let's Encrypt (TLS 443)"] -.-> LB
+    end
 
----
+    subgraph AppLayer["🚀 Application Tier (Kubernetes Pods / Containers)"]
+        LB -->|HTTP 8000| Gunicorn["Gunicorn WSGI (Workers: 3)"]
+        Gunicorn --> Django["Leoxur Django Core 4.2"]
+        Django --> AI["AI Copilot Engine (Gemini / OpenAI / Anthropic / Local)"]
+        Django --> Reports["ReportLab & OpenPyXL Engine"]
+    end
 
-## 🛠️ 3. Install Docker & Git
+    subgraph DataLayer["💾 Persistence & Mail Nodes"]
+        Django -->|Port 3306| MySQL[(MySQL 8.0 Database Persistent Store)]
+        Django -->|SMTP 587| SMTP["Outbound SMTP Mail Node (Gmail / SendGrid)"]
+        Django -->|IMAP 993| IMAP["Inbound IMAP Mail Node (Gmail / Outlook)"]
+    end
 
-Log in to your Cloud VM via SSH and run these commands to install dependencies:
+    subgraph Observability["📊 Telemetry & Monitoring Stack"]
+        Prom["Prometheus Engine (Port 9090)"] --> Grafana["Grafana Dashboards (Port 3000)"]
+        NodeExp["Node Exporter (Host Metrics)"] --> Prom
+        cAdvisor["cAdvisor (Container Metrics)"] --> Prom
+    end
 
-```bash
-# Update local packages list
-sudo apt-get update && sudo apt-get upgrade -y
-
-# Install Docker
-sudo apt-get install -y docker.io docker-compose
-
-# Start and enable Docker service on boot
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Check Docker version
-docker --version
-docker-compose --version
+    subgraph CronLayer["⏰ Scheduled Automation (K8s CronJobs / Celery)"]
+        CronDaily["Daily Digest Dispatcher (08:00 UTC)"] -.-> Django
+        CronBills["Bill Reminders Alert (09:00 UTC)"] -.-> Django
+        CronIMAP["IMAP Inbox Poll (Every 15m)"] -.-> Django
+    end
 ```
 
 ---
 
-## 🚀 4. Setting up Environmental Configs
+## ⚙️ Prerequisites & Environment Variables
 
-Clone the repository and create an `.env` file in the project root directory containing the required secrets.
+### Core Configuration Parameters
 
+| Variable Name | Required | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `SECRET_KEY` | **Yes** | — | Cryptographically secure Django secret key |
+| `ALLOWED_HOSTS` | **Yes** | `*` | Comma-separated list of valid domain names and IPs |
+| `USE_MYSQL` | Optional | `True` | Set `True` for MySQL, `False` for SQLite |
+| `DB_NAME` | Optional | `income_tracker` | Database name |
+| `DB_USER` | Optional | `leoxur_admin` | Database username |
+| `DB_PASSWORD` | **Yes** | — | Database user password |
+| `DB_HOST` | Optional | `db` (or `leoxur-mysql`) | Database host address |
+| `DB_PORT` | Optional | `3306` | MySQL port |
+| `EMAIL_HOST` | Optional | `smtp.gmail.com` | Outgoing SMTP server |
+| `EMAIL_PORT` | Optional | `587` | SMTP port (TLS) |
+| `EMAIL_HOST_USER` | Optional | — | SMTP login email address |
+| `EMAIL_HOST_PASSWORD` | Optional | — | SMTP Google App Password (16 chars) |
+| `EMAIL_USE_TLS` | Optional | `True` | Enable TLS encryption |
+| `IMAP_HOST` | Optional | `imap.gmail.com` | Inbound IMAP server |
+| `IMAP_PORT` | Optional | `993` | IMAP SSL port |
+| `IMAP_USER` | Optional | — | IMAP login email address |
+| `IMAP_PASSWORD` | Optional | — | IMAP Google App Password |
+| `GEMINI_API_KEY` | Optional | — | Google Gemini Pro/Flash API Key |
+| `OPENAI_API_KEY` | Optional | — | OpenAI GPT-4o API Key |
+
+---
+
+## 🐳 Containerized Deployment with Docker Compose
+
+Docker Compose runs the entire Leoxur stack—Django, MySQL, Nginx reverse proxy with SSL, Prometheus, Grafana, Node Exporter, and cAdvisor—in isolated containers with zero manual configuration.
+
+### 1. Clone & Configure Secrets
 ```bash
 git clone https://github.com/leoxurDev/LeoxurIncomeTracker.git
 cd LeoxurIncomeTracker
 
-# Create .env configuration file
-nano .env
-```
-
-Add the following environment parameters (adjust values accordingly):
-
-```env
-# DATABASE SETTINGS
+# Copy and edit production environment variables
+cp .env.example .env 2>/dev/null || cat << 'EOF' > .env
+SECRET_KEY=leoxur_super_secret_production_key_change_me_99238123
+ALLOWED_HOSTS=tracker.yourdomain.com,localhost,127.0.0.1
+USE_MYSQL=True
 DB_NAME=income_tracker
 DB_USER=leoxur_admin
-DB_PASSWORD=YOUR_SECURE_PASSWORD
-DB_ROOT_PASSWORD=YOUR_SECURE_ROOT_PASSWORD
-
-# SECURITY
-SECRET_KEY=django-production-secure-key-choose-random-chars
-ALLOWED_HOSTS=tracker.yourdomain.com,localhost,127.0.0.1
-
-# SMTP EMAIL CONFIGURATION
+DB_PASSWORD=SecureProductionDBPass2026!
+DB_ROOT_PASSWORD=RootProductionDBPass2026!
+DOMAIN_NAME=tracker.yourdomain.com
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=your-gmail-app-password
+EMAIL_HOST_USER=your_email@gmail.com
+EMAIL_HOST_PASSWORD=your_16_char_google_app_password
 EMAIL_USE_TLS=True
+EOF
 ```
-Press `Ctrl+O` and `Enter` to save, then `Ctrl+X` to exit nano.
 
----
-
-## 🔐 5. Requesting SSL & Starting Nginx
-
-We use the automated `init-ssl.sh` script to verify domain ownership and configure LetsEncrypt HTTPS certificates:
-
+### 2. Launch the Multi-Container Stack
 ```bash
-# Make script executable
+# Build and start all 8 services in background
+docker-compose up -d --build
+
+# Verify container statuses
+docker-compose ps
+```
+
+### 3. Initialize Database Migrations & Superuser
+```bash
+# Wait 10 seconds for MySQL to complete initialization
+sleep 10
+
+# Execute database migrations
+docker-compose exec web python3 manage.py migrate
+
+# Create your primary administrative account
+docker-compose exec web python3 manage.py createsuperuser
+
+# Seed default financial categories
+docker-compose exec web python3 seed_data.py
+```
+
+### 4. Issue Production SSL Certificates (Let's Encrypt)
+Run the automated SSL bootstrap script:
+```bash
 chmod +x init-ssl.sh
-
-# Run SSL bootstrap sequence
-sudo ./init-ssl.sh
+./init-ssl.sh
 ```
 
-**What the script does under the hood:**
-1. Prompts for your domain name (e.g. `tracker.yourdomain.com`) and contact email.
-2. Updates `nginx.conf` with your domain variables.
-3. Generates a placeholder self-signed SSL key structure.
-4. Boots up the Nginx router container.
-5. Invokes Certbot to request real Let's Encrypt certificates.
-6. Replaces the self-signed key placeholder and reloads Nginx dynamically.
-
-Once finished, open your browser and navigate to `https://tracker.yourdomain.com`. You should see the secure padlock icon and the Leoxur Login page!
-
 ---
 
-## 📈 6. Prometheus & Grafana Configuration
+## ☸️ Production Kubernetes (K8s) Deployment
 
-To monitor host resources (CPU, Memory, Disk) and docker status logs visually:
+All Kubernetes manifests are pre-configured in the `k8s/` directory.
 
-1. Open your browser and head to `http://your-server-ip:3000`.
-2. Log in with the default Grafana credentials:
-   - **Username**: `admin`
-   - **Password**: `admin` (it will immediately prompt you to change this).
-3. **Add Prometheus as a Data Source**:
-   - Go to **Connections > Data Sources > Add Data Source**.
-   - Select **Prometheus**.
-   - Set **URL** to: `http://prometheus:9090`
-   - Scroll to the bottom and click **Save & Test**. You should see a green "Data source is working" notification.
-4. **Import Node Exporter Dashboard**:
-   - Go to **Dashboards > New > Import**.
-   - In the **Import via grafana.com** text input, paste the ID: `1860` (the standard official Node Exporter Full dashboard ID) and click **Load**.
-   - Select your **Prometheus** data source inside the dropdown and click **Import**.
-   - You now have a dashboard graphing CPU utilization, memory, disks, filesystem reads, and network traffic.
-5. **Import cAdvisor Container Dashboard**:
-   - Go to **Dashboards > New > Import**.
-   - Input ID: `14282` (standard cAdvisor container monitoring dashboard ID) or design a custom pane to track individual container statuses (`container_state` or `container_cpu_usage_seconds_total`).
+### Manifest File Structure
+- [`k8s/namespace.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/namespace.yaml): Creates isolated `leoxur` namespace.
+- [`k8s/configmap.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/configmap.yaml): Environment variables and system endpoints.
+- [`k8s/secrets.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/secrets.yaml): Sensitive credentials, database passwords, and API keys.
+- [`k8s/mysql-statefulset.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/mysql-statefulset.yaml): MySQL 8.0 StatefulSet with 20Gi Persistent Volume Claim and health probes.
+- [`k8s/app-deployment.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/app-deployment.yaml): Zero-downtime RollingUpdate Deployment with 2+ replicas, InitContainers for automatic migrations, and probes.
+- [`k8s/app-service.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/app-service.yaml): ClusterIP routing traffic on port 80.
+- [`k8s/ingress.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/ingress.yaml): Production Ingress routing with TLS terminating certificates via cert-manager.
+- [`k8s/hpa.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/hpa.yaml): Horizontal Pod Autoscaler scaling pods between 2 and 10 based on CPU/RAM load.
+- [`k8s/cronjobs.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/cronjobs.yaml): Automated CronJobs for daily digests, bill alerts, and IMAP synchronization.
+- [`k8s/kustomization.yaml`](file:///Users/hariprasathm/Desktop/LeoxurIncomeTracker/k8s/kustomization.yaml): Kustomize manifest for single-command deployments.
 
----
-
-## 🗄️ 7. Accessing the MySQL Database
-
-### From Inside the Container Command Line
-If you need to perform raw SQL queries directly inside your server shell:
+### Deploy in One Command
 ```bash
-# Exec into MySQL container
-docker exec -it leoxur_db mysql -u leoxur_admin -p
-```
-It will prompt for your configured `DB_PASSWORD`. Once entered, run queries like:
-```sql
-USE income_tracker;
-SHOW TABLES;
-SELECT * FROM tracker_transaction LIMIT 10;
-```
+# 1. Update your domain and credentials in k8s/secrets.yaml and k8s/ingress.yaml
+nano k8s/secrets.yaml
+nano k8s/ingress.yaml
 
-### From an External GUI Tool (DBeaver, TablePlus, Navicat)
-1. Ensure your Cloud VM security group/firewall allows inbound traffic on port **3306** (restricted to your personal home/office IP for safety).
-2. Open your client database tool.
-3. Create a new **MySQL Connection**:
-   - **Host**: Your Cloud VM Static IP address.
-   - **Port**: `3306`
-   - **Database**: `income_tracker` (or your configured `DB_NAME`).
-   - **Username**: `leoxur_admin` (or your configured `DB_USER`).
-   - **Password**: Your configured database password.
-4. Connect. You can now visually query, export, and manage your transactional database schema.
+# 2. Apply all manifests using Kustomize
+kubectl apply -k k8s/
+
+# 3. Monitor rollout status
+kubectl rollout status deployment/leoxur-app -n leoxur
+kubectl get pods -n leoxur -o wide
+```
 
 ---
 
-## 📧 8. Setting up System Monitoring Alerts (SMTP)
+## ☁️ Multi-Cloud Deployment Playbooks
 
-To monitor system hardware utilization and receive warning emails when containers crash or CPU/RAM/Disk stays above 80%, schedule the built-in system check.
+### 1. Amazon Web Services (AWS EKS & RDS)
 
-### Testing Alerts Manually
-Run the Django check command inside the running web container to test telemetry functionality:
+#### Architecture
+- **EKS (Elastic Kubernetes Service)**: Runs web pods and background CronJobs across multiple availability zones.
+- **Amazon RDS for MySQL (Multi-AZ)**: Managed high-availability database with automated snapshots and backups.
+- **AWS Secrets Manager / IRSA (IAM Roles for Service Accounts)**: Injects secrets without hardcoding credentials into manifests.
+- **AWS Load Balancer Controller (ALB Ingress)**: Automatically provisions an AWS Application Load Balancer with AWS Certificate Manager (ACM) SSL.
+
+#### Deployment Steps
 ```bash
-docker exec -it leoxur_web python3 manage.py monitor_system
+# 1. Provision an EKS Cluster with eksctl
+eksctl create cluster \
+  --name leoxur-cluster \
+  --region us-east-1 \
+  --nodegroup-name standard-workers \
+  --node-type t3.medium \
+  --nodes 3 \
+  --nodes-min 2 \
+  --nodes-max 6 \
+  --managed
+
+# 2. Create RDS MySQL Instance
+aws rds create-db-instance \
+  --db-instance-identifier leoxur-rds-mysql \
+  --db-instance-class db.t3.medium \
+  --engine mysql \
+  --engine-version 8.0 \
+  --allocated-storage 50 \
+  --master-username leoxur_admin \
+  --master-user-password "YourSuperSecurePassword123!" \
+  --db-name income_tracker \
+  --multi-az
+
+# 3. Install AWS Load Balancer Controller
+helm repo add eks https://aws.github.io/eks-charts
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=leoxur-cluster
+
+# 4. Point k8s/configmap.yaml DB_HOST to RDS endpoint and deploy
+kubectl apply -k k8s/
 ```
 
-### Automating the Checks via Cron Task
-To run system checks every 10 minutes in the background:
-1. Open your host machine's cron tab editor:
-   ```bash
-   crontab -e
-   ```
-2. Add the following line at the bottom of the file (this commands the host to run the monitor system task inside the container):
-   ```cron
-   */10 * * * * docker exec leoxur_web python3 manage.py monitor_system >/dev/null 2>&1
-   ```
-3. Save and close. The script will evaluate host hardware resources and container states every 10 minutes. If resource thresholds breach 80% or a container crashes, a styled Apple-themed email warning is immediately sent to all superuser admins. When performance recovers, a corresponding resolved notification is dispatched.
+---
+
+### 2. Google Cloud Platform (GCP GKE & Cloud SQL)
+
+#### Architecture
+- **GKE Autopilot or Standard Cluster**: Managed Kubernetes with automated node upgrading and autoscaling.
+- **Cloud SQL for MySQL**: Fully managed MySQL 8.0 with Cloud SQL Auth Proxy sidecar.
+- **Google-Managed SSL Certificates**: Automatic provisioning and renewal of Google public certificates on Google Cloud Load Balancer.
+
+#### Deployment Steps
+```bash
+# 1. Create a GKE Cluster
+gcloud container clusters create leoxur-gke \
+  --region us-central1 \
+  --num-nodes 2 \
+  --enable-autoscaling --min-nodes 2 --max-nodes 6 \
+  --enable-ip-alias
+
+# 2. Provision Cloud SQL MySQL Instance
+gcloud sql instances create leoxur-db-instance \
+  --database-version=MYSQL_8_0 \
+  --tier=db-custom-2-7680 \
+  --region=us-central1 \
+  --storage-auto-increase
+
+gcloud sql databases create income_tracker --instance=leoxur-db-instance
+gcloud sql users create leoxur_admin --instance=leoxur-db-instance --password="YourSecurePassword123!"
+
+# 3. Connect kubectl to GKE Cluster
+gcloud container clusters get-credentials leoxur-gke --region us-central1
+
+# 4. Deploy K8s manifests
+kubectl apply -k k8s/
+```
+
+---
+
+### 3. Microsoft Azure (AKS & MySQL Flexible Server)
+
+#### Architecture
+- **AKS (Azure Kubernetes Service)**: Cloud-native cluster with Azure CNI networking.
+- **Azure Database for MySQL (Flexible Server)**: High-performance MySQL storage with zone-redundant high availability.
+- **Application Gateway Ingress Controller (AGIC)**: Native Layer 7 load balancer with Web Application Firewall (WAF) integration.
+
+#### Deployment Steps
+```bash
+# 1. Create Azure Resource Group
+az group create --name leoxur-rg --location eastus
+
+# 2. Create AKS Cluster
+az aks create \
+  --resource-group leoxur-rg \
+  --name leoxur-aks \
+  --node-count 2 \
+  --enable-addons ingress-appgw \
+  --appgw-name leoxur-appgw \
+  --appgw-subnet-cidr "10.2.0.0/16" \
+  --generate-ssh-keys
+
+# 3. Create Azure MySQL Flexible Server
+az mysql flexible-server create \
+  --resource-group leoxur-rg \
+  --name leoxur-mysql-srv \
+  --admin-user leoxur_admin \
+  --admin-password "YourAzureSecurePassword123!" \
+  --sku-name Standard_B2s \
+  --tier Burstable \
+  --database-name income_tracker
+
+# 4. Get AKS Credentials & Deploy
+az aks get-credentials --resource-group leoxur-rg --name leoxur-aks
+kubectl apply -k k8s/
+```
+
+---
+
+### 4. Bare Metal / Self-Hosted VPS (Ubuntu 22.04 LTS)
+
+For lightweight single-node deployments using **k3s** or **Docker Compose**:
+
+```bash
+# Install lightweight k3s
+curl -sfL https://get.k3s.io | sh -
+
+# Verify node status
+sudo k3s kubectl get nodes
+
+# Deploy Leoxur stack
+sudo k3s kubectl apply -k k8s/
+```
+
+---
+
+## 🔄 CI/CD Pipeline (GitHub Actions & Container Registry)
+
+To automate container image building and rollout whenever changes are pushed to `main`, use this GitHub Actions workflow `.github/workflows/deploy.yml`:
+
+```yaml
+name: Build & Deploy Leoxur
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/leoxur-income-tracker:latest
+            ghcr.io/${{ github.repository_owner }}/leoxur-income-tracker:${{ github.sha }}
+
+      - name: Trigger Rolling Update on Kubernetes
+        if: env.KUBECONFIG_SECRET != ''
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+          kubectl --kubeconfig=kubeconfig set image deployment/leoxur-app web=ghcr.io/${{ github.repository_owner }}/leoxur-income-tracker:${{ github.sha }} -n leoxur
+          kubectl --kubeconfig=kubeconfig rollout status deployment/leoxur-app -n leoxur
+```
+
+---
+
+## 🛡️ Backup, Disaster Recovery & High Availability
+
+### Automated MySQL Database Backups
+Schedule daily MySQL dumps to secure cloud storage (AWS S3, GCP Cloud Storage, or Azure Blob):
+```bash
+#!/bin/bash
+# Backup script: backup-leoxur-db.sh
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="/tmp/leoxur_backup_${DATE}.sql.gz"
+
+# Export dump
+docker exec leoxur_db mysqldump -u leoxur_admin -pSecureProductionDBPass2026! income_tracker | gzip > "$BACKUP_FILE"
+
+# Upload to S3 (optional)
+# aws s3 cp "$BACKUP_FILE" s3://my-leoxur-backups/
+
+echo "Backup completed: $BACKUP_FILE"
+```
+
+### Zero-Downtime Rolling Restarts
+```bash
+# Gracefully reload Gunicorn workers on Kubernetes
+kubectl rollout restart deployment/leoxur-app -n leoxur
+
+# Monitor rollout progression
+kubectl rollout status deployment/leoxur-app -n leoxur
+```
+
+---
+
+## 🔍 Troubleshooting & Maintenance Matrix
+
+| Symptom | Diagnostic Command | Remediation Action |
+| :--- | :--- | :--- |
+| **Pod CrashLoopBackOff** | `kubectl logs deployment/leoxur-app -n leoxur --all-containers=true` | Inspect database connection (`wait_for_db.py`) or unapplied migrations. |
+| **Database Connection Refused** | `kubectl exec -it deployment/leoxur-app -n leoxur -c web -- python3 wait_for_db.py` | Verify `DB_HOST`, `DB_PORT`, and network policies between pods. |
+| **Email Fails to Send / 535 Auth** | `python3 manage.py shell -c "from tracker.views import send_user_mail; ..."` | Confirm 16-character Google App Password without spaces. Enable 2FA on Gmail. |
+| **502 Bad Gateway (Nginx)** | `docker logs leoxur_nginx` / `kubectl logs -n leoxur -l app=leoxur-app` | Ensure Gunicorn is listening on `0.0.0.0:8000` inside the container. |
+| **Missing Static Files / CSS** | `docker exec -it leoxur_web python3 manage.py collectstatic --noinput` | Ensure `staticfiles` volume is mounted and collectstatic completed. |
+| **Certificate Expired** | `kubectl describe certificate leoxur-tls-cert -n leoxur` | Verify cert-manager ClusterIssuer status and DNS A record pointing to ingress IP. |

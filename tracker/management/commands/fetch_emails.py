@@ -216,7 +216,7 @@ class Command(BaseCommand):
                         # Only send failure emails for messages that were actually UNREAD/UNSEEN
                         if was_unseen:
                             fail_subject = "Transaction Logging Failed"
-                             content_html = f"""
+                            content_html = f"""
                              <div style="background-color: #ff3b30; color: #ffffff; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, sans-serif;">
                                  Format Mismatch Detected
                              </div>
