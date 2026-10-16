@@ -1917,20 +1917,26 @@
                 this.scrollToBottom();
 
                 try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const clientContext = {
+                        month: urlParams.get('month') || (new Date().getMonth() + 1),
+                        year: urlParams.get('year') || (new Date().getFullYear())
+                    };
+
                     const res = await fetch('/api/savings-analyst/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': getCsrfToken()
                         },
-                        body: JSON.stringify({ query: text })
+                        body: JSON.stringify({ query: text, client_context: clientContext })
                     });
                     const data = await res.json();
                     if (data.status === 'success') {
                         let respHtml = data.response || data.reply || 'Analysis complete.';
                         
                         // Mutating actions add a discreet refresh pill inside the chat bubble
-                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
+                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
                             respHtml += `
                                 <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end;">
                                     <button type="button" onclick="window.location.reload()" class="ios-btn-secondary" style="font-size:11px; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
@@ -1938,6 +1944,8 @@
                                     </button>
                                 </div>
                             `;
+                            // Dispatch event for any active page listeners
+                            window.dispatchEvent(new CustomEvent('leoxur:data-changed', { detail: data }));
                         }
 
                         loadingBubble.innerHTML = respHtml;
@@ -1950,6 +1958,9 @@
                                 setThemeMode(data.payload.theme);
                             }
                             localStorage.setItem('leoxur_theme', data.payload.theme);
+                        }
+                        if (data.action_type === 'change_currency') {
+                            setTimeout(() => { window.location.reload(); }, 1200);
                         }
                     } else {
                         const errHtml = `<span style="color:var(--apple-red);">Error: ${data.message || 'Unable to process query.'}</span>`;

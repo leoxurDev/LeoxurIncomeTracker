@@ -4,6 +4,7 @@ import json
 import urllib.request
 import urllib.error
 import datetime
+import calendar
 from decimal import Decimal
 from django.conf import settings
 from django.utils import timezone
@@ -14,7 +15,7 @@ class LeoxurIntelligence:
     """
     Leoxur Intelligence — Autonomous Financial Telemetry & AI Agent.
     Powered by Cloud AI Agents (Google Gemini, Groq, OpenAI, Anthropic, OpenRouter)
-    with seamless fallback to an ultra-fast local deterministic financial brain.
+    with seamless fallback to an ultra-fast, multilingual local deterministic financial brain.
     """
 
     def __init__(self, user, client_context=None):
@@ -22,15 +23,117 @@ class LeoxurIntelligence:
         self.profile = getattr(user, 'profile', None)
         self.client_context = client_context or {}
 
+    @staticmethod
+    def _detect_language(text):
+        """Detect user input language or dialect for accurate reciprocal response."""
+        text_low = text.lower()
+        if re.search(r'[\u0600-\u06FF]', text):
+            return 'ar'
+        if re.search(r'[\u0400-\u04FF]', text):
+            return 'ru'
+        if re.search(r'[\u4E00-\u9FFF]', text):
+            return 'zh'
+        if re.search(r'[\u3040-\u309F\u30A0-\u30FF]', text):
+            return 'ja'
+        # Tamil / Tanglish
+        if any(w in text_low for w in ['selavu', 'varavu', 'pannu', 'roobai', 'saapadu', 'unavu', 'sambalam', 'anuppu', 'netru', 'kadaisi', 'kaasu', 'kuduthen', 'vaanginen', 'vadagai']):
+            return 'ta'
+        # Hindi / Hinglish
+        if any(w in text_low for w in ['kharcha', 'kharch', 'aamdani', 'rupay', 'rupees', 'karo', 'kiya', 'bhejo', 'pichla', 'doodh', 'chai', 'khana', 'mahina', 'bijli', 'kiraya', 'vetan', 'pe ']):
+            return 'hi'
+        # Spanish
+        if any(w in text_low for w in ['gasto', 'gastos', 'ingreso', 'ingresos', 'añadir', 'anadir', 'comida', 'ayer', 'presupuesto', 'informe', 'cuenta', 'dinero', 'enviar', 'modo oscuro', 'modo claro']):
+            return 'es'
+        # French
+        if any(w in text_low for w in ['dépense', 'depense', 'dépenses', 'revenu', 'revenus', 'ajouter', 'nourriture', 'déjeuner', 'hier', 'rapport', 'sombre', 'envoyer', 'mode sombre', 'mode clair']):
+            return 'fr'
+        # German
+        if any(w in text_low for w in ['ausgabe', 'ausgaben', 'einnahme', 'einnahmen', 'hinzufügen', 'gestern', 'bericht', 'dunkel', 'senden', 'dunkler modus', 'heller modus', 'rechnung']):
+            return 'de'
+        # Italian
+        if any(w in text_low for w in ['spesa', 'spese', 'entrata', 'entrate', 'aggiungi', 'ieri', 'invia', 'rapporto', 'modalità scura', 'modalità chiara']):
+            return 'it'
+        # Portuguese
+        if any(w in text_low for w in ['despesa', 'despesas', 'receita', 'receitas', 'adicionar', 'ontem', 'relatório', 'relatorio', 'modo escuro', 'modo claro']):
+            return 'pt'
+        return 'en'
+
+    @staticmethod
+    def _parse_flexible_date(date_val, default_date=None):
+        """Parse natural relative dates or ISO strings across 10+ languages."""
+        default_date = default_date or timezone.localdate()
+        if not date_val:
+            return default_date
+        if isinstance(date_val, datetime.date):
+            return date_val
+        s = str(date_val).strip().lower()
+        yesterday_words = ['yesterday', 'ayer', 'hier', 'gestern', 'ieri', 'ontem', 'kal', 'netru', 'ninna', 'ams', 'zuotian', 'kinou', 'vchera']
+        if any(re.search(r'\b' + re.escape(w) + r'\b', s) for w in yesterday_words):
+            return default_date - datetime.timedelta(days=1)
+        today_words = ['today', 'hoy', 'aujourdhui', "aujourd'hui", 'heute', 'oggi', 'hoje', 'aaj', 'indru', 'alyawm', 'jintian', 'segodnya']
+        if any(re.search(r'\b' + re.escape(w) + r'\b', s) for w in today_words):
+            return default_date
+        ago_match = re.search(r'(\d+)\s*(?:days?|días?|jours?|tage|giorni|dias|din|naal)\s*ago', s) or re.search(r'(?:hace|il y a|vor)\s*(\d+)', s)
+        if ago_match:
+            try:
+                days = int(ago_match.group(1))
+                return default_date - datetime.timedelta(days=days)
+            except Exception:
+                pass
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%m/%d/%Y', '%Y/%m/%d'):
+            try:
+                return datetime.datetime.strptime(s, fmt).date()
+            except ValueError:
+                continue
+        return default_date
+
+    @staticmethod
+    def _normalize_category(cat_str, default="Other"):
+        """Intelligently map multilingual and informal terms to canonical tracker categories."""
+        if not cat_str:
+            return default
+        s = str(cat_str).strip().lower()
+        # Food & Dining
+        if any(w in s for w in ['food', 'comida', 'nourriture', 'déjeuner', 'dejeuner', 'dîner', 'diner', 'essen', 'cibo', 'refeição', 'refeicao', 'almoço', 'almoco', 'janta', 'café', 'almuerzo', 'cena', 'desayuno', 'lunch', 'dinner', 'breakfast', 'snack', 'cafe', 'coffee', 'restaurante', 'restaurant', 'groceries', 'supermercado', 'khana', 'kharcha', 'doodh', 'chai', 'biryani', 'swiggy', 'zomato', 'unavu', 'saapadu', 'bhojanam', 'oota', 'khorak', 'ta\'am', 'yemek']):
+            return "Food"
+        # Rent / Housing
+        if any(w in s for w in ['rent', 'alquiler', 'loyer', 'miete', 'affitto', 'aluguel', 'house', 'apartment', 'flat', 'kiraya', 'vadagai', 'aadige', 'makan', 'ijara', 'bayt', 'kira', 'arenda']):
+            return "Rent"
+        # Salary / Primary Income
+        if any(w in s for w in ['salary', 'salario', 'salaire', 'gehalt', 'stipendio', 'salário', 'salario', 'paycheck', 'vetan', 'aamdani', 'sambalam', 'jeetham', 'shambala', 'wages', 'ratib', 'mash', 'income', 'zarplata', 'maas']):
+            return "Salary"
+        # Travel / Transit
+        if any(w in s for w in ['travel', 'transporte', 'transport', 'reise', 'viaggio', 'viagem', 'gas', 'fuel', 'petrol', 'diesel', 'uber', 'ola', 'auto', 'taxi', 'flight', 'vuelo', 'metro', 'bus', 'train', 'safar', 'yathirai', 'prayanam', 'safara', 'rihla', 'transit', 'poezdka', 'seyahat']):
+            return "Travel"
+        # Utilities
+        if any(w in s for w in ['utilities', 'utility', 'factura', 'facture', 'rechnung', 'bolletta', 'conta', 'electric', 'electricity', 'water', 'internet', 'wifi', 'broadband', 'phone', 'recharge', 'bijli', 'pani', 'bill', 'fattura', 'fatora', 'schet', 'fatura']):
+            return "Utilities"
+        # Entertainment
+        if any(w in s for w in ['entertainment', 'entretenimiento', 'divertissement', 'unterhaltung', 'svago', 'entretenimento', 'movie', 'cinema', 'pelicula', 'film', 'netflix', 'spotify', 'game', 'gaming', 'concert', 'club', 'party', 'fun', 'manoranjan', 'vilaiyattu', 'vinoda', 'maza', 'tarfih', 'eglence']):
+            return "Entertainment"
+        # Health & Medical
+        if any(w in s for w in ['health', 'medical', 'medicine', 'doctor', 'hospital', 'clinic', 'pharmacy', 'dawai', 'marundhu', 'mandhu', 'tibb', 'salud', 'santé', 'sante', 'gesundheit', 'salute', 'saude', 'zdorove', 'saglik']):
+            return "Health"
+        # Shopping
+        if any(w in s for w in ['shopping', 'clothes', 'clothing', 'shoes', 'fashion', 'kapde', 'thuni', 'battalu', 'kharidari', 'compras', 'achats', 'einkaufen', 'tasawwuq', 'pokupki', 'alisveris']):
+            return "Shopping"
+        # Education
+        if any(w in s for w in ['education', 'school', 'college', 'books', 'fees', 'tuition', 'course', 'padhai', 'kalvi', 'chaduvu', 'sikhya', 'talim', 'educacion', 'bildung', 'ta\'lim', 'obrazovanie', 'egitim']):
+            return "Education"
+        # Freelance / Consulting
+        if any(w in s for w in ['freelance', 'consulting', 'contract', 'side gig', 'upwork', 'fiverr', 'client']):
+            return "Freelance"
+        # Investment
+        if any(w in s for w in ['investment', 'invest', 'stock', 'shares', 'dividend', 'mutual fund', 'crypto', 'bachat', 'semippu', 'podupu', 'istithmar', 'inversion', 'investition', 'investissement', 'investimento', 'investitsii', 'yatirim']):
+            return "Investment"
+        return cat_str.strip().title()
+
     def _build_financial_analytics(self):
         """Assemble comprehensive, real-time financial telemetry for the user."""
         today = timezone.localdate()
         start_of_month = datetime.date(today.year, today.month, 1)
-        if today.month == 12:
-            next_month = datetime.date(today.year + 1, 1, 1)
-        else:
-            next_month = datetime.date(today.year, today.month + 1, 1)
-        end_of_month = next_month - datetime.timedelta(days=1)
+        _, last_day = calendar.monthrange(today.year, today.month)
+        end_of_month = datetime.date(today.year, today.month, last_day)
 
         currency = self.profile.currency if self.profile else '$'
 
@@ -41,11 +144,43 @@ class LeoxurIntelligence:
         net_balance = total_income - total_expense
         savings_rate = int((net_balance / total_income) * 100) if total_income > 0 and net_balance > 0 else 0
 
+        # Burn rate and runway
+        days_in_month = last_day
+        days_elapsed = max(1, today.day)
+        days_remaining = max(1, days_in_month - days_elapsed)
+        daily_burn = total_expense / days_elapsed
+
+        # Prior Month Telemetry
+        prev_month = today.month - 1 if today.month > 1 else 12
+        prev_year = today.year if today.month > 1 else today.year - 1
+        _, prev_last_day = calendar.monthrange(prev_year, prev_month)
+        prev_start = datetime.date(prev_year, prev_month, 1)
+        prev_end = datetime.date(prev_year, prev_month, prev_last_day)
+        
+        prev_txs = Transaction.objects.filter(user=self.user, date__range=(prev_start, prev_end))
+        prev_income = float(prev_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
+        prev_expense = float(prev_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00'))
+
         # Expenses by Category
         category_expenses = {}
         for tx in month_txs.filter(transaction_type='OUT'):
             category_expenses[tx.category] = category_expenses.get(tx.category, 0.0) + float(tx.amount)
         cat_expenses_str = ", ".join([f"{k}: {currency}{v:.2f}" for k, v in sorted(category_expenses.items(), key=lambda x: x[1], reverse=True)]) or "No expenses logged this month"
+
+        # Prior month category expenses for surge comparison
+        prev_cat_expenses = {}
+        for tx in prev_txs.filter(transaction_type='OUT'):
+            prev_cat_expenses[tx.category] = prev_cat_expenses.get(tx.category, 0.0) + float(tx.amount)
+
+        surges = []
+        for cat, curr_amt in category_expenses.items():
+            past_amt = prev_cat_expenses.get(cat, 0.0)
+            if past_amt > 0 and curr_amt > past_amt:
+                diff = curr_amt - past_amt
+                pct = int(round((diff / past_amt) * 100))
+                if pct >= 15:
+                    surges.append(f"{cat}: +{pct}% (+{currency}{diff:.2f} vs {prev_start.strftime('%b')})")
+        surges_str = "; ".join(surges) if surges else "No major surges vs prior month"
 
         # Incomes by Category
         category_incomes = {}
@@ -55,9 +190,15 @@ class LeoxurIntelligence:
 
         # Budgets
         budgets = Budget.objects.filter(user=self.user, year=today.year, month=today.month)
+        if not budgets.exists():
+            budgets = Budget.objects.filter(user=self.user)
+            
         budget_details = []
         overspent_count = 0
+        overall_budget = 0.0
         for b in budgets:
+            if b.category == 'Total':
+                overall_budget = float(b.amount)
             spent = category_expenses.get(b.category, 0.0)
             diff = float(b.amount) - spent
             if diff < 0:
@@ -66,6 +207,10 @@ class LeoxurIntelligence:
             else:
                 budget_details.append(f"• {b.category}: Limit {currency}{b.amount:.2f} | Spent {currency}{spent:.2f} ({currency}{diff:.2f} remaining)")
         budgets_str = "\n".join(budget_details) if budget_details else "No active category budgets set this month."
+
+        if overall_budget <= 0:
+            overall_budget = sum(float(b.amount) for b in budgets if b.category != 'Total')
+        safe_daily_allowance = max(0.0, (overall_budget - total_expense) / days_remaining) if overall_budget > total_expense else 0.0
 
         # Upcoming Reminders & Outflow Alerts
         reminders = Reminder.objects.filter(user=self.user).order_by('due_date')
@@ -76,7 +221,7 @@ class LeoxurIntelligence:
         reminders_str = "\n".join(reminders_list) if reminders_list else "No pending bill reminders."
 
         # Recent Transactions
-        recent_txs = Transaction.objects.filter(user=self.user).order_by('-date', '-created_at')[:6]
+        recent_txs = Transaction.objects.filter(user=self.user).order_by('-date', '-created_at')[:8]
         recent_list = []
         for t in recent_txs:
             sign = "+" if t.transaction_type == 'IN' else "-"
@@ -88,17 +233,25 @@ class LeoxurIntelligence:
         categories_str = ", ".join(list(categories)) if categories else "Food, Rent, Salary, Freelance, Utilities, Entertainment, Travel"
 
         provider = self.profile.ai_provider if self.profile else 'gemini'
-        model = self.profile.get_effective_ai_model() if self.profile else 'gemini-1.5-flash'
+        model = self.profile.get_effective_ai_model() if self.profile else 'gemini-3.5-flash-lite'
         ai_mode = getattr(self.profile, 'ai_mode', 'cloud')
 
         return {
             'today_str': today.strftime('%Y-%m-%d'),
             'month_name': today.strftime('%B %Y'),
+            'prev_month_name': prev_start.strftime('%B %Y'),
             'currency': currency,
             'total_income': total_income,
             'total_expense': total_expense,
             'net_balance': net_balance,
             'savings_rate': savings_rate,
+            'daily_burn': daily_burn,
+            'safe_daily_allowance': safe_daily_allowance,
+            'days_remaining': days_remaining,
+            'overall_budget': overall_budget,
+            'prev_income': prev_income,
+            'prev_expense': prev_expense,
+            'surges_str': surges_str,
             'cat_expenses_str': cat_expenses_str,
             'cat_incomes_str': cat_incomes_str,
             'budgets_str': budgets_str,
@@ -267,23 +420,27 @@ class LeoxurIntelligence:
         analytics = self._build_financial_analytics()
         currency = analytics['currency']
 
-        system_prompt = f"""You are Leoxur Copilot, an autonomous executive financial AI companion and telemetry analyst for the Leoxur Income & Expense Tracker web application.
+        system_prompt = f"""You are Leoxur Copilot, an elite, hyper-intelligent autonomous financial AI companion and telemetry strategist for the Leoxur Income & Expense Tracker.
 You possess COMPLETE, REAL-TIME, and EXCLUSIVE operational authority over this personal finance application and the user's ledger.
 
-=== CRITICAL DOMAIN BOUNDARY ===
-You are SOLELY and EXCLUSIVELY dedicated to this personal finance application.
-Under NO CIRCUMSTANCE should you answer questions about Amazon Web Services (AWS), EC2 instance creation, VPC, S3, cloud hosting infrastructure, Kubernetes, Terraform, or generic IT sysadmin topics.
-If asked about AWS, EC2, or external IT, politely decline and state that you are exclusively focused on personal finance telemetry and the Leoxur tracker.
+=== MULTILINGUAL MASTERY & GLOBAL LANGUAGE COMPREHENSION ===
+1. You have native-level fluency in EVERY human language (Spanish, French, German, Italian, Portuguese, Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali, Marathi, Urdu, Arabic, Chinese, Japanese, Korean, Russian, Turkish, etc.) and code-mixed formats (Hinglish like 'maine 500 grocery me spend kiya add kardo', Tanglish like 'swiggy la 250 selavu panniten add pannu', Spanglish, etc.).
+2. You must seamlessly decipher financial requests in ANY language, dialect, or slang, map informal terms to appropriate financial categories (e.g. comida/khana/unavu -> Food, salario/sambalam -> Salary, alquiler/kiraya -> Rent, transporte/fuel -> Travel), and perform the action immediately.
+3. CRITICAL: You must ALWAYS generate your "reply" in the EXACT SAME LANGUAGE or dialect as the user's input, maintaining high polish, executive clarity, and native terminology!
+4. Multilingual amount & currency expressions: Accurately parse "$50", "50€", "₹500", "500 rs", "500 rupay", "500 roobai", "50 bucks", "50 quid", etc.
 
 === REAL-TIME USER FINANCIAL TELEMETRY ===
 • Current Month: {analytics['month_name']} (Today: {analytics['today_str']})
-• Currency: {currency}
+• Active Currency: {currency}
 • Total Monthly Inflow (Income): {currency}{analytics['total_income']:.2f}
 • Total Monthly Outflow (Expense): {currency}{analytics['total_expense']:.2f}
 • Net Cashflow Balance: {currency}{analytics['net_balance']:.2f}
 • Savings Rate: {analytics['savings_rate']}%
+• Burn Velocity: {currency}{analytics['daily_burn']:.2f}/day | Safe Cap Target: {currency}{analytics['safe_daily_allowance']:.2f}/day | Days Remaining: {analytics['days_remaining']}
 • Top Outflows by Category: {analytics['cat_expenses_str']}
 • Inflow Sources: {analytics['cat_incomes_str']}
+• Category Surges vs Prior Month ({analytics['prev_month_name']}): {analytics['surges_str']}
+• Prior Month Performance: Inflows {currency}{analytics['prev_income']:.2f} | Outflows {currency}{analytics['prev_expense']:.2f}
 • Category Budgets & Health:
 {analytics['budgets_str']}
 • Upcoming Bill Reminders:
@@ -296,58 +453,71 @@ If asked about AWS, EC2, or external IT, politely decline and state that you are
 You can execute any of these tools directly by setting "action_type" and "payload":
 
 1. "log_transaction":
-   Log a single income or expense.
+   Log a single income or expense in any language.
    payload: {{"amount": float, "transaction_type": "IN" | "OUT", "category": str, "description": str, "date": "YYYY-MM-DD"}}
 
 2. "log_multiple_transactions":
-   Log multiple items at once (e.g., "spent 50 on food, 20 on fuel, and 100 on groceries").
-   payload: {{"transactions": [{{"amount": float, "transaction_type": "OUT", "category": str, "description": str}}, ...]}}
+   Log multiple items from a single sentence/paragraph (e.g., "spent 50 on food, 20 on fuel, and 100 on groceries").
+   payload: {{"transactions": [{{"amount": float, "transaction_type": "OUT" | "IN", "category": str, "description": str}}, ...]}}
 
 3. "delete_transaction":
-   Delete last transaction or delete matching record.
+   Delete last transaction, delete by id, or delete matching record (e.g. "undo last expense", "delete 50 lunch").
    payload: {{"last": true}} OR {{"id": int}} OR {{"category": str, "amount": float}}
 
 4. "set_budget":
    Set or adjust a category or Total budget cap.
    payload: {{"category": str, "amount": float, "period": "MONTHLY"}}
 
-5. "reset_budgets":
-   Rebalance budgets to healthy benchmarks (e.g. 50% needs, 30% wants).
+5. "clear_budget":
+   Remove budget limit for a category.
+   payload: {{"category": str}}
+
+6. "reset_budgets":
+   Rebalance budgets to healthy 50/30/20 benchmarks.
    payload: {{"targets": {{"Food": float, "Rent": float, "Utilities": float, "Total": float}}}}
 
-6. "set_reminder":
+7. "set_reminder":
    Schedule a bill due date.
    payload: {{"title": str, "amount": float, "due_date": "YYYY-MM-DD"}}
 
-7. "pay_reminder":
+8. "pay_reminder":
    Mark a bill reminder as settled/paid.
    payload: {{"title": str}}
 
-8. "change_currency":
-   Switch primary currency (e.g. from $ to ₹, or ₹ to $) and convert ledger.
+9. "change_currency":
+   Switch primary currency ($, €, ₹, £) and optionally convert ledger.
    payload: {{"currency": "$" | "€" | "₹" | "£", "conversion_rate": float, "scale_records": true | false}}
 
-9. "sync_emails":
-   Inspect IMAP mailbox, check unread banking receipts, and sync transactions into ledger.
-   payload: {{}}
+10. "sync_emails":
+    Inspect IMAP mailbox, check unread banking receipts, and sync transactions into ledger.
+    payload: {{}}
 
-10. "change_theme":
+11. "change_theme":
     Switch application appearance between dark and light mode.
     payload: {{"theme": "dark" | "light"}}
 
-11. "send_email_report":
-    Dispatch monthly cashflow and budget report to user's configured email via SMTP.
+12. "send_email_report":
+    Dispatch monthly cashflow and budget report with attached PDF & Excel spreadsheets via SMTP.
     payload: {{"recipient": str (optional)}}
 
-12. "cashflow_audit" / "visual_suggestion":
+13. "cashflow_audit" / "visual_suggestion":
     Perform a comprehensive diagnostic with 50/30/20 rule, budget leakages, actionable spending suggestions, and set "visual_card": true to render an inline visual SVG blueprint chart and money utilization guidelines.
+
+14. "historical_comparison":
+    Analyze and compare user's performance across different months (e.g. comparing current cycle with prior month).
+    payload: {{}}
+
+=== CRITICAL DOMAIN BOUNDARY ===
+You are SOLELY and EXCLUSIVELY dedicated to this personal finance application.
+Under NO CIRCUMSTANCE should you answer questions about Amazon Web Services (AWS), EC2 instance creation, VPC, S3, cloud hosting infrastructure, Kubernetes, Terraform, or generic IT sysadmin topics.
+If asked about AWS, EC2, or external IT, politely decline in the user's language and state that you are exclusively focused on personal finance telemetry and the Leoxur tracker.
 
 === STRICT RESPONSE SCHEMA ===
 You must ALWAYS respond with a valid JSON object matching this schema:
 {{
-  "thought": "Deep strategic analysis of user intent and financial state",
-  "reply": "Concise, elegant, executive Apple-style markdown response with emojis and high-value details",
-  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | reset_budgets | set_reminder | pay_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | general | guide",
+  "thought": "Deep strategic analysis of user intent, language detection, and financial state",
+  "reply": "Concise, elegant, executive Apple-style markdown response in the user's language with emojis and high-value details",
+  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general | guide",
   "payload": {{ ... }},
   "visual_card": true | false
 }}
@@ -365,12 +535,14 @@ Return ONLY valid JSON.
             }
             deprecated = {'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'}
             candidate_models = [
-                model,
                 'gemini-3.5-flash-lite',
-                'gemini-flash-lite-latest',
-                'gemini-3.1-flash-lite',
+                'gemini-3.5-flash',
+                model,
                 'gemini-3.8-flash',
+                'gemini-3.7-flash',
+                'gemini-3.1-flash-lite',
                 'gemini-flash-latest',
+                'gemini-flash-lite-latest',
             ]
             seen = set()
             last_err = None
@@ -734,9 +906,10 @@ Return ONLY valid JSON.
         if action_type == 'log_transaction':
             amount = float(payload.get('amount') or 0.0)
             tx_type = payload.get('transaction_type', 'OUT').upper()
-            category = (payload.get('category') or 'Other').strip().title()
-            desc = payload.get('description', '')
-            date_val = payload.get('date') or today
+            raw_cat = payload.get('category') or 'Other'
+            category = self._normalize_category(raw_cat)
+            desc = payload.get('description', '') or raw_cat
+            date_val = self._parse_flexible_date(payload.get('date'), today)
 
             if amount > 0:
                 Transaction.objects.create(
@@ -761,9 +934,10 @@ Return ONLY valid JSON.
                     amt = float(item.get('amount') or 0.0)
                     if amt <= 0: continue
                     t_type = (item.get('transaction_type') or 'OUT').upper()
-                    cat = (item.get('category') or 'General').strip().title()
-                    d = item.get('description', '')
-                    dt = item.get('date') or today
+                    raw_cat = item.get('category') or 'General'
+                    cat = self._normalize_category(raw_cat)
+                    d = item.get('description', '') or raw_cat
+                    dt = self._parse_flexible_date(item.get('date'), today)
                     Transaction.objects.create(
                         user=self.user,
                         amount=Decimal(str(amt)),
@@ -799,7 +973,8 @@ Return ONLY valid JSON.
             return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'delete_transaction', 'payload': payload}
 
         elif action_type == 'set_budget':
-            category = payload.get('category', 'General').title()
+            raw_cat = payload.get('category', 'General')
+            category = 'Total' if raw_cat.strip().lower() == 'total' else self._normalize_category(raw_cat)
             amount = float(payload.get('amount') or 0.0)
             if amount > 0:
                 Budget.objects.update_or_create(
@@ -813,6 +988,18 @@ Return ONLY valid JSON.
                 html = self._format_bubble_html("Budget Configured", reply or f"Set monthly budget for {category} to {currency}{amount:.2f}.", "bg-apple-blue/10 text-apple-blue")
                 return {'status': 'success', 'reply': reply, 'response': html, 'action_type': action_type, 'payload': payload}
 
+        elif action_type == 'clear_budget':
+            cat = payload.get('category')
+            if cat and cat.strip().lower() not in ('all', 'todos', 'tout', 'alle'):
+                norm_cat = self._normalize_category(cat)
+                deleted_count, _ = Budget.objects.filter(user=self.user, category__iexact=norm_cat).delete()
+                msg = reply or f"Cleared budget cap for {norm_cat}."
+            else:
+                deleted_count, _ = Budget.objects.filter(user=self.user).delete()
+                msg = reply or "Cleared all monthly category budgets."
+            html = self._format_bubble_html("Budget Cleared", msg, "bg-apple-orange/10 text-apple-orange")
+            return {'status': 'success', 'reply': reply or msg, 'response': html, 'action_type': 'set_budget', 'payload': payload}
+
         elif action_type == 'reset_budgets':
             targets = payload.get('targets', {
                 'Food': 6000.0,
@@ -821,9 +1008,10 @@ Return ONLY valid JSON.
                 'Total': 34000.0
             })
             for cat, amt in targets.items():
+                norm_cat = 'Total' if cat.strip().lower() == 'total' else self._normalize_category(cat)
                 Budget.objects.update_or_create(
                     user=self.user,
-                    category=cat.title(),
+                    category=norm_cat,
                     period='MONTHLY',
                     month=today.month,
                     year=today.year,
@@ -929,6 +1117,29 @@ Return ONLY valid JSON.
             html = self._format_bubble_html("Mailbox Sync Telemetry", reply, badge)
             return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'sync_emails', 'payload': {'synced': sync_info['success']}}
 
+        elif action_type == 'historical_comparison':
+            prev_inc = analytics['prev_income']
+            prev_exp = analytics['prev_expense']
+            curr_inc = analytics['total_income']
+            curr_exp = analytics['total_expense']
+            inc_diff = curr_inc - prev_inc
+            exp_diff = curr_exp - prev_exp
+            inc_pct = int(round((inc_diff / (prev_inc or 1)) * 100)) if prev_inc > 0 else 0
+            exp_pct = int(round((exp_diff / (prev_exp or 1)) * 100)) if prev_exp > 0 else 0
+            surges = analytics['surges_str']
+            default_reply = (
+                f"📊 **Historical Month-over-Month Telemetry ({analytics['prev_month_name']} vs {analytics['month_name']}):**\n\n"
+                f"• **Inflow Comparison**: {currency}{curr_inc:.2f} vs {currency}{prev_inc:.2f} ({'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                f"• **Outflow Comparison**: {currency}{curr_exp:.2f} vs {currency}{prev_exp:.2f} ({'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                f"• **Category Surges (>=15%)**: {surges}\n"
+                f"• **Burn Velocity**: {currency}{analytics['daily_burn']:.2f}/day with {analytics['days_remaining']} days remaining in cycle."
+            )
+            final_reply = reply or default_reply
+            html = self._format_bubble_html("Historical Analysis", final_reply, "bg-apple-blue/10 text-apple-blue")
+            if show_visual:
+                html += self._generate_visual_telemetry_svg(analytics)
+            return {'status': 'success', 'reply': final_reply, 'response': html, 'action_type': 'historical_comparison', 'payload': analytics}
+
         html = self._format_bubble_html("Leoxur Intelligence", reply, "bg-apple-blue/10 text-apple-blue")
         if show_visual:
             html += self._generate_visual_telemetry_svg(analytics)
@@ -936,39 +1147,105 @@ Return ONLY valid JSON.
         return {'status': 'success', 'reply': reply, 'response': html, 'action_type': action_type, 'payload': payload}
 
     def _process_local_deterministic(self, query, q_lower):
-        """Fast, robust deterministic local processing."""
+        """
+        Fast, robust, multilingual deterministic local financial brain.
+        Understands natural financial instructions in Spanish, French, German, Italian,
+        Portuguese, Hindi/Hinglish, Tamil/Tanglish, Arabic, Russian, and English.
+        """
         today = timezone.localdate()
         currency = self.profile.currency if self.profile else '$'
+        lang = self._detect_language(query)
+        analytics = self._build_financial_analytics()
 
-        # Theme switching
-        if re.search(r'(?:switch|change|set|toggle)\s+(?:theme|mode|appearance)\s+(?:to\s+)?(dark|light)', q_lower) or re.search(r'\b(dark\s+mode|light\s+mode|dark\s+theme|light\s+theme)\b', q_lower):
-            t = 'light' if 'light' in q_lower else 'dark'
+        # 1. Appearance / Theme Switching (Multilingual)
+        theme_dark_triggers = ['dark mode', 'modo oscuro', 'mode sombre', 'dunkler modus', 'modalità scura', 'modo escuro', 'dark theme', 'tema oscuro', 'thème sombre', 'dunkles design', 'dark mode karo', 'dark mode mathu', 'dark']
+        theme_light_triggers = ['light mode', 'modo claro', 'mode clair', 'heller modus', 'modalità chiara', 'modo claro', 'light theme', 'tema claro', 'thème clair', 'helles design', 'light mode karo', 'light mode mathu', 'light']
+        if any(tr in q_lower for tr in ['theme', 'modo', 'tema', 'thème', 'mode', 'appearance', 'apariencia', 'apparence', 'design']):
+            is_light = any(tr in q_lower for tr in theme_light_triggers) or ('light' in q_lower and 'dark' not in q_lower)
+            t = 'light' if is_light else 'dark'
             if self.profile:
                 self.profile.theme = t
                 self.profile.save(update_fields=['theme'])
-            reply = f"🌓 **Appearance Updated**\n\nSwitched Leoxur interface to **{t.title()} Mode**."
+            
+            if lang == 'es':
+                reply = f"🌓 **Apariencia Actualizada**\n\nSe ha cambiado la interfaz de Leoxur a **Modo {t.title()}**."
+                title = "Apariencia Actualizada"
+            elif lang == 'fr':
+                reply = f"🌓 **Apparence Mise à Jour**\n\nL'interface de Leoxur est maintenant en **Mode {t.title()}**."
+                title = "Apparence Mise à Jour"
+            elif lang == 'de':
+                reply = f"🌓 **Erscheinungsbild Aktualisiert**\n\nLeoxur-Design wurde auf **{t.title()}-Modus** umgestellt."
+                title = "Design Aktualisiert"
+            elif lang == 'hi':
+                reply = f"🌓 **थीम अपडेट हो गई**\n\nLeoxur इंटरफ़ेस अब **{t.title()} Mode** में सेट है।"
+                title = "थीम अपडेट"
+            elif lang == 'ta':
+                reply = f"🌓 **தீம் மாற்றப்பட்டது**\n\nஇடைமுகம் இப்போது **{t.title()} Mode**க்கு மாற்றப்பட்டது."
+                title = "தீம் மாற்றம்"
+            else:
+                reply = f"🌓 **Appearance Updated**\n\nSwitched Leoxur interface to **{t.title()} Mode**."
+                title = "Appearance Updated"
+
             return {
                 'status': 'success',
                 'reply': reply,
-                'response': self._format_bubble_html("Appearance Updated", reply, "bg-apple-purple/10 text-apple-purple"),
+                'response': self._format_bubble_html(title, reply, "bg-apple-purple/10 text-apple-purple"),
                 'action_type': 'change_theme',
                 'payload': {'theme': t}
             }
 
-        # Send Email Report via SMTP with PDF & Spreadsheet
-        if re.search(r'(?:send|email|mail|dispatch)\b.*?\b(?:report|summary|statement|pdf|spreadsheet|excel|telemetry)\b', q_lower):
-            recipient_match = re.search(r'(?:to|recipient)\s+([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', query)
+        # 2. Email Reports Dispatched via SMTP (Multilingual)
+        if any(w in q_lower for w in ['report', 'statement', 'informe', 'reporte', 'rapport', 'bilan', 'bericht', 'finanzbericht', 'resumen']) and any(w in q_lower for w in ['send', 'email', 'mail', 'enviar', 'mandar', 'envoyer', 'sende', 'schicken', 'bhejo', 'anuppu']):
+            recipient_match = re.search(r'(?:to|recipient|para|à|an|pe|ku)\s+([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)', query, re.I)
             target_rcpt = recipient_match.group(1) if recipient_match else None
             ok, msg, file_list = self._send_financial_report_email(target_rcpt)
             if ok:
-                reply = (
-                    f"📧 **Executive Financial Statement Dispatched!**\n\n"
-                    f"Transmitted your monthly financial report to **{msg}** via your configured SMTP mail node.\n\n"
-                    f"**📎 Enclosed Attachments:**\n"
-                    f"• **PDF Statement**: Complete financial telemetry statement with category visual pie charts and telemetry breakdown.\n"
-                    f"• **Excel Spreadsheet (.xlsx)**: Itemized ledger of all inflows, outflows, and monthly budget targets."
-                )
-                badge = "bg-apple-green/10 text-apple-green"
+                if lang == 'es':
+                    reply = (
+                        f"📧 **¡Estado Financiero Ejecutivo Transmitido!**\n\n"
+                        f"Se ha enviado su informe mensual a **{msg}** mediante el nodo de correo SMTP configurado.\n\n"
+                        f"**📎 Archivos Adjuntos:**\n"
+                        f"• **Declaración PDF**: Telemetría completa con gráficos circulares y desglose de categorías.\n"
+                        f"• **Hoja de Cálculo Excel (.xlsx)**: Registro detallado de ingresos, gastos y presupuestos mensuales."
+                    )
+                    title = "Informe Enviado"
+                elif lang == 'fr':
+                    reply = (
+                        f"📧 **Bilan Financier Exécutif Transmis !**\n\n"
+                        f"Votre rapport mensuel a été envoyé à **{msg}** via le serveur de messagerie SMTP.\n\n"
+                        f"**📎 Pièces Jointes :**\n"
+                        f"• **Déclaration PDF** : Télémétrie complète avec graphiques circulaires et analyse budgétaire.\n"
+                        f"• **Feuille Excel (.xlsx)** : Grand livre complet des entrées, sorties et plafonds."
+                    )
+                    title = "Rapport Transmis"
+                elif lang == 'hi':
+                    reply = (
+                        f"📧 **वित्तीय रिपोर्ट भेज दी गई है!**\n\n"
+                        f"आपकी मासिक वित्तीय रिपोर्ट **{msg}** पर SMTP मेल नोड के माध्यम से भेज दी गई है।\n\n"
+                        f"**📎 संलग्न दस्तावेज:**\n"
+                        f"• **PDF विवरण**: कैटेगरी पाई चार्ट और संपूर्ण व्यय विश्लेषण।\n"
+                        f"• **Excel स्प्रेडशीट (.xlsx)**: सभी आय, व्यय और बजट का विस्तृत ब्यौरा।"
+                    )
+                    title = "ईमेल रिपोर्ट प्रेषित"
+                elif lang == 'ta':
+                    reply = (
+                        f"📧 **நிதி அறிக்கை அனுப்பப்பட்டது!**\n\n"
+                        f"உங்கள் மாதாந்திர அறிக்கை **{msg}** முகவரிக்கு வெற்றிகரமாக அனுப்பப்பட்டது.\n\n"
+                        f"**📎 இணைப்புகள்:**\n"
+                        f"• **PDF அறிக்கை**: வகை வரைபடங்களுடன் கூடிய முழுமையான நிதி அறிக்கை.\n"
+                        f"• **Excel அட்டவணை (.xlsx)**: வருமானம், செலவு மற்றும் பட்ஜெட் விவரங்கள்."
+                    )
+                    title = "அறிக்கை அனுப்பப்பட்டது"
+                else:
+                    reply = (
+                        f"📧 **Executive Financial Statement Dispatched!**\n\n"
+                        f"Transmitted your monthly financial report to **{msg}** via your configured SMTP mail node.\n\n"
+                        f"**📎 Enclosed Attachments:**\n"
+                        f"• **PDF Statement**: Complete financial telemetry statement with category visual pie charts and telemetry breakdown.\n"
+                        f"• **Excel Spreadsheet (.xlsx)**: Itemized ledger of all inflows, outflows, and monthly budget targets."
+                    )
+                    title = "Email Report Dispatched"
+
                 download_buttons = """
                 <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.08); display:flex; flex-wrap:wrap; gap:8px;">
                     <a href="/export-pdf/" target="_blank" style="padding:6px 14px; font-size:11px; font-weight:700; border-radius:999px; background:var(--apple-blue); color:#ffffff; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,113,227,0.35);">
@@ -979,11 +1256,10 @@ Return ONLY valid JSON.
                     </a>
                 </div>
                 """
-                html = self._format_bubble_html("Email Report Dispatched", reply, badge) + download_buttons
+                html = self._format_bubble_html(title, reply, "bg-apple-green/10 text-apple-green") + download_buttons
             else:
-                reply = f"⚠️ **Email Report Failed**: {msg}"
-                badge = "bg-apple-red/10 text-apple-red"
-                html = self._format_bubble_html("Email Report", reply, badge)
+                reply = f"⚠️ Email Report Failed: {msg}"
+                html = self._format_bubble_html("Email Report", reply, "bg-apple-red/10 text-apple-red")
             return {
                 'status': 'success',
                 'reply': reply,
@@ -992,8 +1268,8 @@ Return ONLY valid JSON.
                 'payload': {'recipient': msg, 'success': ok}
             }
 
-        # Email IMAP sync & inspection
-        if re.search(r'(?:sync\s+emails|fetch\s+emails|fetch\s+transactions|fetch\s+imap|check\s+imap|imap\s+details|check\s+mail|mailbox)', q_lower):
+        # 3. IMAP Mailbox Sync (Multilingual)
+        if (any(w in q_lower for w in ['sync', 'sincronizar', 'synchroniser', 'synchronisieren']) and any(w in q_lower for w in ['email', 'emails', 'correo', 'correos', 'courriel', 'imap', 'mail', 'mailbox', 'buzon', 'buzón', 'postfach'])) or 'imap' in q_lower or 'mailbox' in q_lower:
             sync_info = self._inspect_and_sync_imap()
             reply = sync_info['message']
             badge = "bg-apple-purple/10 text-apple-purple" if sync_info['success'] else "bg-apple-red/10 text-apple-red"
@@ -1005,29 +1281,174 @@ Return ONLY valid JSON.
                 'payload': {'synced': sync_info['success']}
             }
 
-        # Visual Suggestions, Images & Money Utilization Blueprint
-        if re.search(r'(?:visual|chart|image|blueprint|utilize\s+money|spend\s+better|money\s+advice|financial\s+advice|suggestion)', q_lower):
-            analytics = self._build_financial_analytics()
+        # 4. Undo / Delete Last Transaction (Multilingual)
+        if any(w in q_lower for w in ['undo', 'deshacer', 'annuler', 'rückgängig', 'borrar', 'eliminar', 'supprimer', 'löschen', 'delete', 'remove', 'pichla', 'hatao', 'kadaisi', 'eduthuru']) and any(w in q_lower for w in ['last', 'último', 'ultimo', 'dernier', 'dernière', 'letzte', 'transacción', 'transaccion', 'transaction', 'gasto', 'expense', 'dépense', 'ausgabe', 'kharcha', 'selavu', 'entry']):
+            latest = Transaction.objects.filter(user=self.user).order_by('-created_at').first()
+            if latest:
+                sign = "+" if latest.transaction_type == 'IN' else "-"
+                amt = latest.amount
+                cat = latest.category
+                desc = latest.description or ''
+                latest.delete()
+                if lang == 'es':
+                    reply = f"🗑️ **Última Transacción Eliminada**\n\nSe ha borrado el registro de {sign}{currency}{amt:.2f} [{cat}] ({desc or 'Sin nota'})."
+                    title = "Transacción Eliminada"
+                elif lang == 'fr':
+                    reply = f"🗑️ **Dernière Transaction Supprimée**\n\nSuppression de l'entrée de {sign}{currency}{amt:.2f} [{cat}] ({desc or 'Sans note'})."
+                    title = "Entrée Supprimée"
+                elif lang == 'hi':
+                    reply = f"🗑️ **पिछला लेन-देन हटा दिया गया**\n\n{sign}{currency}{amt:.2f} [{cat}] को बहीखाते से हटा दिया गया है।"
+                    title = "लेन-देन हटाया गया"
+                elif lang == 'ta':
+                    reply = f"🗑️ **கடைசி பதிவு நீக்கப்பட்டது**\n\n{sign}{currency}{amt:.2f} [{cat}] வெற்றிகரமாக நீக்கப்பட்டது."
+                    title = "பதிவு நீக்கம்"
+                else:
+                    reply = f"🗑️ **Last Transaction Removed**\n\nDeleted ledger entry of {sign}{currency}{amt:.2f} [{cat}] ({desc or 'N/A'})."
+                    title = "Transaction Removed"
+
+                return {
+                    'status': 'success',
+                    'reply': reply,
+                    'response': self._format_bubble_html(title, reply, "bg-apple-orange/10 text-apple-orange"),
+                    'action_type': 'delete_transaction',
+                    'payload': {'deleted': True, 'amount': float(amt), 'category': cat}
+                }
+            else:
+                reply = "No transactions found in ledger to undo."
+                return {
+                    'status': 'success',
+                    'reply': reply,
+                    'response': self._format_bubble_html("Delete Transaction", reply, "bg-apple-orange/10 text-apple-orange"),
+                    'action_type': 'delete_transaction',
+                    'payload': {'deleted': False}
+                }
+
+        # 5. Month-over-Month Historical Telemetry Comparison (Multilingual)
+        if any(w in q_lower for w in ['compare', 'comparar', 'comparer', 'vergleich', 'history', 'historial', 'historique', 'previous month', 'mes pasado', 'mes anterior', 'mois dernier', 'letzten monat', 'pichle mahine', 'pona masam']):
+            prev_inc = analytics['prev_income']
+            prev_exp = analytics['prev_expense']
+            curr_inc = analytics['total_income']
+            curr_exp = analytics['total_expense']
+            inc_diff = curr_inc - prev_inc
+            exp_diff = curr_exp - prev_exp
+            inc_pct = int(round((inc_diff / (prev_inc or 1)) * 100)) if prev_inc > 0 else 0
+            exp_pct = int(round((exp_diff / (prev_exp or 1)) * 100)) if prev_exp > 0 else 0
+            surges = analytics['surges_str']
+
+            if lang == 'es':
+                reply = (
+                    f"📊 **Comparación Histórica Mensual ({analytics['prev_month_name']} vs {analytics['month_name']}):**\n\n"
+                    f"• **Ingresos**: {currency}{curr_inc:.2f} vs {currency}{prev_inc:.2f} ({'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                    f"• **Gastos**: {currency}{curr_exp:.2f} vs {currency}{prev_exp:.2f} ({'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                    f"• **Incrementos Significativos (>=15%)**: {surges}\n"
+                    f"• **Velocidad de Gasto Diaria**: {currency}{analytics['daily_burn']:.2f}/día con {analytics['days_remaining']} días restantes."
+                )
+                title = "Análisis Histórico"
+            elif lang == 'fr':
+                reply = (
+                    f"📊 **Comparaison Historique Mensuelle ({analytics['prev_month_name']} vs {analytics['month_name']}) :**\n\n"
+                    f"• **Revenus** : {currency}{curr_inc:.2f} vs {currency}{prev_inc:.2f} ({'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                    f"• **Dépenses** : {currency}{curr_exp:.2f} vs {currency}{prev_exp:.2f} ({'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                    f"• **Pics de Catégorie (>=15%)** : {surges}\n"
+                    f"• **Dépense Quotidienne** : {currency}{analytics['daily_burn']:.2f}/jour."
+                )
+                title = "Comparaison Historique"
+            elif lang == 'hi':
+                reply = (
+                    f"📊 **मासिक तुलना ({analytics['prev_month_name']} बनाम {analytics['month_name']}):**\n\n"
+                    f"• **कुल आय**: {currency}{curr_inc:.2f} (पिछला: {currency}{prev_inc:.2f}, {'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                    f"• **कुल खर्च**: {currency}{curr_exp:.2f} (पिछला: {currency}{prev_exp:.2f}, {'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                    f"• **अधिक खर्च वाली श्रेणियाँ**: {surges}\n"
+                    f"• **दैनिक खर्च दर**: {currency}{analytics['daily_burn']:.2f}/दिन।"
+                )
+                title = "मासिक तुलना विश्लेषण"
+            elif lang == 'ta':
+                reply = (
+                    f"📊 **முந்தைய மாத ஒப்பீடு ({analytics['prev_month_name']} vs {analytics['month_name']}):**\n\n"
+                    f"• **வருமானம்**: {currency}{curr_inc:.2f} vs {currency}{prev_inc:.2f} ({'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                    f"• **செலவுகள்**: {currency}{curr_exp:.2f} vs {currency}{prev_exp:.2f} ({'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                    f"• **அதிகரித்த செலவுகள்**: {surges}\n"
+                    f"• **தினசரி செலவு விகிதம்**: {currency}{analytics['daily_burn']:.2f}/நாள்."
+                )
+                title = "வரலாற்று ஒப்பீடு"
+            else:
+                reply = (
+                    f"📊 **Historical Month-over-Month Telemetry ({analytics['prev_month_name']} vs {analytics['month_name']}):**\n\n"
+                    f"• **Inflow Comparison**: {currency}{curr_inc:.2f} vs {currency}{prev_inc:.2f} ({'+' if inc_diff >= 0 else ''}{inc_pct}%)\n"
+                    f"• **Outflow Comparison**: {currency}{curr_exp:.2f} vs {currency}{prev_exp:.2f} ({'+' if exp_diff >= 0 else ''}{exp_pct}%)\n"
+                    f"• **Category Surges (>=15%)**: {surges}\n"
+                    f"• **Burn Velocity**: {currency}{analytics['daily_burn']:.2f}/day with {analytics['days_remaining']} days remaining."
+                )
+                title = "Historical Comparison"
+
+            html = self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue")
+            html += self._generate_visual_telemetry_svg(analytics)
+            return {
+                'status': 'success',
+                'reply': reply,
+                'response': html,
+                'action_type': 'historical_comparison',
+                'payload': analytics
+            }
+
+        # 6. Visual Suggestions & 50/30/20 Spending Blueprint (Multilingual)
+        if any(w in q_lower for w in ['visual', 'chart', 'blueprint', 'utilize money', 'spend better', 'money advice', 'suggestion', 'sugerencia', 'consejo', 'optimizar dinero', 'conseils', 'vorschlag', 'spartipps', 'tips', 'bachane', 'kuraikka']):
             curr = analytics['currency']
             tot_inc = analytics['total_income']
-            tot_exp = analytics['total_expense']
             needs_tgt = tot_inc * 0.50 if tot_inc > 0 else 25000.0
             wants_tgt = tot_inc * 0.30 if tot_inc > 0 else 15000.0
             save_tgt = tot_inc * 0.20 if tot_inc > 0 else 10000.0
-            reply = (
-                f"📈 **Autonomous Spending Optimization & Money Allocation Blueprint:**\n\n"
-                f"To maximize long-term wealth, trust, and fiscal resilience, adhere to this **50/30/20 rule allocation**:\n\n"
-                f"1️⃣ **Essential Needs (50% Cap: {curr}{needs_tgt:,.2f})**:\n"
-                f"• Rent, groceries, utilities, and debt minimums.\n"
-                f"• *Current Status*: Essential expenses are tracking within normal parameters.\n\n"
-                f"2️⃣ **Discretionary Wants (30% Cap: {curr}{wants_tgt:,.2f})**:\n"
-                f"• Dining out, entertainment, shopping, hobbies.\n"
-                f"• *Rule*: Never exceed 30% of monthly net income to prevent lifestyle creep.\n\n"
-                f"3️⃣ **Wealth Accumulation (20% Minimum: {curr}{save_tgt:,.2f})**:\n"
-                f"• Emergency fund liquidity & diversified index investments.\n"
-                f"• *Pro-Tip*: Automate your savings transfer on payday before discretionary spending begins."
-            )
-            html = self._format_bubble_html("Visual Spending Blueprint", reply, "bg-apple-blue/10 text-apple-blue")
+
+            if lang == 'es':
+                reply = (
+                    f"📈 **Plan de Optimización Financiera y Regla 50/30/20:**\n\n"
+                    f"Para potenciar su patrimonio, confianza y solvencia, aplique este esquema estratégico:\n\n"
+                    f"1️⃣ **Necesidades Esenciales (50% Tope: {curr}{needs_tgt:,.2f})**:\n"
+                    f"• Vivienda, alimentación, transporte, salud y suministros indispensables.\n\n"
+                    f"2️⃣ **Deseos y Ocio (30% Tope: {curr}{wants_tgt:,.2f})**:\n"
+                    f"• Restaurantes, suscripciones, ocio y viajes personales.\n\n"
+                    f"3️⃣ **Ahorro e Inversión (20% Mínimo: {curr}{save_tgt:,.2f})**:\n"
+                    f"• Fondo de emergencia e inversiones indexadas a largo plazo."
+                )
+                title = "Plan Visual de Gastos"
+            elif lang == 'fr':
+                reply = (
+                    f"📈 **Schéma d'Optimisation des Dépenses 50/30/20 :**\n\n"
+                    f"1️⃣ **Besoins Essentiels (50% Plafond : {curr}{needs_tgt:,.2f})** : Loyer, courses, factures indispensables.\n"
+                    f"2️⃣ **Envies & Loisirs (30% Plafond : {curr}{wants_tgt:,.2f})** : Restaurants, divertissements, abonnements.\n"
+                    f"3️⃣ **Épargne & Investissement (20% Minimum : {curr}{save_tgt:,.2f})** : Fonds d'urgence et actifs productifs."
+                )
+                title = "Optimisation Financière"
+            elif lang == 'hi':
+                reply = (
+                    f"📈 **50/30/20 धन प्रबंधन ब्लूप्रिंट:**\n\n"
+                    f"1️⃣ **ज़रूरी खर्चे (50% सीमा: {curr}{needs_tgt:,.2f})**: किराया, राशन, बिजली, पानी व बुनियादी ज़रूरतें।\n"
+                    f"2️⃣ **शौक व मनोरंजन (30% सीमा: {curr}{wants_tgt:,.2f})**: डाइनिंग, मूवीज, शॉपिंग आदि।\n"
+                    f"3️⃣ **बचत व निवेश (20% न्यूनतम: {curr}{save_tgt:,.2f})**: इमरजेंसी फंड व म्यूचुअल फंड में निवेश।"
+                )
+                title = "वित्तीय ब्लूप्रिंट"
+            elif lang == 'ta':
+                reply = (
+                    f"📈 **50/30/20 நிதி மேலாண்மை உத்தி:**\n\n"
+                    f"1️⃣ **அடிப்படை தேவைகள் (50% உச்சவரம்பு: {curr}{needs_tgt:,.2f})**: வாடகை, மளிகை, பில் தொகைகள்.\n"
+                    f"2️⃣ **விருப்பங்கள் (30% உச்சவரம்பு: {curr}{wants_tgt:,.2f})**: உணவகங்கள், பொழுதுபோக்கு, ஷாப்பிங்.\n"
+                    f"3️⃣ **சேமிப்பு & முதலீடு (20% இலக்கு: {curr}{save_tgt:,.2f})**: அவசர நிதி மற்றும் முதலீடுகள்."
+                )
+                title = "நிதி வழிகாட்டுதல்"
+            else:
+                reply = (
+                    f"📈 **Autonomous Spending Optimization & Money Allocation Blueprint:**\n\n"
+                    f"To maximize long-term wealth, trust, and fiscal resilience, adhere to this **50/30/20 rule allocation**:\n\n"
+                    f"1️⃣ **Essential Needs (50% Cap: {curr}{needs_tgt:,.2f})**:\n"
+                    f"• Rent, groceries, utilities, and debt minimums.\n\n"
+                    f"2️⃣ **Discretionary Wants (30% Cap: {curr}{wants_tgt:,.2f})**:\n"
+                    f"• Dining out, entertainment, shopping, hobbies.\n\n"
+                    f"3️⃣ **Wealth Accumulation (20% Minimum: {curr}{save_tgt:,.2f})**:\n"
+                    f"• Emergency fund liquidity & diversified index investments."
+                )
+                title = "Visual Spending Blueprint"
+
+            html = self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue")
             html += self._generate_visual_telemetry_svg(analytics)
             return {
                 'status': 'success',
@@ -1037,120 +1458,62 @@ Return ONLY valid JSON.
                 'payload': analytics
             }
 
-        # Add transaction
-        tx_match = re.search(r'add\s+(expense|income)\s+(\d+(?:\.\d{1,2})?)(?:\s+(?:for|in)\s+([a-zA-Z0-9_\-\s]+?))?(?:\s+(?:desc|description|note)\s+(.+))?$', query, re.I)
-        if tx_match:
-            t_type_str = tx_match.group(1).lower()
-            amt = Decimal(tx_match.group(2))
-            cat = (tx_match.group(3) or 'General').strip().title()
-            desc = (tx_match.group(4) or '').strip()
-            t_type = 'IN' if t_type_str == 'income' else 'OUT'
-            
-            Transaction.objects.create(
-                user=self.user,
-                amount=amt,
-                transaction_type=t_type,
-                category=cat,
-                date=today,
-                description=desc
-            )
-            Category.objects.get_or_create(user=self.user, name=cat, defaults={'is_income': (t_type == 'IN')})
-            sign = "+" if t_type == 'IN' else "-"
-            reply = f"✅ **{t_type_str.title()} Logged Successfully**\n\n• **Amount**: {sign}{currency}{amt:.2f}\n• **Category**: {cat}\n• **Note**: {desc or 'N/A'}\n• **Date**: {today.strftime('%b %d, %Y')}"
-            badge_class = "bg-apple-green/10 text-apple-green" if t_type == 'IN' else "bg-apple-red/10 text-apple-red"
+        # 7. Budgets Management: Set, Clear, Check (Multilingual)
+        if any(w in q_lower for w in ['clear budget', 'borrar presupuesto', 'eliminar presupuesto', 'supprimer budget', 'budget hatao', 'remove budget']):
+            cat_match = re.search(r'(?:for|para|pour|für|ka|ku)\s+([a-zA-Z0-9_\-]+)', query, re.I)
+            if cat_match and cat_match.group(1).lower() not in ('all', 'todos', 'tout'):
+                norm_cat = self._normalize_category(cat_match.group(1))
+                Budget.objects.filter(user=self.user, category__iexact=norm_cat).delete()
+                msg = f"Cleared budget cap for {norm_cat}."
+            else:
+                Budget.objects.filter(user=self.user).delete()
+                msg = "Cleared all monthly category budgets."
             return {
                 'status': 'success',
-                'reply': reply,
-                'response': self._format_bubble_html("Transaction Logged", reply, badge_class),
-                'action_type': 'log_transaction',
-                'payload': {'amount': float(amt), 'category': cat, 'type': t_type}
+                'reply': msg,
+                'response': self._format_bubble_html("Budget Cleared", msg, "bg-apple-orange/10 text-apple-orange"),
+                'action_type': 'set_budget',
+                'payload': {'cleared': True}
             }
 
-        # Set budget
-        b_match = re.search(r'set\s+(?:budget|limit)\s+(?:for\s+)?([a-zA-Z0-9_\-\s]+?)\s+(?:to\s+)?(\d+(?:\.\d{1,2})?)$', query, re.I)
-        if b_match:
-            cat = b_match.group(1).strip().title()
-            amt = Decimal(b_match.group(2))
+        b_match = re.search(r'(?:set|fijar|establecer|définir|festlegen)?\s*(?:budget|presupuesto|limit|limite)\s*(?:for|para|pour|für|ka|ku)?\s*([a-zA-Z0-9_\-\s]+?)\s*(?:to|en|à|auf|set\s+karo)?\s*(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)$', query, re.I)
+        if b_match and not any(w in q_lower for w in ['check', 'ver', 'voir', 'audit', 'health']):
+            raw_c = b_match.group(1).strip()
+            norm_c = 'Total' if raw_c.lower() == 'total' else self._normalize_category(raw_c)
+            b_amt = Decimal(b_match.group(2))
             Budget.objects.update_or_create(
                 user=self.user,
-                category=cat,
+                category=norm_c,
                 period='MONTHLY',
                 month=today.month,
                 year=today.year,
-                defaults={'amount': amt}
+                defaults={'amount': b_amt}
             )
-            reply = f"🎯 **Monthly Budget Updated**\n\n• **Category**: {cat}\n• **Monthly Limit**: {currency}{amt:.2f}\n• **Period**: {today.strftime('%B %Y')}"
+            if lang == 'es':
+                reply = f"🎯 **Presupuesto Mensual Configurado**\n\n• **Categoría**: {norm_c}\n• **Límite Mensual**: {currency}{b_amt:.2f}\n• **Ciclo**: {today.strftime('%B %Y')}"
+                title = "Presupuesto Configurado"
+            elif lang == 'fr':
+                reply = f"🎯 **Budget Mensuel Configuré**\n\n• **Catégorie** : {norm_c}\n• **Plafond** : {currency}{b_amt:.2f}\n• **Mois** : {today.strftime('%B %Y')}"
+                title = "Budget Configuré"
+            elif lang == 'hi':
+                reply = f"🎯 **मासिक बजट निर्धारित किया गया**\n\n• **श्रेणी**: {norm_c}\n• **मासिक सीमा**: {currency}{b_amt:.2f}\n• **माह**: {today.strftime('%B %Y')}"
+                title = "बजट कॉन्फ़िगर"
+            elif lang == 'ta':
+                reply = f"🎯 **மாதாந்திர பட்ஜெட் நிர்ணயிக்கப்பட்டது**\n\n• **பிரிவு**: {norm_c}\n• **வரம்பு**: {currency}{b_amt:.2f}\n• **மாதம்**: {today.strftime('%B %Y')}"
+                title = "பட்ஜெட் நிர்ணயம்"
+            else:
+                reply = f"🎯 **Monthly Budget Updated**\n\n• **Category**: {norm_c}\n• **Monthly Limit**: {currency}{b_amt:.2f}\n• **Period**: {today.strftime('%B %Y')}"
+                title = "Budget Configured"
+
             return {
                 'status': 'success',
                 'reply': reply,
-                'response': self._format_bubble_html("Budget Configured", reply, "bg-apple-blue/10 text-apple-blue"),
+                'response': self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue"),
                 'action_type': 'set_budget',
-                'payload': {'category': cat, 'amount': float(amt)}
+                'payload': {'category': norm_c, 'amount': float(b_amt)}
             }
 
-        # Bill reminder
-        r_match = re.search(r'remind\s+(?:me\s+to\s+pay\s+)?(.+?)\s+(\d+(?:\.\d{1,2})?)\s+on\s+(\d{4}-\d{2}-\d{2})$', query, re.I)
-        if r_match:
-            title = r_match.group(1).strip().capitalize()
-            amt = Decimal(r_match.group(2))
-            due_date_str = r_match.group(3)
-            try:
-                due_date = datetime.datetime.strptime(due_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                due_date = today
-
-            Reminder.objects.create(
-                user=self.user,
-                title=title,
-                amount=amt,
-                due_date=due_date,
-                is_paid=False
-            )
-            reply = f"⏰ **Bill Reminder Created**\n\n• **Title**: {title}\n• **Amount**: {currency}{amt:.2f}\n• **Due Date**: {due_date.strftime('%b %d, %Y')}"
-            return {
-                'status': 'success',
-                'reply': reply,
-                'response': self._format_bubble_html("Reminder Created", reply, "bg-apple-orange/10 text-apple-orange"),
-                'action_type': 'set_reminder',
-                'payload': {'title': title, 'amount': float(amt), 'due_date': str(due_date)}
-            }
-
-        # Help / Guide
-        if q_lower in ('help', 'commands', 'menu', '?', 'what can you do', 'guide'):
-            reply = (
-                "🧠 **Leoxur Financial Intelligence — Command Guide:**\n\n"
-                "I can autonomously manage your personal financial ledger, telemetry, and system actions:\n\n"
-                "1️⃣ **Log Expenses & Incomes**:\n"
-                "• *\"Add expense 45 for Food desc lunch at office\"*\n"
-                "• *\"Add income 2500 for Salary desc October paycheck\"*\n\n"
-                "2️⃣ **Appearance & System Actions**:\n"
-                "• *\"Switch to dark theme\"* / *\"Switch to light mode\"* — Instant appearance change\n"
-                "• *\"Send report to my email\"* — Transmit monthly cashflow report via SMTP\n"
-                "• *\"Fetch IMAP details\"* or *\"Sync emails\"* — Inspect mailbox receipts & unread count\n\n"
-                "3️⃣ **Set Budgets & Outflow Limits**:\n"
-                "• *\"Set budget for Food to 350\"*\n"
-                "• *\"Set Entertainment budget to 150\"*\n\n"
-                "4️⃣ **Bill Reminders**:\n"
-                "• *\"Remind me to pay internet bill 60 on 2026-10-25\"*\n\n"
-                "5️⃣ **Telemetry Diagnostics & Visual Blueprint**:\n"
-                "• *\"Give me visual suggestions to utilize money properly\"*\n"
-                "• *\"Check budgets\"* — Audit budget limits and overspending\n"
-                "• *\"Cashflow status\"* — 50/30/20 breakdown and savings rate\n\n"
-                "6️⃣ **AI Agent Configuration**:\n"
-                "• *\"Set Gemini API key to <KEY>\"*\n"
-                "• *\"Switch to Cloud AI mode\"* / *\"Switch to Local mode\"*"
-            )
-            return {
-                'status': 'success',
-                'reply': reply,
-                'response': self._format_bubble_html("Command Guide", reply, "bg-apple-blue/10 text-apple-blue"),
-                'action_type': 'guide',
-                'payload': {}
-            }
-
-        # Budget Check
-        if re.search(r'(?:budget|limit|overspent)', q_lower):
-            analytics = self._build_financial_analytics()
+        if any(w in q_lower for w in ['budget', 'presupuesto', 'presupuestos', 'budgets', 'overspent', 'limite']):
             reply = f"🎯 **Budget Health Audit ({analytics['month_name']})**\n\n{analytics['budgets_str']}"
             badge_class = "bg-apple-red/10 text-apple-red" if analytics['overspent_count'] > 0 else "bg-apple-green/10 text-apple-green"
             return {
@@ -1161,25 +1524,253 @@ Return ONLY valid JSON.
                 'payload': {'overspent_count': analytics['overspent_count']}
             }
 
-        # Cashflow Diagnostic & 50/30/20 Rule
-        analytics = self._build_financial_analytics()
+        # 8. Reminders (Multilingual)
+        r_match = re.search(r'(?:remind|recordar|rappeler|erinnern|yaad)\s*(?:me\s+to\s+pay|me\s+de\s+pagar|de\s+payer)?\s*(.+?)\s+(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)\s+(?:on|el|le|am|date)?\s*(\d{4}-\d{2}-\d{2})$', query, re.I)
+        if r_match:
+            title_r = r_match.group(1).strip().capitalize()
+            amt_r = Decimal(r_match.group(2))
+            due_str = r_match.group(3)
+            try:
+                due_d = datetime.datetime.strptime(due_str, '%Y-%m-%d').date()
+            except ValueError:
+                due_d = today
+            Reminder.objects.create(
+                user=self.user,
+                title=title_r,
+                amount=amt_r,
+                due_date=due_d,
+                is_paid=False
+            )
+            reply = f"⏰ **Bill Reminder Created**\n\n• **Title**: {title_r}\n• **Amount**: {currency}{amt_r:.2f}\n• **Due Date**: {due_d.strftime('%b %d, %Y')}"
+            return {
+                'status': 'success',
+                'reply': reply,
+                'response': self._format_bubble_html("Reminder Created", reply, "bg-apple-orange/10 text-apple-orange"),
+                'action_type': 'set_reminder',
+                'payload': {'title': title_r, 'amount': float(amt_r), 'due_date': str(due_d)}
+            }
+
+        # 9. Natural Language Multilingual Transaction Logging (Income / Expense)
+        amt_match = re.search(r'(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)(?:\s*(?:eur|euros|usd|rs|rupees|roobai|bucks|quid))?', query, re.I)
+        if amt_match:
+            try:
+                parsed_amt = Decimal(amt_match.group(1))
+            except Exception:
+                parsed_amt = Decimal('0.00')
+
+            if parsed_amt > 0:
+                date_val = self._parse_flexible_date(query, today)
+                # Detect Inflow vs Outflow
+                income_signals = ['income', 'ingreso', 'revenu', 'einnahme', 'entrata', 'receita', 'salary', 'salario', 'salaire', 'gehalt', 'stipendio', 'salário', 'paycheck', 'vetan', 'aamdani', 'sambalam', 'jeetham', 'wages', 'got', 'recibi', 'recibí', 'reçu', 'earned', 'ganado', 'varavu']
+                is_income = any(sig in q_lower for sig in income_signals)
+                tx_type = 'IN' if is_income else 'OUT'
+
+                # Match category
+                norm_cat = None
+                canonical_kws = {
+                    'Food': ['food', 'comida', 'nourriture', 'déjeuner', 'dejeuner', 'dîner', 'diner', 'essen', 'cibo', 'refeição', 'refeicao', 'almoço', 'almoco', 'janta', 'café', 'almuerzo', 'cena', 'desayuno', 'lunch', 'dinner', 'breakfast', 'snack', 'cafe', 'coffee', 'restaurante', 'restaurant', 'groceries', 'supermercado', 'khana', 'kharcha', 'doodh', 'chai', 'biryani', 'swiggy', 'zomato', 'unavu', 'saapadu', 'bhojanam', 'oota'],
+                    'Rent': ['rent', 'alquiler', 'loyer', 'miete', 'affitto', 'aluguel', 'house', 'apartment', 'flat', 'kiraya', 'vadagai', 'aadige', 'makan'],
+                    'Salary': ['salary', 'salario', 'salaire', 'gehalt', 'stipendio', 'salário', 'paycheck', 'vetan', 'aamdani', 'sambalam', 'jeetham', 'wages'],
+                    'Travel': ['travel', 'transporte', 'transport', 'reise', 'viaggio', 'viagem', 'gas', 'fuel', 'petrol', 'diesel', 'uber', 'ola', 'auto', 'taxi', 'flight', 'vuelo', 'metro', 'bus', 'train', 'safar', 'yathirai'],
+                    'Utilities': ['utilities', 'utility', 'factura', 'facture', 'rechnung', 'bolletta', 'conta', 'electric', 'electricity', 'water', 'internet', 'wifi', 'phone', 'recharge', 'bijli', 'pani', 'bill'],
+                    'Entertainment': ['entertainment', 'entretenimiento', 'divertissement', 'unterhaltung', 'svago', 'film', 'movie', 'cinema', 'pelicula', 'netflix', 'spotify', 'game', 'gaming', 'concert', 'club', 'party', 'fun', 'manoranjan'],
+                    'Health': ['health', 'medical', 'medicine', 'doctor', 'hospital', 'clinic', 'pharmacy', 'dawai', 'marundhu', 'salud', 'santé', 'gesundheit'],
+                    'Shopping': ['shopping', 'clothes', 'clothing', 'kapde', 'thuni', 'kharidari', 'compras', 'achats', 'einkaufen'],
+                    'Investment': ['investment', 'invest', 'stock', 'shares', 'dividend', 'mutual fund', 'crypto', 'bachat', 'semippu', 'podupu'],
+                }
+                for c_name, words in canonical_kws.items():
+                    if any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) for w in words):
+                        norm_cat = c_name
+                        break
+
+                if not norm_cat:
+                    prep_m = re.search(r'(?:for|in|en|pour|für|pe|la|di|de)\s+([a-zA-Z0-9_\-]+)', query, re.I)
+                    if prep_m:
+                        norm_cat = self._normalize_category(prep_m.group(1))
+                    else:
+                        norm_cat = 'Salary' if is_income else 'General'
+
+                # Extract description
+                desc = ''
+                desc_m = re.search(r'(?:desc|description|note|nota|details?)\s+(.+)$', query, re.I)
+                if desc_m:
+                    desc = desc_m.group(1).strip()
+                else:
+                    desc = norm_cat
+
+                Transaction.objects.create(
+                    user=self.user,
+                    amount=parsed_amt,
+                    transaction_type=tx_type,
+                    category=norm_cat,
+                    date=date_val,
+                    description=desc
+                )
+                Category.objects.get_or_create(user=self.user, name=norm_cat, defaults={'is_income': (tx_type == 'IN')})
+                sign = "+" if tx_type == 'IN' else "-"
+                badge_class = "bg-apple-green/10 text-apple-green" if tx_type == 'IN' else "bg-apple-red/10 text-apple-red"
+
+                if lang == 'es':
+                    tx_title = "Ingreso Registrado" if is_income else "Gasto Registrado"
+                    reply = f"✅ **{tx_title} con Éxito**\n\n• **Monto**: {sign}{currency}{parsed_amt:.2f}\n• **Categoría**: {norm_cat}\n• **Descripción**: {desc or 'N/A'}\n• **Fecha**: {date_val.strftime('%d/%m/%Y')}"
+                elif lang == 'fr':
+                    tx_title = "Revenu Enregistré" if is_income else "Dépense Enregistrée"
+                    reply = f"✅ **{tx_title} avec Succès**\n\n• **Montant** : {sign}{currency}{parsed_amt:.2f}\n• **Catégorie** : {norm_cat}\n• **Note** : {desc or 'N/A'}\n• **Date** : {date_val.strftime('%d/%m/%Y')}"
+                elif lang == 'de':
+                    tx_title = "Einnahme Erfasst" if is_income else "Ausgabe Erfasst"
+                    reply = f"✅ **{tx_title}**\n\n• **Betrag**: {sign}{currency}{parsed_amt:.2f}\n• **Kategorie**: {norm_cat}\n• **Notiz**: {desc or 'N/A'}\n• **Datum**: {date_val.strftime('%d.%m.%Y')}"
+                elif lang == 'hi':
+                    tx_title = "आय दर्ज हुई" if is_income else "खर्च दर्ज हुआ"
+                    reply = f"✅ **{tx_title} (Transaction Logged)**\n\n• **राशि**: {sign}{currency}{parsed_amt:.2f}\n• **श्रेणी**: {norm_cat}\n• **विवरण**: {desc or 'N/A'}\n• **तारीख**: {date_val.strftime('%d %b, %Y')}"
+                elif lang == 'ta':
+                    tx_title = "வருமானம் சேர்க்கப்பட்டது" if is_income else "செலவு சேர்க்கப்பட்டது"
+                    reply = f"✅ **{tx_title}**\n\n• **தொகை**: {sign}{currency}{parsed_amt:.2f}\n• **பிரிவு**: {norm_cat}\n• **குறிப்பு**: {desc or 'N/A'}\n• **தேதி**: {date_val.strftime('%d %b, %Y')}"
+                else:
+                    tx_title = "Income Logged" if is_income else "Expense Logged"
+                    reply = f"✅ **{tx_title} Successfully**\n\n• **Amount**: {sign}{currency}{parsed_amt:.2f}\n• **Category**: {norm_cat}\n• **Note**: {desc or 'N/A'}\n• **Date**: {date_val.strftime('%b %d, %Y')}"
+
+                return {
+                    'status': 'success',
+                    'reply': reply,
+                    'response': self._format_bubble_html(tx_title, reply, badge_class),
+                    'action_type': 'log_transaction',
+                    'payload': {'amount': float(parsed_amt), 'category': norm_cat, 'type': tx_type, 'date': str(date_val)}
+                }
+
+        # 10. Help & Commands Guide (Multilingual)
+        if any(w in q_lower for w in ['help', 'ayuda', 'aide', 'hilfe', 'madad', 'udhavi', 'commands', 'command', 'menu', '?', 'what can you do', 'guide', 'qué puedes hacer', 'que puedes hacer']):
+            if lang == 'es':
+                reply = (
+                    "🧠 **Inteligencia Financiera Leoxur — Guía de Comandos:**\n\n"
+                    "Puedo gestionar su telemetría y contabilidad de forma autónoma en cualquier idioma:\n\n"
+                    "1️⃣ **Registrar Gastos e Ingresos**:\n"
+                    "• *\"Añadí 45 euros para comida ayer\"*\n"
+                    "• *\"Añadir ingreso 3200 de salario hoy\"*\n"
+                    "• *\"Gasto de 80 en wifi bill\"*\n\n"
+                    "2️⃣ **Acciones del Sistema y Apariencia**:\n"
+                    "• *\"Cambiar a modo oscuro\"* o *\"Poner modo claro\"*\n"
+                    "• *\"Enviar informe a mi correo\"* — Transmite PDF oficial y Excel con gráficos vía SMTP\n"
+                    "• *\"Sincronizar correos\"* — Escanea buzón IMAP en busca de recibos bancarios\n"
+                    "• *\"Deshacer último gasto\"* — Elimina la última transacción\n\n"
+                    "3️⃣ **Presupuestos y Metas**:\n"
+                    "• *\"Fijar presupuesto para comida en 400\"*\n"
+                    "• *\"Ver presupuestos\"*\n\n"
+                    "4️⃣ **Telemetría y Consejos Visuales**:\n"
+                    "• *\"Dar sugerencias visuales para optimizar dinero\"* (Gráfico interactivo 50/30/20)\n"
+                    "• *\"Comparar con el mes pasado\"* (Telemetría histórica)"
+                )
+                title = "Guía de Comandos"
+            elif lang == 'fr':
+                reply = (
+                    "🧠 **Intelligence Financière Leoxur — Guide des Commandes :**\n\n"
+                    "1️⃣ **Enregistrer Dépenses et Revenus** : *\"Dépense de 45 en nourriture hier\"*, *\"Ajouter revenu 3000 salaire\"*\n"
+                    "2️⃣ **Apparence & Actions** : *\"Passer en mode sombre\"*, *\"Envoyer le rapport par email\"*, *\"Synchroniser imap\"*\n"
+                    "3️⃣ **Budgets & Analyse** : *\"Définir budget nourriture 400\"*, *\"Suggestions visuelles d'épargne\"*, *\"Comparer avec le mois dernier\"*"
+                )
+                title = "Guide des Commandes"
+            elif lang == 'hi':
+                reply = (
+                    "🧠 **Leoxur वित्तीय सहायक — कमांड गाइड:**\n\n"
+                    "1️⃣ **खर्च और आय दर्ज करें**: *\"500 rupees kharcha hua dinner pe ayer\"*, *\"salary 40000 aayi\"*\n"
+                    "2️⃣ **सिस्टम व थीम**: *\"Dark mode karo\"*, *\"Report email pe bhejo\"*, *\"Pichla kharcha undo karo\"*\n"
+                    "3️⃣ **बजट व विश्लेषण**: *\"Food budget 5000 set karo\"*, *\"Paise bachane ke tips do\"*, *\"Pichle mahine se compare karo\"*"
+                )
+                title = "कमांड गाइड"
+            elif lang == 'ta':
+                reply = (
+                    "🧠 **Leoxur நிதி உதவியாளர் — வழிகாட்டி:**\n\n"
+                    "1️⃣ **செலவு & வரவு**: *\"food 200 selavu add pannu\"*, *\"salary 35000 varavu add pannu\"*\n"
+                    "2️⃣ **தீம் & அறிக்கை**: *\"dark mode mathu\"*, *\"report en email ku anuppu\"*, *\"kadaisi selavu delete pannu\"*\n"
+                    "3️⃣ **பட்ஜெட் & சேமிப்பு**: *\"food budget 4000 set pannu\"*, *\"money savings tips\"*, *\"pona masam compare pannu\"*"
+                )
+                title = "வழிகாட்டி"
+            else:
+                reply = (
+                    "🧠 **Leoxur Financial Intelligence — Command Guide:**\n\n"
+                    "I can autonomously manage your personal financial ledger, telemetry, and system actions in ANY language:\n\n"
+                    "1️⃣ **Log Expenses & Incomes**:\n"
+                    "• *\"Add expense 45 for Food yesterday\"* (or in Spanish: *\"Añadí 45 euros para comida ayer\"*)\n"
+                    "• *\"Add income 2500 for Salary\"* (or in Hindi: *\"salary 40000 aamdani add karo\"*)\n\n"
+                    "2️⃣ **Appearance & System Actions**:\n"
+                    "• *\"Switch to dark theme\"* / *\"Switch to light mode\"*\n"
+                    "• *\"Send report to my email\"* — Dispatches rich PDF statement & Excel workbook via SMTP\n"
+                    "• *\"Fetch IMAP details\"* or *\"Sync emails\"* — Scans unread bank receipts\n"
+                    "• *\"Undo last expense\"* — Instantly removes latest ledger record\n\n"
+                    "3️⃣ **Set Budgets & Outflow Limits**:\n"
+                    "• *\"Set budget for Food to 350\"*\n"
+                    "• *\"Check budgets\"* — Audit limits and overspending\n\n"
+                    "4️⃣ **Visual Blueprint & Telemetry**:\n"
+                    "• *\"Give me visual suggestions to utilize money properly\"* (50/30/20 interactive blueprint)\n"
+                    "• *\"Compare with last month\"* (Historical month-over-month telemetry)"
+                )
+                title = "Command Guide"
+
+            return {
+                'status': 'success',
+                'reply': reply,
+                'response': self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue"),
+                'action_type': 'guide',
+                'payload': {}
+            }
+
+        # 11. General Cashflow Status Diagnostic
         tot_inc = analytics['total_income']
         tot_exp = analytics['total_expense']
         bal = analytics['net_balance']
         rate = analytics['savings_rate']
 
-        reply = (
-            f"📊 **Monthly Cashflow Diagnostic ({analytics['month_name']}):**\n\n"
-            f"• **Inflow (Income)**: **{currency}{tot_inc:.2f}**\n"
-            f"• **Outflow (Expenses)**: **{currency}{tot_exp:.2f}**\n"
-            f"• **Net Savings**: **{currency}{bal:.2f}** ({rate}% savings rate)\n\n"
-            f"💡 **Top Outflow Category**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'None'}\n\n"
-            f"*(Type 'help' for the complete list of natural-language commands or configure an AI API Key to unlock generative agent reasoning.)*"
-        )
+        if lang == 'es':
+            reply = (
+                f"📊 **Diagnóstico de Flujo de Caja ({analytics['month_name']}):**\n\n"
+                f"• **Ingresos Totales**: **{currency}{tot_inc:.2f}**\n"
+                f"• **Gastos Totales**: **{currency}{tot_exp:.2f}**\n"
+                f"• **Ahorro Neto**: **{currency}{bal:.2f}** ({rate}% tasa de ahorro)\n\n"
+                f"💡 **Mayor Categoría de Gasto**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'Ninguno'}\n\n"
+                f"*(Escriba 'ayuda' para ver todos los comandos autónomos disponibles.)*"
+            )
+            title = "Diagnóstico Financiero"
+        elif lang == 'fr':
+            reply = (
+                f"📊 **Bilan des Flux de Trésorerie ({analytics['month_name']}) :**\n\n"
+                f"• **Entrées (Revenus)** : **{currency}{tot_inc:.2f}**\n"
+                f"• **Sorties (Dépenses)** : **{currency}{tot_exp:.2f}**\n"
+                f"• **Épargne Nette** : **{currency}{bal:.2f}** ({rate}% taux d'épargne)\n\n"
+                f"💡 **Principale Dépense** : {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'Aucune'}"
+            )
+            title = "Bilan Financier"
+        elif lang == 'hi':
+            reply = (
+                f"📊 **मासिक वित्तीय स्थिति ({analytics['month_name']}):**\n\n"
+                f"• **कुल आय**: **{currency}{tot_inc:.2f}**\n"
+                f"• **कुल खर्च**: **{currency}{tot_exp:.2f}**\n"
+                f"• **शुद्ध बचत**: **{currency}{bal:.2f}** ({rate}% बचत दर)\n\n"
+                f"💡 **शीर्ष व्यय श्रेणी**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'कोई नहीं'}"
+            )
+            title = "कैशफ्लो डायग्नोस्टिक"
+        elif lang == 'ta':
+            reply = (
+                f"📊 **மாதாந்திர நிதி நிலை ({analytics['month_name']}):**\n\n"
+                f"• **வருமானம்**: **{currency}{tot_inc:.2f}**\n"
+                f"• **செலவுகள்**: **{currency}{tot_exp:.2f}**\n"
+                f"• **நிகர சேமிப்பு**: **{currency}{bal:.2f}** ({rate}% சேமிப்பு விகிதம்)\n\n"
+                f"💡 **அதிக செலவான பிரிவு**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'இல்லை'}"
+            )
+            title = "நிதி நிலை அறிக்கை"
+        else:
+            reply = (
+                f"📊 **Monthly Cashflow Diagnostic ({analytics['month_name']}):**\n\n"
+                f"• **Inflow (Income)**: **{currency}{tot_inc:.2f}**\n"
+                f"• **Outflow (Expenses)**: **{currency}{tot_exp:.2f}**\n"
+                f"• **Net Savings**: **{currency}{bal:.2f}** ({rate}% savings rate)\n\n"
+                f"💡 **Top Outflow Category**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'None'}\n\n"
+                f"*(Type 'help' for the complete list of natural-language commands.)*"
+            )
+            title = "Cashflow Diagnostic"
+
         return {
             'status': 'success',
             'reply': reply,
-            'response': self._format_bubble_html("Cashflow Diagnostic", reply, "bg-apple-blue/10 text-apple-blue"),
+            'response': self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue"),
             'action_type': 'cashflow_audit',
             'payload': analytics
         }
