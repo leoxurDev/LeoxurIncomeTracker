@@ -687,6 +687,96 @@ def voice_process_api(request):
     return JsonResponse(result)
 
 
+@login_required
+def voice_speak_api(request):
+    """
+    Generate natural human speech audio from text using Google TTS engine.
+    Supports global languages: en, es, hi, ta, fr, de, it, pt, ar, ru, zh, ja, etc.
+    Returns base64 MP3 audio data for instant playback in browser.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    
+    import json, base64, io, re
+
+    try:
+        data = json.loads(request.body)
+        text = data.get('text', '').strip()
+        lang_code = (data.get('language') or 'en').lower()
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Invalid JSON: {str(e)}'}, status=400)
+
+    if not text:
+        return JsonResponse({'status': 'error', 'message': 'No text provided'}, status=400)
+
+    # 1. Clean and normalize text for realistic, warm, human-sounding speech
+    clean_text = re.sub(r'<[^>]+>', ' ', text)
+    clean_text = re.sub(r'https?://\S+', '', clean_text)
+    clean_text = re.sub(r'[*_#`~]', '', clean_text)
+    # Currency conversions to natural words
+    clean_text = re.sub(r'₹\s*([0-9,.]+)', r'\1 rupees', clean_text)
+    clean_text = re.sub(r'\$\s*([0-9,.]+)', r'\1 dollars', clean_text)
+    clean_text = re.sub(r'€\s*([0-9,.]+)', r'\1 euros', clean_text)
+    clean_text = re.sub(r'£\s*([0-9,.]+)', r'\1 pounds', clean_text)
+    clean_text = clean_text.replace('Refresh Dashboard', '').replace('↻', '').strip()
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+
+    if not clean_text:
+        return JsonResponse({'status': 'error', 'message': 'Cleaned text is empty'}, status=400)
+
+    if len(clean_text) > 360:
+        sentences = re.split(r'(?<=[.!?])\s+', clean_text)
+        clean_text = ' '.join(sentences[:2]) if len(sentences) > 1 else clean_text[:360]
+
+    lang_map = {
+        'en': ('en', 'co.uk'),
+        'en-us': ('en', 'com'),
+        'en-in': ('en', 'co.in'),
+        'es': ('es', 'es'),
+        'es-es': ('es', 'es'),
+        'hi': ('hi', 'co.in'),
+        'hi-in': ('hi', 'co.in'),
+        'ta': ('ta', 'co.in'),
+        'ta-in': ('ta', 'co.in'),
+        'fr': ('fr', 'fr'),
+        'fr-fr': ('fr', 'fr'),
+        'de': ('de', 'de'),
+        'de-de': ('de', 'de'),
+        'it': ('it', 'it'),
+        'pt': ('pt', 'com.br'),
+        'ar': ('ar', 'com'),
+        'ru': ('ru', 'ru'),
+        'zh': ('zh-CN', 'com'),
+        'ja': ('ja', 'co.jp'),
+        'te': ('te', 'co.in'),
+        'ml': ('ml', 'co.in'),
+        'kn': ('kn', 'co.in'),
+    }
+
+    base_lang = lang_code.split('-')[0]
+    gtts_lang, gtts_tld = lang_map.get(lang_code, lang_map.get(base_lang, ('en', 'co.uk')))
+
+    try:
+        from gtts import gTTS
+        tts = gTTS(text=clean_text, lang=gtts_lang, tld=gtts_tld, slow=False)
+        audio_fp = io.BytesIO()
+        tts.write_to_fp(audio_fp)
+        audio_fp.seek(0)
+        audio_b64 = base64.b64encode(audio_fp.read()).decode('utf-8')
+        return JsonResponse({
+            'status': 'success',
+            'audio_base64': f'data:audio/mp3;base64,{audio_b64}',
+            'language': gtts_lang,
+            'clean_text': clean_text
+        })
+    except Exception as err:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Human voice synthesis failed: {str(err)}'
+        }, status=500)
+
+
+
 def toggle_theme(request):
     if request.method == 'POST':
         profile = request.user.profile

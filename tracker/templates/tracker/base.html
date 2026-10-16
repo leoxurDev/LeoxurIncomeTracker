@@ -13,7 +13,382 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Apple iOS Standard Theme CSS (from Habit Tracker) -->
-    <link rel="stylesheet" href="{% static 'css/ios_theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ios_theme.css' %}?v=20261017_luxury_voice">
+    
+    <style id="leoxurCopilotLuxuryStyles">
+        /* Luxury Glassmorphic Chat Window & Responsiveness */
+        .assistant-panel {
+            position: fixed !important;
+            bottom: 88px !important;
+            right: 24px !important;
+            width: 480px !important;
+            max-width: calc(100vw - 32px) !important;
+            height: 650px !important;
+            max-height: calc(100vh - 105px) !important;
+            background: var(--bg-card) !important;
+            backdrop-filter: blur(50px) saturate(210%) !important;
+            -webkit-backdrop-filter: blur(50px) saturate(210%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+            border-radius: 28px !important;
+            box-shadow: 0 32px 90px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            z-index: 99999 !important;
+            transform: translateY(18px) scale(0.96) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+            transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                        height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-radius 0.35s ease !important;
+        }
+
+        .assistant-panel.open {
+            transform: translateY(0) scale(1) !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+
+        .assistant-panel.maximized {
+            top: 50% !important;
+            left: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) scale(1) !important;
+            width: min(920px, calc(100vw - 36px)) !important;
+            height: min(780px, calc(100vh - 64px)) !important;
+            max-height: none !important;
+            border-radius: 30px !important;
+        }
+
+        @media (max-width: 640px) {
+            .sheet-grabber-bar { display: block !important; }
+            .assistant-panel {
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100vw !important;
+                max-width: 100vw !important;
+                height: 85vh !important;
+                max-height: 90vh !important;
+                border-radius: 26px 26px 0 0 !important;
+                border-bottom: none !important;
+                border-left: none !important;
+                border-right: none !important;
+                transform: translateY(100%) !important;
+            }
+            .assistant-panel.open {
+                transform: translateY(0) !important;
+            }
+        }
+
+        /* Header v2 */
+        .assistant-header-v2 {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 13px 18px !important;
+            border-bottom: 1px solid var(--border-hairline) !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            gap: 10px !important;
+            flex-shrink: 0 !important;
+            user-select: none !important;
+            white-space: nowrap !important;
+        }
+
+        .assistant-brand-block {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            min-width: 0 !important;
+            flex: 1 1 auto !important;
+        }
+
+        .assistant-iridescent-orb {
+            position: relative !important;
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            border-radius: 12px !important;
+            background: linear-gradient(135deg, #0071E3, #AF52DE, #FF2D55) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 4px 14px rgba(0, 113, 227, 0.4) !important;
+            color: #fff !important;
+            font-size: 16px !important;
+        }
+
+        .assistant-title-meta {
+            min-width: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1px !important;
+        }
+
+        .assistant-title-row {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            min-width: 0 !important;
+        }
+
+        .assistant-heading-title {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: var(--text-primary) !important;
+            letter-spacing: -0.015em !important;
+        }
+
+        .copilot-neural-badge {
+            font-size: 9.5px !important;
+            font-weight: 700 !important;
+            padding: 2px 7px !important;
+            border-radius: 999px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            letter-spacing: 0.02em !important;
+            background: rgba(52, 199, 89, 0.14) !important;
+            color: #30D158 !important;
+            border: 1px solid rgba(52, 199, 89, 0.28) !important;
+        }
+
+        .assistant-subheading {
+            font-size: 10.5px !important;
+            color: var(--text-secondary) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            opacity: 0.8 !important;
+        }
+
+        .assistant-actions-block {
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .copilot-pill-action-btn {
+            height: 28px !important;
+            padding: 0 10px !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            border-radius: 999px !important;
+            background: var(--bg-subtle) !important;
+            border: 1px solid var(--border-hairline) !important;
+            color: var(--text-primary) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .copilot-pill-action-btn:hover {
+            border-color: var(--apple-blue) !important;
+            color: var(--apple-blue) !important;
+            transform: translateY(-0.5px) !important;
+        }
+
+        .copilot-circle-icon-btn {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            border-radius: 50% !important;
+            background: var(--bg-subtle) !important;
+            border: 1px solid var(--border-hairline) !important;
+            color: var(--text-secondary) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .copilot-circle-icon-btn:hover {
+            background: var(--bg-elevated) !important;
+            color: var(--text-primary) !important;
+            transform: scale(1.08) !important;
+        }
+        .copilot-circle-icon-btn.close-btn:hover {
+            background: rgba(255, 59, 48, 0.15) !important;
+            color: var(--apple-red) !important;
+            border-color: rgba(255, 59, 48, 0.3) !important;
+        }
+
+        /* Voice Listening Equalizer Banner */
+        .voice-listening-banner-v2 {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            padding: 12px 18px !important;
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.18), rgba(175, 82, 222, 0.16)) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(30px) !important;
+            -webkit-backdrop-filter: blur(30px) !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Input Dock */
+        .copilot-input-dock {
+            background: var(--bg-card) !important;
+            border-top: 1px solid var(--border-hairline) !important;
+            padding: 10px 16px 14px 16px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .copilot-toolbar-strip {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+        }
+
+        .copilot-voice-toggle-chip {
+            height: 26px !important;
+            padding: 0 10px !important;
+            border-radius: 999px !important;
+            background: rgba(0, 113, 227, 0.12) !important;
+            border: 1px solid rgba(0, 113, 227, 0.35) !important;
+            color: var(--apple-blue) !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            white-space: nowrap !important;
+        }
+        .copilot-voice-toggle-chip:hover {
+            transform: translateY(-0.5px) !important;
+        }
+        .copilot-voice-toggle-chip.active {
+            background: rgba(52, 199, 89, 0.14) !important;
+            border-color: rgba(52, 199, 89, 0.4) !important;
+            color: #30D158 !important;
+        }
+        .copilot-voice-toggle-chip:not(.active) {
+            background: var(--bg-subtle) !important;
+            border-color: var(--border-hairline) !important;
+            color: var(--text-secondary) !important;
+            opacity: 0.7 !important;
+        }
+
+        .copilot-lang-select {
+            height: 26px !important;
+            border-radius: 999px !important;
+            padding: 0 10px !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            background: var(--bg-subtle) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-hairline) !important;
+            outline: none !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .copilot-lang-select:hover {
+            border-color: var(--apple-blue) !important;
+        }
+
+        .copilot-input-capsule {
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+            background: var(--bg-subtle) !important;
+            border: 1.5px solid var(--border-hairline) !important;
+            border-radius: 999px !important;
+            padding: 4px 6px 4px 16px !important;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.2s ease !important;
+            min-width: 0 !important;
+        }
+        .copilot-input-capsule:focus-within {
+            border-color: var(--apple-blue) !important;
+            background: var(--bg-elevated) !important;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18) !important;
+        }
+
+        .copilot-text-input {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            border: none !important;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            font-size: 13.5px !important;
+            font-family: inherit !important;
+            outline: none !important;
+            padding: 8px 0 !important;
+        }
+
+        .copilot-btn-group {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            flex-shrink: 0 !important;
+        }
+
+        .copilot-mic-btn {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            border-radius: 50% !important;
+            background: var(--bg-elevated) !important;
+            border: 1px solid var(--border-hairline) !important;
+            color: var(--text-primary) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            font-size: 15px !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .copilot-mic-btn:hover {
+            transform: scale(1.08) !important;
+            border-color: var(--apple-blue) !important;
+            background: rgba(0, 113, 227, 0.12) !important;
+            color: var(--apple-blue) !important;
+        }
+        .copilot-mic-btn.listening {
+            background: linear-gradient(135deg, #FF2D55, #AF52DE, #007AFF) !important;
+            color: #fff !important;
+            border-color: transparent !important;
+            box-shadow: 0 0 18px rgba(175, 82, 222, 0.7) !important;
+            animation: siriMicPulse 1.2s infinite alternate !important;
+        }
+
+        .copilot-send-btn {
+            width: 36px !important;
+            height: 36px !important;
+            min-width: 36px !important;
+            border-radius: 50% !important;
+            background: var(--apple-blue) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: 0 2px 10px rgba(0, 113, 227, 0.4) !important;
+        }
+        .copilot-send-btn:hover {
+            transform: scale(1.08) !important;
+            background: #0077ED !important;
+        }
+        .copilot-send-btn:active {
+            transform: scale(0.92) !important;
+        }
+    </style>
     
     <!-- Tailwind CSS Play CDN for utility support -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -301,65 +676,74 @@
     <div id="assistantBackdrop" class="assistant-backdrop" aria-hidden="true"></div>
 
     <!-- Leoxur AI Copilot Drawer / Popover Panel -->
-    <div id="assistantPanel" class="assistant-panel" role="dialog" aria-labelledby="assistantTitle" style="z-index:99999;">
-        <!-- Sheet Grabber for Mobile -->
+    <div id="assistantPanel" class="assistant-panel" role="dialog" aria-labelledby="assistantTitle">
+        <!-- Sheet Grabber for Mobile Viewports -->
         <div class="sheet-grabber-bar" aria-hidden="true"></div>
 
-        <div class="assistant-header" style="position:relative;">
-            <div class="assistant-header-title" id="assistantTitle">
-                <div class="assistant-ai-badge">
-                    {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+        <!-- Sleek Redesigned Header v2 -->
+        <div class="assistant-header-v2">
+            <div class="assistant-brand-block">
+                <div class="assistant-iridescent-orb" title="Leoxur AI Neural Telemetry">
+                    <span class="orb-glyph">✨</span>
+                    <span class="orb-pulse-ring"></span>
                 </div>
-                <div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span>Leoxur AI Copilot</span>
+                <div class="assistant-title-meta" id="assistantTitle">
+                    <div class="assistant-title-row">
+                        <span class="assistant-heading-title">Leoxur Copilot</span>
                         {% if user.profile.get_saved_ai_key and user.profile.ai_mode != 'local' %}
-                        <span id="copilotBadge" style="font-size:10px; font-weight:600; padding:2px 8px; border-radius:999px; background:rgba(52,199,89,0.15); color:var(--apple-green); display:inline-flex; align-items:center; gap:4px;">
-                            <span style="width:5px; height:5px; border-radius:50%; background:var(--apple-green);"></span>
-                            <span id="copilotBadgeText">Cloud AI: {{ user.profile.get_ai_provider_display_name }}</span>
+                        <span class="copilot-neural-badge cloud" title="Connected to Google Gemini Neural Intelligence">
+                            <span class="pulse-dot"></span>
+                            <span>Gemini Neural</span>
                         </span>
                         {% else %}
-                        <span id="copilotBadge" style="font-size:10px; font-weight:500; padding:2px 8px; border-radius:999px; background:rgba(0,122,255,0.12); color:var(--apple-blue); display:inline-flex; align-items:center; gap:4px;">
-                            <span style="width:5px; height:5px; border-radius:50%; background:var(--apple-blue);"></span>
-                            <span id="copilotBadgeText">Local Engine: Offline</span>
+                        <span class="copilot-neural-badge local" title="Operating with deterministic local brain">
+                            <span class="pulse-dot"></span>
+                            <span>Local Brain</span>
                         </span>
                         {% endif %}
                     </div>
-                    <div style="font-size:11px; color:var(--text-secondary); font-weight:400;">Autonomous Financial Telemetry & Advisory</div>
+                    <div class="assistant-subheading">Autonomous Wealth & Telemetry Advisor</div>
                 </div>
             </div>
-            <div class="assistant-window-controls" style="display:flex; align-items:center; gap:5px;">
-                <button id="assistantNewChatBtn" class="ios-btn-secondary" type="button" style="padding:3px 9px; font-size:11px; font-weight:600; border-radius:999px; height:26px; display:inline-flex; align-items:center; gap:4px;" title="Start a fresh chat conversation">
+
+            <div class="assistant-actions-block">
+                <!-- Fresh Chat Pill -->
+                <button id="assistantNewChatBtn" class="copilot-pill-action-btn" type="button" title="Start a fresh conversation">
                     <span>+</span> New
                 </button>
-                <button id="assistantHistoryBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Chat History">
+
+                <!-- Saved Sessions History -->
+                <button id="assistantHistoryBtn" class="copilot-circle-icon-btn" type="button" title="Chat History">
                     {% sf_icon "clock" "sf-icon-xs" %}
                 </button>
-                <button type="button" class="ios-icon-btn assistant-control-btn" onclick="openSettingsModal('ai')" title="AI Agent Settings">
+
+                <!-- Telemetry Config -->
+                <button type="button" class="copilot-circle-icon-btn" onclick="openSettingsModal('ai')" title="AI Agent Settings">
                     {% sf_icon "gear" "sf-icon-xs" %}
                 </button>
-                <button id="assistantMinimizeBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Minimize Drawer">
-                    {% sf_icon "minus" "sf-icon-xs" %}
-                </button>
-                <button id="assistantMaximizeBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Maximize Window">
+
+                <!-- Maximize / Focus -->
+                <button id="assistantMaximizeBtn" class="copilot-circle-icon-btn" type="button" title="Maximize Window">
                     {% sf_icon "arrow_up_right" "sf-icon-xs" %}
                 </button>
-                <button id="assistantCloseBtn" class="ios-icon-btn assistant-control-btn" type="button" title="Close">
+
+                <!-- Close -->
+                <button id="assistantCloseBtn" class="copilot-circle-icon-btn close-btn" type="button" title="Close Copilot">
                     {% sf_icon "xmark" "sf-icon-xs" %}
                 </button>
             </div>
         </div>
 
         <!-- Slide-Over Chat History Drawer -->
-        <div id="assistantHistoryDrawer" class="assistant-history-drawer" style="display:none; position:absolute; inset:54px 0 0 0; background:var(--bg-elevated); z-index:100; padding:16px; overflow-y:auto; backdrop-filter:blur(24px); border-bottom-left-radius:var(--radius-xl); border-bottom-right-radius:var(--radius-xl);">
+        <div id="assistantHistoryDrawer" class="assistant-history-drawer" style="display:none; position:absolute; inset:56px 0 0 0; background:var(--bg-elevated); z-index:100; padding:18px; overflow-y:auto; backdrop-filter:blur(30px); border-bottom-left-radius:26px; border-bottom-right-radius:26px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-hairline); padding-bottom:10px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-weight:700; font-size:13px; letter-spacing:-0.01em;">Saved Conversations</span>
-                    <span id="sessionCountBadge" style="font-size:10px; font-weight:700; background:var(--apple-blue); color:white; padding:1px 7px; border-radius:999px;">1</span>
+                    <span style="font-weight:700; font-size:13.5px; letter-spacing:-0.01em;">Saved Conversations</span>
+                    <span id="sessionCountBadge" style="font-size:10px; font-weight:700; background:var(--apple-blue); color:white; padding:2px 8px; border-radius:999px;">1</span>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button type="button" id="startNewChatFromHistoryBtn" class="ios-btn-primary" style="font-size:11px; padding:3px 10px; border-radius:999px;">+ New Chat</button>
-                    <button type="button" id="closeHistoryDrawerBtn" class="ios-icon-btn" style="width:26px; height:26px;" title="Back to Chat">
+                    <button type="button" id="startNewChatFromHistoryBtn" class="ios-btn-primary" style="font-size:11px; padding:4px 12px; border-radius:999px;">+ New Chat</button>
+                    <button type="button" id="closeHistoryDrawerBtn" class="copilot-circle-icon-btn" title="Back to Chat">
                         {% sf_icon "xmark" "sf-icon-xs" %}
                     </button>
                 </div>
@@ -367,44 +751,45 @@
             <div id="sessionListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
+        <!-- Messages Feed -->
         <div class="assistant-messages" id="assistantMessages">
-            <div class="welcome-card" style="padding:16px 14px; border-radius:18px; background:linear-gradient(135deg, rgba(0,113,227,0.09), rgba(191,90,242,0.07)); border:1px solid rgba(255,255,255,0.12); margin-bottom:6px;">
+            <div class="welcome-card" style="padding:18px 16px; border-radius:20px; background:linear-gradient(135deg, rgba(0,113,227,0.1), rgba(191,90,242,0.08)); border:1px solid rgba(255,255,255,0.14); margin-bottom:6px;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                    <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #0071E3, #BF5AF2); display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,113,227,0.35); color:#fff; font-size:16px;">
+                    <div style="width:36px; height:36px; border-radius:12px; background:linear-gradient(135deg, #0071E3, #BF5AF2); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,113,227,0.35); color:#fff; font-size:16px;">
                         ✨
                     </div>
                     <div>
-                        <div style="font-size:13.5px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I'm Leoxur Copilot</div>
-                        <div style="font-size:11px; color:var(--text-secondary);">Your personal finance AI & telemetry companion</div>
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I'm Leoxur Copilot</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">Your personal finance AI & natural voice companion</div>
                     </div>
                 </div>
-                <div style="font-size:12px; line-height:1.45; color:var(--text-secondary); margin-bottom:12px;">
-                    Ask me to email your monthly statement with PDF charts & spreadsheets, perform 50/30/20 audits, or log expenses.
+                <div style="font-size:12.5px; line-height:1.45; color:var(--text-secondary); margin-bottom:12px;">
+                    Tap the microphone to speak in any language or type your instructions. I'll execute actions and speak back with a natural human voice.
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                     <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('send oct report to my mail with spreadsheet and pdf')">
-                        <span style="font-size:14px;">📧</span>
+                        <span style="font-size:15px;">📧</span>
                         <div>
-                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Email Report</strong>
-                            <span style="font-size:9.5px; color:var(--text-secondary);">PDF charts & Excel file</span>
+                            <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Email Statement</strong>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">PDF charts & spreadsheet</span>
                         </div>
                     </button>
                     <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Cashflow diagnostic')">
-                        <span style="font-size:14px;">📊</span>
+                        <span style="font-size:15px;">📊</span>
                         <div>
                             <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">50/30/20 Audit</strong>
-                            <span style="font-size:9.5px; color:var(--text-secondary);">Leakages & blueprint</span>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">Leakages & targets</span>
                         </div>
                     </button>
                     <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Check budgets')">
-                        <span style="font-size:14px;">🎯</span>
+                        <span style="font-size:15px;">🎯</span>
                         <div>
                             <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Budget Caps</strong>
-                            <span style="font-size:9.5px; color:var(--text-secondary);">Monthly limits status</span>
+                            <span style="font-size:9.5px; color:var(--text-secondary);">Active limits status</span>
                         </div>
                     </button>
                     <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('Fetch IMAP details')">
-                        <span style="font-size:14px;">📬</span>
+                        <span style="font-size:15px;">📬</span>
                         <div>
                             <strong style="font-size:11px; display:block; color:var(--text-primary); line-height:1.2;">Sync Mail</strong>
                             <span style="font-size:9.5px; color:var(--text-secondary);">IMAP bank receipts</span>
@@ -415,7 +800,7 @@
         </div>
 
         <!-- Suggestion Chips Bar -->
-        <div class="suggestion-chips" style="padding:8px 14px; display:flex; gap:6px; overflow-x:auto; border-top:0.5px solid var(--border-hairline);">
+        <div class="suggestion-chips" style="padding:8px 16px; display:flex; gap:6px; overflow-x:auto; border-top:1px solid var(--border-hairline);">
             <button type="button" class="suggestion-chip" data-prompt="send oct report to my mail with spreadsheet and pdf">📧 Email PDF & Excel Report</button>
             <button type="button" class="suggestion-chip" data-prompt="Cashflow diagnostic">📊 Cashflow Audit</button>
             <button type="button" class="suggestion-chip" data-prompt="Give me visual suggestions to utilize money properly">💡 Money Advice & Chart</button>
@@ -426,72 +811,76 @@
             <button type="button" class="suggestion-chip" onclick="openSettingsModal('ai')">⚙️ Telemetry Config</button>
         </div>
 
-        <!-- Live Voice Listening Banner (Slides up smoothly when voice detection is active) -->
-        <div id="voiceListeningBanner" class="voice-listening-banner" style="display:none;">
-            <div class="voice-wave-container">
-                <span class="voice-bar"></span>
-                <span class="voice-bar"></span>
-                <span class="voice-bar"></span>
-                <span class="voice-bar"></span>
-                <span class="voice-bar"></span>
+        <!-- Live Voice Listening Banner with Multi-Tone Equalizer -->
+        <div id="voiceListeningBanner" class="voice-listening-banner-v2" style="display:none;">
+            <div class="voice-siri-orb">
+                <span class="orb-inner">🎙️</span>
             </div>
-            <div style="flex:1; min-width:0;">
-                <div id="voiceListeningStatus" style="font-size:11.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
-                    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#FF3B30; animation:pulse 1s infinite;"></span>
+            <div class="voice-equalizer-bars">
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+                <span class="eq-bar"></span>
+            </div>
+            <div class="voice-text-column">
+                <div id="voiceListeningStatus" class="voice-title-text">
+                    <span class="rec-red-dot"></span>
                     <span id="voiceListeningText">Listening... Speak now</span>
                 </div>
-                <div id="voiceListeningInterim" style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic;">Listening for speech in selected language...</div>
+                <div id="voiceListeningInterim" class="voice-transcription-preview">"Speak in your preferred language..."</div>
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <button type="button" id="voiceDoneBtn" class="voice-pill-btn voice-done-btn" title="Submit Spoken Voice Input">
-                    ✓ Done
-                </button>
-                <button type="button" id="voiceCancelBtn" class="voice-pill-btn voice-cancel-btn" title="Cancel Listening">
-                    ✕
-                </button>
+            <div class="voice-action-pills">
+                <button type="button" id="voiceDoneBtn" class="voice-action-pill done-pill" title="Process spoken instruction">✓ Done</button>
+                <button type="button" id="voiceCancelBtn" class="voice-action-pill cancel-pill" title="Cancel listening">✕</button>
             </div>
         </div>
 
-        <!-- Prompt Input Bar with Multi-Language Voice Detection & Audio Speaker Output -->
-        <div class="assistant-input-bar">
-            <!-- Language Selector Dropdown -->
-            <div class="voice-lang-wrapper" style="position:relative; flex-shrink:0;">
-                <select id="assistantLangSelect" class="assistant-lang-select" title="Voice Recognition Language">
-                    <option value="auto" selected>🌐 Auto</option>
-                    <option value="en-US">🇺🇸 English</option>
-                    <option value="es-ES">🇪🇸 Español</option>
-                    <option value="hi-IN">🇮🇳 हिन्दी</option>
-                    <option value="ta-IN">🇮🇳 தமிழ்</option>
-                    <option value="fr-FR">🇫🇷 Français</option>
-                    <option value="de-DE">🇩🇪 Deutsch</option>
-                    <option value="it-IT">🇮🇹 Italiano</option>
-                    <option value="pt-BR">🇧🇷 Português</option>
-                    <option value="ar-SA">🇸🇦 العربية</option>
-                    <option value="ru-RU">🇷🇺 Русский</option>
-                    <option value="zh-CN">🇨🇳 中文</option>
-                    <option value="ja-JP">🇯🇵 日本語</option>
-                    <option value="te-IN">🇮🇳 Telugu</option>
-                    <option value="ml-IN">🇮🇳 Malayalam</option>
-                    <option value="kn-IN">🇮🇳 Kannada</option>
-                </select>
+        <!-- Redesigned Ergonomic Input Dock -->
+        <div class="copilot-input-dock">
+            <!-- Language and Mode Toolbar -->
+            <div class="copilot-toolbar-strip">
+                <div class="copilot-lang-pill">
+                    <select id="assistantLangSelect" class="copilot-lang-select" title="Voice Recognition Language">
+                        <option value="auto" selected>🌐 Auto Detect Language</option>
+                        <option value="en-US">🇺🇸 English (US/UK)</option>
+                        <option value="es-ES">🇪🇸 Español (Spanish)</option>
+                        <option value="hi-IN">🇮🇳 हिन्दी / Hinglish</option>
+                        <option value="ta-IN">🇮🇳 தமிழ் / Tanglish</option>
+                        <option value="fr-FR">🇫🇷 Français (French)</option>
+                        <option value="de-DE">🇩🇪 Deutsch (German)</option>
+                        <option value="it-IT">🇮🇹 Italiano (Italian)</option>
+                        <option value="pt-BR">🇧🇷 Português</option>
+                        <option value="ar-SA">🇸🇦 العربية (Arabic)</option>
+                        <option value="ru-RU">🇷🇺 Русский (Russian)</option>
+                        <option value="zh-CN">🇨🇳 中文 (Mandarin)</option>
+                        <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
+                        <option value="te-IN">🇮🇳 Telugu</option>
+                        <option value="ml-IN">🇮🇳 Malayalam</option>
+                        <option value="kn-IN">🇮🇳 Kannada</option>
+                    </select>
+                </div>
+                <button type="button" id="assistantSpeakerBtn" class="copilot-voice-toggle-chip active" title="Natural Human Voice: Active (Click to mute)">
+                    <span class="voice-status-icon" id="speakerIcon">🔊</span>
+                    <span class="voice-toggle-label">Voice ON</span>
+                </button>
             </div>
 
-            <input type="text" id="assistantInput" class="assistant-input" placeholder="Ask questions or tap mic to speak in any language..." autocomplete="off">
-
-            <!-- Audio Speaker Response Toggle (Text-to-Speech) -->
-            <button type="button" id="assistantSpeakerBtn" class="assistant-speaker-btn" title="Toggle AI Spoken Voice Response" aria-label="Toggle AI Voice Response">
-                <span id="speakerIcon">🔇</span>
-            </button>
-
-            <!-- Microphone Button -->
-            <button type="button" id="assistantVoiceBtn" class="assistant-voice-btn" title="Start Voice Detection (Speak in any language)" aria-label="Start Voice Detection">
-                <span class="voice-mic-icon">🎙️</span>
-            </button>
-
-            <!-- Send Button -->
-            <button type="button" id="assistantSendBtn" class="assistant-send-btn" title="Send Query">
-                {% sf_icon "arrow_up_right" "sf-icon-xs" %}
-            </button>
+            <!-- Primary Chat Input Capsule -->
+            <div class="copilot-input-capsule">
+                <input type="text" id="assistantInput" class="copilot-text-input" placeholder="Ask financial questions or tap mic to speak in any language..." autocomplete="off">
+                
+                <div class="copilot-btn-group">
+                    <button type="button" id="assistantVoiceBtn" class="copilot-mic-btn" title="Tap to speak in any language" aria-label="Start Voice Detection">
+                        <span class="mic-icon-glyph">🎙️</span>
+                    </button>
+                    <button type="button" id="assistantSendBtn" class="copilot-send-btn" title="Send Query" aria-label="Send Query">
+                        {% sf_icon "arrow_up_right" "sf-icon-xs" %}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2177,51 +2566,127 @@
                 this.ttsEnabled = !this.ttsEnabled;
                 localStorage.setItem('leoxur_copilot_tts', this.ttsEnabled ? 'true' : 'false');
                 this.updateSpeakerUi();
-                if (!this.ttsEnabled && window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
+                if (!this.ttsEnabled) {
+                    if (this.currentAudio) {
+                        try { this.currentAudio.pause(); } catch(e) {}
+                        this.currentAudio = null;
+                    }
+                    if (window.speechSynthesis) {
+                        window.speechSynthesis.cancel();
+                    }
                 }
             }
 
             updateSpeakerUi() {
                 if (!this.speakerBtn) return;
-                this.speakerBtn.style.opacity = this.ttsEnabled ? '1' : '0.45';
-                this.speakerBtn.style.color = this.ttsEnabled ? 'var(--apple-blue)' : 'inherit';
-                this.speakerBtn.title = this.ttsEnabled ? 'Voice feedback: ON (Click to mute)' : 'Voice feedback: OFF (Click to speak replies)';
+                const hintEl = document.getElementById('copilotVoiceHint');
+                if (this.ttsEnabled) {
+                    this.speakerBtn.classList.add('active');
+                    this.speakerBtn.innerHTML = '<span class="voice-status-icon">🔊</span><span class="voice-toggle-label">Voice ON</span>';
+                    this.speakerBtn.title = 'Natural Human Voice: Active (Click to mute)';
+                    if (hintEl) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
+                } else {
+                    this.speakerBtn.classList.remove('active');
+                    this.speakerBtn.innerHTML = '<span class="voice-status-icon">🔇</span><span class="voice-toggle-label">Voice OFF</span>';
+                    this.speakerBtn.title = 'Natural Human Voice: Muted (Click to enable)';
+                    if (hintEl) hintEl.innerHTML = '<span>🔇 Voice Feedback Muted</span>';
+                }
             }
 
-            speakResponse(text, langHint) {
+            async speakResponse(text, langHint) {
+                if (!this.ttsEnabled) return;
+                
+                // Stop any existing audio
+                if (this.currentAudio) {
+                    try { this.currentAudio.pause(); } catch(e) {}
+                    this.currentAudio = null;
+                }
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+
+                const targetLang = (langHint || (this.langSelect ? this.langSelect.value : 'auto') || 'en').toLowerCase();
+                const hintEl = document.getElementById('copilotVoiceHint');
+
+                // 1. Call server-side Natural Human Neural Speech (/api/voice-speak/)
+                try {
+                    if (hintEl) hintEl.innerHTML = '<span>🎙️ Speaking with human voice...</span>';
+                    const res = await fetch('/api/voice-speak/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ text: text, language: targetLang })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.audio_base64) {
+                        const audio = new Audio(data.audio_base64);
+                        this.currentAudio = audio;
+                        audio.onended = () => {
+                            this.currentAudio = null;
+                            if (hintEl && this.ttsEnabled) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
+                        };
+                        audio.onerror = () => {
+                            this.currentAudio = null;
+                            this.fallbackBrowserSpeech(text, targetLang);
+                        };
+                        await audio.play();
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('Server natural speech failed, falling back to browser synthesis:', e);
+                }
+
+                // 2. High-fidelity client-side speech synthesis fallback
+                this.fallbackBrowserSpeech(text, targetLang);
+            }
+
+            fallbackBrowserSpeech(text, targetLang) {
                 if (!window.speechSynthesis) return;
                 try {
-                    window.speechSynthesis.cancel();
                     const tmp = document.createElement('div');
                     tmp.innerHTML = text;
                     let cleanText = tmp.textContent || tmp.innerText || '';
                     cleanText = cleanText.replace(/↻ Refresh Dashboard/g, '').replace(/https?:\/\/\S+/g, '').trim();
+                    cleanText = cleanText.replace(/₹\s*([0-9,.]+)/g, '$1 rupees')
+                                         .replace(/\$\s*([0-9,.]+)/g, '$1 dollars')
+                                         .replace(/€\s*([0-9,.]+)/g, '$1 euros')
+                                         .replace(/£\s*([0-9,.]+)/g, '$1 pounds');
                     if (!cleanText) return;
-
-                    if (cleanText.length > 500) {
-                        cleanText = cleanText.substring(0, 500) + '...';
-                    }
+                    if (cleanText.length > 400) cleanText = cleanText.substring(0, 400) + '...';
 
                     const utterance = new SpeechSynthesisUtterance(cleanText);
                     const voices = window.speechSynthesis.getVoices();
-                    const targetLang = (langHint || (this.langSelect ? this.langSelect.value : 'auto') || 'en-US').toLowerCase();
 
-                    if (targetLang !== 'auto' && voices.length) {
-                        const matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(targetLang.split('-')[0])) ||
-                                             voices.find(v => v.lang.toLowerCase().includes(targetLang));
-                        if (matchedVoice) {
-                            utterance.voice = matchedVoice;
-                            utterance.lang = matchedVoice.lang;
-                        } else {
-                            utterance.lang = targetLang;
+                    let bestVoice = null;
+                    if (voices && voices.length) {
+                        const langCode = targetLang === 'auto' ? (navigator.language || 'en') : targetLang;
+                        const baseLang = langCode.split('-')[0].toLowerCase();
+                        
+                        const candidates = voices.filter(v => v.lang.toLowerCase().startsWith(baseLang));
+                        if (candidates.length) {
+                            bestVoice = candidates.find(v => {
+                                const name = v.name.toLowerCase();
+                                return name.includes('natural') || name.includes('neural') || name.includes('enhanced') || name.includes('siri') || name.includes('google') || name.includes('samantha');
+                            }) || candidates[0];
                         }
                     }
-                    utterance.rate = 1.0;
+
+                    if (bestVoice) {
+                        utterance.voice = bestVoice;
+                        utterance.lang = bestVoice.lang;
+                    }
+                    utterance.rate = 0.98;
                     utterance.pitch = 1.0;
+
+                    const hintEl = document.getElementById('copilotVoiceHint');
+                    utterance.onend = () => {
+                        if (hintEl && this.ttsEnabled) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
+                    };
                     window.speechSynthesis.speak(utterance);
                 } catch (e) {
-                    console.warn('Speech synthesis error:', e);
+                    console.warn('Speech synthesis fallback error:', e);
                 }
             }
 
