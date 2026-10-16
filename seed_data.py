@@ -20,10 +20,9 @@ def run():
     email = 'admin@leoxur.fi'
     password = 'admin123'
     
-    user, created = User.objects.get_or_create(username=username, email=email)
-    if created:
-        user.set_password(password)
-        user.save()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        user = User.objects.create_user(username=username, email=email, password=password)
         print(f"✅ User node '{username}' successfully deployed with default key '{password}'.")
     else:
         print(f"ℹ️ User node '{username}' already exists. Re-seeding telemetry...")

@@ -36,7 +36,7 @@ def signup_view(request):
 
 @login_required
 def dashboard_view(request):
-    today = date.today()
+    real_today = date.today()
     user = request.user
     profile, _ = Profile.objects.get_or_create(user=user)
     
@@ -81,32 +81,89 @@ def dashboard_view(request):
     income_categories = [c.name for c in user_income_cats]
     expense_categories = [c.name for c in user_expense_cats]
     
-    # Filter bounds for current month
-    start_of_month = date(today.year, today.month, 1)
-    _, last_day = calendar.monthrange(today.year, today.month)
-    end_of_month = date(today.year, today.month, last_day)
+    # ----------------- Multi-Month & Multi-Year Navigation -----------------
+    try:
+        selected_year = int(request.GET.get('year', real_today.year))
+        selected_month = int(request.GET.get('month', real_today.month))
+        if selected_month < 1 or selected_month > 12:
+            selected_month = real_today.month
+        if selected_year < 1970 or selected_year > 2099:
+            selected_year = real_today.year
+    except (ValueError, TypeError):
+        selected_year = real_today.year
+        selected_month = real_today.month
 
-    # Current Month Transactions
+    # Date bounds for the selected month
+    start_of_month = date(selected_year, selected_month, 1)
+    _, last_day = calendar.monthrange(selected_year, selected_month)
+    end_of_month = date(selected_year, selected_month, last_day)
+
+    # Previous and Next Month calculations
+    if selected_month == 1:
+        prev_month, prev_year = 12, selected_year - 1
+    else:
+        prev_month, prev_year = selected_month - 1, selected_year
+
+    if selected_month == 12:
+        next_month, next_year = 1, selected_year + 1
+    else:
+        next_month, next_year = selected_month + 1, selected_year
+
+    is_current_month = (selected_year == real_today.year and selected_month == real_today.month)
+    selected_month_name = calendar.month_name[selected_month]
+    selected_month_abbr = calendar.month_abbr[selected_month]
+    selected_cycle_label = f"{selected_month_name} {selected_year}"
+
+    # Transactions for selected month
     month_txs = Transaction.objects.filter(user=user, date__range=(start_of_month, end_of_month))
     
-    # Financial Aggregations
-    total_income = month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    total_expense = month_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    # Financial Aggregations for selected month
+    month_inflow_txs = month_txs.filter(transaction_type='IN')
+    month_outflow_txs = month_txs.filter(transaction_type='OUT')
+    
+    total_income = month_inflow_txs.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    total_expense = month_outflow_txs.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     balance = total_income - total_expense
     
-    # Category Expenses for current month
+    month_inflow_count = month_inflow_txs.count()
+    month_outflow_count = month_outflow_txs.count()
+    net_margin_pct = int(round((balance / total_income * 100))) if total_income > 0 else 0
+
+    # Largest Inflow & Outflow sources
+    primary_inflow_obj = month_inflow_txs.values('category').annotate(c_sum=Sum('amount')).order_by('-c_sum').first()
+    primary_inflow_name = primary_inflow_obj['category'] if primary_inflow_obj else "Direct Deposit"
+    primary_inflow_amount = primary_inflow_obj['c_sum'] if primary_inflow_obj else Decimal('0.00')
+
+    top_outflow_obj = month_outflow_txs.values('category').annotate(c_sum=Sum('amount')).order_by('-c_sum').first()
+    top_outflow_name = top_outflow_obj['category'] if top_outflow_obj else "General"
+    top_outflow_amount = top_outflow_obj['c_sum'] if top_outflow_obj else Decimal('0.00')
+    top_outflow_pct = int(round((top_outflow_amount / total_expense * 100))) if total_expense > 0 else 0
+
+    # Category Expenses for selected month
     cat_expenses = {}
-    for tx in month_txs.filter(transaction_type='OUT'):
+    for tx in month_outflow_txs:
         cat_expenses[tx.category] = cat_expenses.get(tx.category, Decimal('0.00')) + tx.amount
 
-    # Budget Progress Calculations
-    budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
+    # Budget Progress Calculations for selected month
+    budgets = Budget.objects.filter(user=user, year=selected_year, month=selected_month)
+    
+    # Fallback to general category budgets if specific month has no budgets
+    fallback_budgets = {}
+    if not budgets.exists():
+        for b in Budget.objects.filter(user=user).order_by('-year', '-month'):
+            if b.category not in fallback_budgets:
+                fallback_budgets[b.category] = b.amount
+
     budget_data = []
     alerts = []
     
     for category in expense_categories:
         budget_obj = budgets.filter(category=category).first()
-        budget_amount = budget_obj.amount if budget_obj else Decimal('0.00')
+        if budget_obj:
+            budget_amount = budget_obj.amount
+        else:
+            budget_amount = fallback_budgets.get(category, Decimal('0.00'))
+
         spent = cat_expenses.get(category, Decimal('0.00'))
         
         pct = 0
@@ -115,12 +172,12 @@ def dashboard_view(request):
             if pct >= 100:
                 alerts.append({
                     'type': 'danger',
-                    'message': f"CRITICAL: You have exceeded your monthly budget for {category}! Spent: {profile.currency}{spent:.2f} / Budget: {profile.currency}{budget_amount:.2f} ({pct}%)"
+                    'message': f"CRITICAL: Monthly budget exceeded for {category}! Spent: {profile.currency}{spent:,.2f} / Limit: {profile.currency}{budget_amount:,.2f} ({pct}%)"
                 })
             elif pct >= 80:
                 alerts.append({
                     'type': 'warning',
-                    'message': f"WARNING: You've reached {pct}% of your monthly budget for {category}. Remaining: {profile.currency}{budget_amount - spent:.2f}"
+                    'message': f"WARNING: Reached {pct}% of monthly budget for {category}. Remaining: {profile.currency}{budget_amount - spent:,.2f}"
                 })
         
         remaining = budget_amount - spent
@@ -138,30 +195,37 @@ def dashboard_view(request):
 
     # Overall Total Budget
     overall_budget_obj = budgets.filter(category='Total').first()
-    overall_budget = overall_budget_obj.amount if overall_budget_obj else Decimal('0.00')
+    if overall_budget_obj:
+        overall_budget = overall_budget_obj.amount
+    else:
+        overall_budget = fallback_budgets.get('Total', Decimal('0.00'))
+
     overall_pct = 0
     if overall_budget > 0:
         overall_pct = int((total_expense / overall_budget) * 100)
         if overall_pct >= 100:
             alerts.append({
                 'type': 'danger',
-                'message': f"CRITICAL: Total expenses have breached your overall budget! Spent: {profile.currency}{total_expense:.2f} / Budget: {profile.currency}{overall_budget:.2f} ({overall_pct}%)"
+                'message': f"CRITICAL: Total disbursements have breached overall monthly budget! Spent: {profile.currency}{total_expense:,.2f} / Limit: {profile.currency}{overall_budget:,.2f} ({overall_pct}%)"
             })
         elif overall_pct >= 80:
             alerts.append({
                 'type': 'warning',
-                'message': f"WARNING: Total expenses at {overall_pct}% of overall budget. Remaining: {profile.currency}{overall_budget - total_expense:.2f}"
+                'message': f"WARNING: Total disbursements at {overall_pct}% of budget cap. Remaining: {profile.currency}{overall_budget - total_expense:,.2f}"
             })
 
-    # Smart Saving Recommendations
-    recommendations = generate_recommendations(user, cat_expenses, total_income)
+    # Rich AI Financial Intelligence & Telemetry Hub
+    ai_telemetry = generate_ai_telemetry(user, cat_expenses, total_income, total_expense, selected_month, selected_year, profile, overall_budget)
+    recommendations = [item['message'] for item in ai_telemetry['insights']]
 
     # Reminders
     reminders = Reminder.objects.filter(user=user, is_paid=False)
-    upcoming_reminders = reminders.filter(due_date__gte=today)
-    overdue_reminders = reminders.filter(due_date__lt=today)
+    upcoming_reminders = reminders.filter(due_date__gte=real_today)
+    overdue_reminders = reminders.filter(due_date__lt=real_today)
     
-    recent_transactions = Transaction.objects.filter(user=user).order_by('-date', '-created_at')[:500]
+    # Financial Activity Ledger: show transactions for the selected cycle
+    month_transactions = month_txs.order_by('-date', '-created_at')
+    recent_transactions = month_transactions if month_transactions.exists() else Transaction.objects.filter(user=user).order_by('-date', '-created_at')[:100]
 
     # Calculate gamified Financial Health Score
     health_score = 100
@@ -180,9 +244,10 @@ def dashboard_view(request):
     breached_count = 0
     for category in expense_categories:
         b_obj = budgets.filter(category=category).first()
-        if b_obj and b_obj.amount > 0:
+        b_val = b_obj.amount if b_obj else fallback_budgets.get(category, Decimal('0.00'))
+        if b_val > 0:
             spent = cat_expenses.get(category, Decimal('0.00'))
-            if spent > b_obj.amount:
+            if spent > b_val:
                 breached_count += 1
     health_score -= min(breached_count * 15, 35)
 
@@ -191,11 +256,34 @@ def dashboard_view(request):
     health_score = max(10, health_score)
     health_offset = float(175.9 * (1.0 - health_score / 100.0))
 
+    # Available years list for dropdown
+    tx_years = set(Transaction.objects.filter(user=user).dates('date', 'year').values_list('date__year', flat=True))
+    tx_years.add(real_today.year)
+    tx_years.add(selected_year)
+    available_years = sorted(list(tx_years), reverse=True)
+    if len(available_years) < 3:
+        available_years = sorted(list(set(available_years + [real_today.year - 1, real_today.year, real_today.year + 1])), reverse=True)
+
+    months_list = [
+        {'num': m, 'name': calendar.month_name[m], 'abbr': calendar.month_abbr[m]}
+        for m in range(1, 13)
+    ]
+
     context = {
         'profile': profile,
         'total_income': total_income,
         'total_expense': total_expense,
         'balance': balance,
+        'net_margin_pct': net_margin_pct,
+        'month_inflow_count': month_inflow_count,
+        'month_outflow_count': month_outflow_count,
+        'primary_inflow_name': primary_inflow_name,
+        'primary_inflow_amount': primary_inflow_amount,
+        'top_outflow_name': top_outflow_name,
+        'top_outflow_amount': top_outflow_amount,
+        'top_outflow_pct': top_outflow_pct,
+        'daily_avg_outflow': ai_telemetry['burn_rate']['daily_burn'],
+        'days_remaining_in_month': ai_telemetry['burn_rate']['days_remaining'],
         'budget_data': budget_data,
         'overall_budget': overall_budget,
         'overall_percentage': min(overall_pct, 100) if overall_budget > 0 else 0,
@@ -203,79 +291,225 @@ def dashboard_view(request):
         'overall_remaining': overall_budget - total_expense,
         'alerts': alerts,
         'recommendations': recommendations,
+        'ai_telemetry': ai_telemetry,
         'upcoming_reminders': upcoming_reminders,
         'overdue_reminders': overdue_reminders,
         'recent_transactions': recent_transactions,
         'user_income_cats': user_income_cats,
         'user_expense_cats': user_expense_cats,
         'expense_categories': expense_categories,
-        'today': today,
+        'today': real_today,
+        'selected_month': selected_month,
+        'selected_year': selected_year,
+        'selected_month_name': selected_month_name,
+        'selected_month_abbr': selected_month_abbr,
+        'selected_cycle_label': selected_cycle_label,
+        'is_current_month': is_current_month,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'available_years': available_years,
+        'months_list': months_list,
         'health_score': health_score,
         'health_offset': health_offset,
     }
     return render(request, 'tracker/dashboard.html', context)
 
 
+def generate_ai_telemetry(user, current_expenses, current_income, total_expense, selected_month, selected_year, profile, overall_budget=None):
+    """
+    Computes rich, multi-dimensional financial intelligence:
+    - 50/30/20 Rule breakdown (Needs, Wants, Savings)
+    - Burn Rate & Safe Daily Allowance velocity
+    - Category Surges and Anomalies vs Previous Month
+    - Targeted Dollar Savings Potential
+    - Executive Anomaly Insights & Actionable Copilot Prompts
+    """
+    currency = profile.currency if profile else '$'
+    real_today = date.today()
+    days_in_month = calendar.monthrange(selected_year, selected_month)[1]
+    
+    # Days elapsed & remaining
+    if selected_year == real_today.year and selected_month == real_today.month:
+        days_elapsed = max(1, real_today.day)
+        days_remaining = max(0, days_in_month - real_today.day)
+    else:
+        days_elapsed = days_in_month
+        days_remaining = 0
+
+    daily_burn = (total_expense / Decimal(str(days_elapsed))) if days_elapsed > 0 else Decimal('0.00')
+    projected_spend = daily_burn * Decimal(str(days_in_month))
+    
+    safe_daily_allowance = Decimal('0.00')
+    if overall_budget and overall_budget > total_expense and days_remaining > 0:
+        safe_daily_allowance = (overall_budget - total_expense) / Decimal(str(days_remaining))
+
+    # 1. 50/30/20 Rule Analysis
+    needs_cats = {'Rent', 'Food', 'Utilities', 'Groceries', 'Mortgage', 'Bills', 'Healthcare', 'Health', 'Insurance'}
+    needs_amt = Decimal('0.00')
+    wants_amt = Decimal('0.00')
+    
+    for cat, amt in current_expenses.items():
+        if cat in needs_cats or any(k in cat.lower() for k in ['rent', 'food', 'grocer', 'utilit', 'bill']):
+            needs_amt += amt
+        else:
+            wants_amt += amt
+
+    savings_surplus = max(Decimal('0.00'), current_income - total_expense)
+
+    needs_pct = int(round((needs_amt / current_income) * 100)) if current_income > 0 else 0
+    wants_pct = int(round((wants_amt / current_income) * 100)) if current_income > 0 else 0
+    savings_pct = int(round((savings_surplus / current_income) * 100)) if current_income > 0 else 0
+
+    # 2. Previous Month Comparison
+    prev_m = 12 if selected_month == 1 else selected_month - 1
+    prev_y = selected_year - 1 if selected_month == 1 else selected_year
+    
+    prev_txs = Transaction.objects.filter(user=user, transaction_type='OUT', date__year=prev_y, date__month=prev_m)
+    prev_expenses = {}
+    for tx in prev_txs:
+        prev_expenses[tx.category] = prev_expenses.get(tx.category, Decimal('0.00')) + tx.amount
+
+    # Insights collection
+    insights = []
+    potential_savings = Decimal('0.00')
+
+    # A. Check Outflow to Inflow Ratio
+    if total_expense > current_income and current_income > 0:
+        over_pct = int(round((total_expense / current_income) * 100))
+        deficit = total_expense - current_income
+        insights.append({
+            'type': 'danger',
+            'badge': f'Outflows at {over_pct}% of Income',
+            'badge_color': 'rose',
+            'icon': 'alert-triangle',
+            'title': 'Deficit Velocity Warning',
+            'message': f"Monthly outflows exceed total inflows by {currency}{deficit:,.2f}. Discretionary expenditures require immediate freeze.",
+            'savings_tip': f"Trim non-essential wants to recover {currency}{deficit:,.2f} baseline balance.",
+            'action_prompt': f"Help me audit my spending to eliminate my {currency}{deficit:,.2f} monthly deficit"
+        })
+    elif current_income > 0 and savings_pct >= 20:
+        insights.append({
+            'type': 'success',
+            'badge': f'{savings_pct}% Net Savings Surplus',
+            'badge_color': 'emerald',
+            'icon': 'trending-up',
+            'title': 'Optimal Wealth Accumulation',
+            'message': f"Your savings rate is {savings_pct}%, beating the standard 20% benchmark with {currency}{savings_surplus:,.2f} surplus capital.",
+            'savings_tip': f"Direct {currency}{savings_surplus * Decimal('0.5'):,.2f} toward long-term index investments or high-yield reserves.",
+            'action_prompt': f"Suggest the best allocation strategy for my {currency}{savings_surplus:,.2f} monthly savings surplus"
+        })
+
+    # B. Category Surges vs Previous Month
+    for category, current_amt in sorted(current_expenses.items(), key=lambda x: x[1], reverse=True):
+        prev_amt = prev_expenses.get(category, Decimal('0.00'))
+        if prev_amt > 0 and current_amt > prev_amt:
+            diff = current_amt - prev_amt
+            surge_pct = int(round((diff / prev_amt) * 100))
+            if surge_pct >= 15 and diff >= Decimal('25.00'):
+                potential_savings += diff
+                insights.append({
+                    'type': 'surge',
+                    'badge': f'+{surge_pct}% vs Last Month',
+                    'badge_color': 'amber',
+                    'icon': 'flame',
+                    'title': f'{category} Outflow Surge',
+                    'message': f"You spent {currency}{current_amt:,.2f} on {category} compared to {currency}{prev_amt:,.2f} last month (+{surge_pct}%).",
+                    'savings_tip': f"Trimming {category} back to previous levels preserves {currency}{diff:,.2f} in cashflow.",
+                    'action_prompt': f"Give me tips and budget limits to reduce spending on {category}"
+                })
+
+    # C. High Category Concentration
+    if total_expense > 0:
+        for category, amt in current_expenses.items():
+            share_pct = int(round((amt / total_expense) * 100))
+            if share_pct >= 30 and category != 'Rent':
+                insights.append({
+                    'type': 'concentration',
+                    'badge': f'{share_pct}% of Outflows',
+                    'badge_color': 'purple',
+                    'icon': 'pie-chart',
+                    'title': f'High {category} Concentration',
+                    'message': f"{category} accounts for {share_pct}% of all your monthly disbursements ({currency}{amt:,.2f}).",
+                    'savings_tip': "Diversifying and setting a strict weekly cap prevents capital lockup.",
+                    'action_prompt': f"Set up a strict weekly budget plan for {category}"
+                })
+
+    # D. 50/30/20 Alignment Tip
+    if current_income > 0:
+        if needs_pct > 55:
+            excess_needs = needs_amt - (current_income * Decimal('0.50'))
+            insights.append({
+                'type': 'blueprint',
+                'badge': f'Needs at {needs_pct}% (Target 50%)',
+                'badge_color': 'rose',
+                'icon': 'shield-alert',
+                'title': 'Needs Budget Compression',
+                'message': f"Essential living necessities consume {needs_pct}% of your inflow, exceeding the 50% target by {currency}{excess_needs:,.2f}.",
+                'savings_tip': "Audit recurring utility bills, grocery subscriptions, and fixed service contracts.",
+                'action_prompt': "How can I lower my fixed living expenses and utilities?"
+            })
+        elif wants_pct > 32:
+            excess_wants = wants_amt - (current_income * Decimal('0.30'))
+            insights.append({
+                'type': 'blueprint',
+                'badge': f'Wants at {wants_pct}% (Target 30%)',
+                'badge_color': 'amber',
+                'icon': 'shopping-bag',
+                'title': 'Discretionary Overspend',
+                'message': f"Discretionary wants account for {wants_pct}% of inflows, overshooting the 30% guideline by {currency}{excess_wants:,.2f}.",
+                'savings_tip': f"Implement a 48-hour rule for non-essential purchases to save {currency}{excess_wants:,.2f}.",
+                'action_prompt': "Give me an action plan to curb impulsive and discretionary spending"
+            })
+
+    # Fallback insight if telemetry is perfectly smooth
+    if not insights:
+        insights.append({
+            'type': 'success',
+            'badge': 'Telemetry Stable',
+            'badge_color': 'emerald',
+            'icon': 'sparkles',
+            'title': 'Disciplined Cashflow Alignment',
+            'message': f"All categories are operating within healthy parameters with consistent inflow velocity.",
+            'savings_tip': "Consider setting automated recurring transfer to high-yield investment reserves.",
+            'action_prompt': "Forecast my savings growth over the next 12 months"
+        })
+
+    health_label = "OPTIMAL SURPLUS" if savings_pct >= 20 else ("BALANCED RUNWAY" if savings_pct >= 10 else "ACTION NEEDED")
+
+    return {
+        'insights': insights[:5],
+        'fifty_thirty_twenty': {
+            'needs_amt': needs_amt,
+            'needs_pct': min(100, needs_pct),
+            'needs_target': current_income * Decimal('0.50'),
+            'wants_amt': wants_amt,
+            'wants_pct': min(100, wants_pct),
+            'wants_target': current_income * Decimal('0.30'),
+            'savings_amt': savings_surplus,
+            'savings_pct': min(100, savings_pct),
+            'savings_target': current_income * Decimal('0.20'),
+        },
+        'burn_rate': {
+            'daily_burn': daily_burn,
+            'days_in_month': days_in_month,
+            'days_elapsed': days_elapsed,
+            'days_remaining': days_remaining,
+            'projected_spend': projected_spend,
+            'safe_daily_allowance': safe_daily_allowance,
+        },
+        'potential_savings': potential_savings,
+        'health_label': health_label,
+    }
+
+
 def generate_recommendations(user, current_expenses, current_income):
-    recommendations = []
-    currency = user.profile.currency
-    total_expenses = sum(current_expenses.values())
-
-    # 1. Total expenses vs Income
-    if total_expenses > current_income and current_income > 0:
-        pct = int((total_expenses / current_income) * 100)
-        recommendations.append(
-            f"Alert: Outflows are {pct}% of your income. Consider suspending non-essential subscriptions and entertainment spending."
-        )
-
-    # 2. Category spending comparison to last month
+    """Backwards-compatible recommendation generator."""
     today = date.today()
-    first_of_this_month = date(today.year, today.month, 1)
-    last_month_date = first_of_this_month - timedelta(days=1)
-    
-    last_month_transactions = Transaction.objects.filter(
-        user=user,
-        transaction_type='OUT',
-        date__year=last_month_date.year,
-        date__month=last_month_date.month
-    )
-    
-    last_month_expenses = {}
-    for tx in last_month_transactions:
-        last_month_expenses[tx.category] = last_month_expenses.get(tx.category, Decimal('0.00')) + tx.amount
-
-    for category, current_amount in current_expenses.items():
-        prev_amount = last_month_expenses.get(category, Decimal('0.00'))
-        if prev_amount > 0 and current_amount > prev_amount:
-            increase = current_amount - prev_amount
-            increase_pct = int((increase / prev_amount) * 100)
-            if increase_pct >= 15:
-                recommendations.append(
-                    f"You spent {increase_pct}% more on {category} this month than last month. Cutting back could save you {currency}{increase:.2f}."
-                )
-
-    # 3. Large concentration of expenses
-    if total_expenses > 0:
-        for category, amount in current_expenses.items():
-            pct = (amount / total_expenses) * 100
-            if pct > 30 and category not in ['Rent', 'Other']:
-                recommendations.append(
-                    f"{category} accounts for {int(pct)}% of all outflows. Setting a tighter budget here will accelerate your savings."
-                )
-
-    # 4. No Budgets set check
-    user_budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
-    if not user_budgets.exists():
-        recommendations.append(
-            "You haven't set any monthly budgets! Users with target budgets save an average of 18% more monthly."
-        )
-
-    if not recommendations:
-        recommendations.append(
-            "Tip: Review your active category budget targets to optimize monthly surplus outflows."
-        )
-
-    return recommendations[:3]
+    total_expense = sum(current_expenses.values())
+    telemetry = generate_ai_telemetry(user, current_expenses, current_income, total_expense, today.month, today.year, getattr(user, 'profile', None))
+    return [item['message'] for item in telemetry['insights']][:3]
 
 # ----------------- AJAX/JSON Analytics Data -----------------
 
@@ -283,15 +517,20 @@ def generate_recommendations(user, current_expenses, current_income):
 def analytics_data_api(request):
     user = request.user
     today = date.today()
+    try:
+        req_month = int(request.GET.get('month', today.month))
+        req_year = int(request.GET.get('year', today.year))
+        if req_month < 1 or req_month > 12 or req_year < 2000 or req_year > 2100:
+            req_month, req_year = today.month, today.year
+    except (ValueError, TypeError):
+        req_month, req_year = today.month, today.year
     
-    # 1. 6-Month Trends: Income vs Expense
+    # 1. 6-Month Trends: Inflows vs Outflows ending at selected month/year
     trends = []
-    # Generate last 6 months list
     for i in range(5, -1, -1):
-        # Subtract months
-        year = today.year
-        month = today.month - i
-        if month <= 0:
+        year = req_year
+        month = req_month - i
+        while month <= 0:
             month += 12
             year -= 1
         
@@ -309,10 +548,10 @@ def analytics_data_api(request):
             'expense': float(exp),
         })
 
-    # 2. Current Month Category Expense Breakdown
-    start_of_month = date(today.year, today.month, 1)
-    _, last_day = calendar.monthrange(today.year, today.month)
-    end_of_month = date(today.year, today.month, last_day)
+    # 2. Selected Month Category Expense Breakdown
+    start_of_month = date(req_year, req_month, 1)
+    _, last_day = calendar.monthrange(req_year, req_month)
+    end_of_month = date(req_year, req_month, last_day)
     
     month_exp_txs = Transaction.objects.filter(
         user=user, 
@@ -340,17 +579,23 @@ def analytics_data_api(request):
         else:
             weekly_sums[3] += float(tx.amount)
 
-    # 4. Budget vs Spent
+    # 4. Budget vs Spent for Selected Month
     expense_categories = ['Food', 'Rent', 'Utilities', 'Entertainment', 'Travel', 'Other']
-    budgets = Budget.objects.filter(user=user, year=today.year, month=today.month)
+    budgets = Budget.objects.filter(user=user, year=req_year, month=req_month)
     
+    fallback_budgets = {}
+    if not budgets.exists():
+        for b in Budget.objects.filter(user=user).order_by('-year', '-month'):
+            if b.category not in fallback_budgets:
+                fallback_budgets[b.category] = float(b.amount)
+
     comp_labels = []
     comp_budgets = []
     comp_spent = []
     
     for cat in expense_categories:
         b_obj = budgets.filter(category=cat).first()
-        b_amount = float(b_obj.amount) if b_obj else 0.0
+        b_amount = float(b_obj.amount) if b_obj else fallback_budgets.get(cat, 0.0)
         s_amount = float(category_totals.get(cat, 0.0))
         if b_amount > 0 or s_amount > 0:
             comp_labels.append(cat)
@@ -585,17 +830,27 @@ def set_budget(request):
         
         today = date.today()
         try:
+            target_month = int(request.POST.get('month', today.month))
+            target_year = int(request.POST.get('year', today.year))
+            if target_month < 1 or target_month > 12 or target_year < 2000 or target_year > 2100:
+                target_month, target_year = today.month, today.year
+        except (ValueError, TypeError):
+            target_month, target_year = today.month, today.year
+
+        try:
             budget, created = Budget.objects.update_or_create(
                 user=request.user,
                 category=category,
                 period='MONTHLY',
-                month=today.month,
-                year=today.year,
+                month=target_month,
+                year=target_year,
                 defaults={'amount': Decimal(amount)}
             )
-            messages.success(request, f"Budget set for {category}!")
+            messages.success(request, f"Budget set for {category} ({calendar.month_name[target_month]} {target_year})!")
         except Exception as e:
             messages.error(request, f"Error setting budget: {e}")
+            
+        return redirect(f"/dashboard/?month={target_month}&year={target_year}")
             
     return redirect('dashboard')
 
@@ -721,18 +976,28 @@ def seed_user_demo_data(user):
 @login_required
 def delete_budget_category(request, category):
     today = date.today()
+    try:
+        target_month = int(request.GET.get('month', today.month))
+        target_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        target_month, target_year = today.month, today.year
+
     deleted_count, _ = Budget.objects.filter(
         user=request.user, 
         category=category, 
-        year=today.year, 
-        month=today.month
+        year=target_year, 
+        month=target_month
     ).delete()
     
+    if deleted_count == 0:
+        # Also clean up any un-anchored or generic budget for this category if existing
+        deleted_count, _ = Budget.objects.filter(user=request.user, category=category).delete()
+
     if deleted_count > 0:
         messages.success(request, f"Budget limit for {category} cleared successfully.")
     else:
         messages.info(request, f"No budget set for {category}.")
-    return redirect('dashboard')
+    return redirect(f"/dashboard/?month={target_month}&year={target_year}")
 
 
 @login_required
@@ -805,7 +1070,7 @@ def generate_excel_data(user):
     return data
 
 
-def generate_pdf_data(user, total_income, total_expense, balance, currency):
+def generate_pdf_data(user, total_income, total_expense, balance, currency, month=None, year=None):
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -847,8 +1112,13 @@ def generate_pdf_data(user, total_income, total_expense, balance, currency):
         spaceAfter=8
     )
     
+    today = date.today()
+    target_year = year or today.year
+    target_month = month or today.month
+    period_label = f"{calendar.month_name[target_month]} {target_year}"
+    
     story.append(Paragraph("LEOXUR FINANCIAL LEDGER", title_style))
-    story.append(Paragraph(f"Monthly Telemetry Statement for node '{user.username}' | Date: {date.today().strftime('%B %d, %Y')}", subtitle_style))
+    story.append(Paragraph(f"Financial Telemetry Statement for node '{user.username}' | Period: {period_label} | Generated: {today.strftime('%B %d, %Y')}", subtitle_style))
     story.append(Spacer(1, 5))
     
     overview_data = [
@@ -875,11 +1145,10 @@ def generate_pdf_data(user, total_income, total_expense, balance, currency):
     story.append(overview_table)
     story.append(Spacer(1, 15))
     
-    # Query current month transactions and budgets for detailed PDF pages
+    # Query transactions for the selected cycle
     from django.db.models import Sum
     from decimal import Decimal
-    today = date.today()
-    month_txs = Transaction.objects.filter(user=user, date__year=today.year, date__month=today.month)
+    month_txs = Transaction.objects.filter(user=user, date__year=target_year, date__month=target_month)
     
     # 1. Savings Index Gauge Table
     savings_rate = int((balance / total_income * 100)) if total_income > 0 else 0
@@ -1728,9 +1997,17 @@ def export_pdf_view(request):
     from django.http import HttpResponse
     try:
         today = date.today()
-        start_of_month = date(today.year, today.month, 1)
-        _, last_day = calendar.monthrange(today.year, today.month)
-        end_of_month = date(today.year, today.month, last_day)
+        try:
+            req_month = int(request.GET.get('month', today.month))
+            req_year = int(request.GET.get('year', today.year))
+            if req_month < 1 or req_month > 12 or req_year < 2000 or req_year > 2100:
+                req_month, req_year = today.month, today.year
+        except (ValueError, TypeError):
+            req_month, req_year = today.month, today.year
+            
+        start_of_month = date(req_year, req_month, 1)
+        _, last_day = calendar.monthrange(req_year, req_month)
+        end_of_month = date(req_year, req_month, last_day)
         
         month_txs = Transaction.objects.filter(user=request.user, date__range=(start_of_month, end_of_month))
         total_income = month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
@@ -1745,9 +2022,10 @@ def export_pdf_view(request):
         }
         currency = currency_map.get(raw_currency, raw_currency + ' ')
         
-        data = generate_pdf_data(request.user, total_income, total_expense, balance, currency)
+        data = generate_pdf_data(request.user, total_income, total_expense, balance, currency, month=req_month, year=req_year)
         response = HttpResponse(data, content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="leoxur_financial_statement.pdf"'
+        month_abbr = calendar.month_abbr[req_month].lower()
+        response['Content-Disposition'] = f'attachment; filename="leoxur_statement_{month_abbr}_{req_year}.pdf"'
         return response
     except Exception as e:
         messages.error(request, f"Error generating PDF statement: {e}")

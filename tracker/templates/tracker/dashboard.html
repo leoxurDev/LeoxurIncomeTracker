@@ -54,29 +54,127 @@
     </div>
 </div>
 
-<!-- Key Telemetry Overview (4-Card Balanced Grid) -->
+<!-- Telemetry Cycle & Multi-Month/Year Navigator -->
+<div class="glass-panel p-4 rounded-2xl mb-6 border border-white/10 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-apple-blue/10 text-apple-blue flex items-center justify-center flex-shrink-0">
+            <i data-lucide="calendar" class="w-5 h-5"></i>
+        </div>
+        <div>
+            <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold font-outfit text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <span>{{ selected_cycle_label }}</span>
+                </h2>
+                {% if is_current_month %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Current Cycle
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <i data-lucide="history" class="w-3 h-3"></i>
+                    Historical Archive
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+                Financial telemetry & ledgers computed for {{ selected_month_name }} {{ selected_year }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Cycle Selector Controls -->
+    <div class="flex items-center flex-wrap gap-2">
+        <!-- Prev Month -->
+        <a href="?month={{ prev_month }}&year={{ prev_year }}" 
+           class="p-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-space-800 transition cursor-pointer flex items-center justify-center" 
+           title="Previous Cycle ({{ prev_month }}/{{ prev_year }})">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </a>
+
+        <!-- Month Dropdown -->
+        <div class="relative">
+            <select id="cycleMonthSelect" onchange="onPeriodChange()" 
+                    class="bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl py-2 px-3 pr-8 focus:outline-none focus:border-apple-blue transition cursor-pointer appearance-none">
+                {% for m in months_list %}
+                <option value="{{ m.num }}" {% if m.num == selected_month %}selected{% endif %}>
+                    {{ m.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <!-- Year Dropdown -->
+        <div class="relative">
+            <select id="cycleYearSelect" onchange="onPeriodChange()" 
+                    class="bg-slate-100 dark:bg-space-900 border border-slate-200 dark:border-space-800 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl py-2 px-3 pr-8 focus:outline-none focus:border-apple-blue transition cursor-pointer appearance-none font-mono">
+                {% for yr in available_years %}
+                <option value="{{ yr }}" {% if yr == selected_year %}selected{% endif %}>
+                    {{ yr }}
+                </option>
+                {% endfor %}
+            </select>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        </div>
+
+        <!-- Next Month -->
+        <a href="?month={{ next_month }}&year={{ next_year }}" 
+           class="p-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-space-800 transition cursor-pointer flex items-center justify-center" 
+           title="Next Cycle ({{ next_month }}/{{ next_year }})">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </a>
+
+        <!-- Current Cycle Reset -->
+        {% if not is_current_month %}
+        <a href="{% url 'dashboard' %}" 
+           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 border border-apple-blue/20 text-xs font-semibold transition cursor-pointer" 
+           title="Jump to current active month">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Current</span>
+        </a>
+        {% endif %}
+
+        <!-- Export Cycle PDF Statement -->
+        <a href="{% url 'export_pdf' %}?month={{ selected_month }}&year={{ selected_year }}" 
+           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" 
+           title="Download PDF statement for {{ selected_cycle_label }}">
+            <i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-500"></i>
+            <span>PDF</span>
+        </a>
+    </div>
+</div>
+
+<!-- Key Telemetry Overview (4-Card Balanced Financial Grid) -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 animate-fade-in">
-    <!-- Net Portfolio Balance -->
-    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between">
+    <!-- 1. Net Portfolio Balance -->
+    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-emerald-500/30">
         <div>
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Net Portfolio Balance</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold {% if balance >= 0 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20{% else %}bg-red-500/10 text-red-500 border border-red-500/20{% endif %}">
-                    {% if balance >= 0 %}Surplus Active{% else %}Deficit Alert{% endif %}
-                </span>
+                <div class="flex items-center gap-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold {% if balance >= 0 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20{% else %}bg-rose-500/10 text-rose-500 border border-rose-500/20{% endif %}">
+                        {% if balance >= 0 %}Surplus Active{% else %}Deficit Alert{% endif %}
+                    </span>
+                    {% if total_income > 0 %}
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-mono {% if net_margin_pct >= 20 %}text-emerald-500{% elif net_margin_pct >= 0 %}text-amber-500{% else %}text-rose-500{% endif %}">
+                        {{ net_margin_pct }}%
+                    </span>
+                    {% endif %}
+                </div>
             </div>
-            <h3 class="text-3xl font-extrabold font-outfit font-mono {% if balance >= 0 %}text-emerald-500 dark:text-emerald-400{% else %}text-red-500 dark:text-red-400{% endif %}">
+            <h3 class="text-3xl font-extrabold font-outfit font-mono tracking-tight {% if balance >= 0 %}text-emerald-500 dark:text-emerald-400{% else %}text-rose-500 dark:text-rose-400{% endif %}">
                 {{ profile.currency }}{{ balance|floatformat:2 }}
             </h3>
         </div>
         <div class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-            <span>Inflows: <strong class="text-emerald-500">{{ profile.currency }}{{ total_income|floatformat:0 }}</strong></span>
-            <span>Outflows: <strong class="text-red-400">{{ profile.currency }}{{ total_expense|floatformat:0 }}</strong></span>
+            <span>Inflows: <strong class="text-emerald-500 font-mono">{{ profile.currency }}{{ total_income|floatformat:0 }}</strong></span>
+            <span>Outflows: <strong class="text-rose-400 font-mono">{{ profile.currency }}{{ total_expense|floatformat:0 }}</strong></span>
         </div>
     </div>
 
-    <!-- Total Inflows (Income) -->
-    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between">
+    <!-- 2. Total Inflows (Revenue) -->
+    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-emerald-500/30">
         <div>
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Inflows</span>
@@ -88,14 +186,21 @@
                 +{{ profile.currency }}{{ total_income|floatformat:2 }}
             </h3>
         </div>
-        <p class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>Recorded deposits this cycle</span>
-        </p>
+        <div class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>{{ month_inflow_count }} deposit{{ month_inflow_count|pluralize }}</span>
+            </span>
+            {% if primary_inflow_name %}
+            <span class="text-[10px] text-slate-400 truncate max-w-[130px]" title="Top: {{ primary_inflow_name }}">
+                Top: <strong class="text-slate-700 dark:text-slate-300">{{ primary_inflow_name }}</strong>
+            </span>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Total Outflows (Expenses) -->
-    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between">
+    <!-- 3. Total Outflows (Disbursements) -->
+    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-rose-500/30">
         <div>
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Outflows</span>
@@ -107,14 +212,23 @@
                 -{{ profile.currency }}{{ total_expense|floatformat:2 }}
             </h3>
         </div>
-        <p class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-            <span>Total disbursements logged</span>
-        </p>
+        <div class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span class="font-mono">{{ profile.currency }}{{ daily_avg_outflow|floatformat:1 }}/d</span>
+            </span>
+            {% if top_outflow_name %}
+            <span class="text-[10px] text-slate-400 truncate max-w-[130px]" title="Top: {{ top_outflow_name }} ({{ top_outflow_pct }}%)">
+                Top: <strong class="text-slate-700 dark:text-slate-300">{{ top_outflow_name }}</strong> ({{ top_outflow_pct }}%)
+            </span>
+            {% else %}
+            <span>{{ month_outflow_count }} records</span>
+            {% endif %}
+        </div>
     </div>
 
-    <!-- Monthly Budget & Health Telemetry -->
-    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between">
+    <!-- 4. Budget & Financial Health Telemetry -->
+    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-apple-blue/30">
         <div>
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Budget & Health</span>
@@ -146,7 +260,7 @@
         </div>
         <p class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
             <span>Remains: <strong class="text-slate-700 dark:text-slate-300 font-mono">{% if overall_budget > 0 %}{{ profile.currency }}{{ overall_remaining|floatformat:0 }}{% else %}—{% endif %}</strong></span>
-            <span class="text-[10px] text-slate-400">{% if health_score >= 85 %}Optimal state{% elif health_score >= 60 %}Watch threshold{% else %}Action needed{% endif %}</span>
+            <span class="text-[10px] text-slate-400 font-mono">Runway: {{ days_remaining_in_month }}d</span>
         </p>
     </div>
 </div>
@@ -166,11 +280,11 @@
                         <i data-lucide="trending-up" class="w-4 h-4 text-apple-blue"></i>
                         <span>Cashflow Telemetry Trends</span>
                     </h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Historical monthly comparison of Inflows vs Outflows</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Historical 6-cycle comparison ending {{ selected_month_name }} {{ selected_year }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="downloadChart('trendChart', 'leoxur_cashflow_trends.png')" class="p-1.5 rounded-lg text-slate-400 hover:text-apple-blue hover:bg-slate-100 dark:hover:bg-space-850 transition cursor-pointer" title="Download Chart">
+                <button onclick="downloadChart('trendChart', 'leoxur_cashflow_trends_{{ selected_month }}_{{ selected_year }}.png')" class="p-1.5 rounded-lg text-slate-400 hover:text-apple-blue hover:bg-slate-100 dark:hover:bg-space-850 transition cursor-pointer" title="Download Chart">
                     <i data-lucide="download" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -180,10 +294,11 @@
         </div>
     </div>
 
-    <!-- 2. AI Financial Intelligence Widget -->
-    <div id="widget-ai" data-widget-id="widget-ai" class="dashboard-widget glass-panel p-5 rounded-2xl border border-apple-blue/20 bg-gradient-to-br from-apple-blue/5 to-transparent col-span-12 lg:col-span-4 flex flex-col justify-between" draggable="true">
+    <!-- 2. AI Financial Intelligence Widget (High Depth Telemetry Hub) -->
+    <div id="widget-ai" data-widget-id="widget-ai" class="dashboard-widget glass-panel p-5 rounded-2xl border border-apple-blue/20 bg-gradient-to-br from-apple-blue/5 via-transparent to-neon-purple/5 col-span-12 lg:col-span-4 flex flex-col justify-between" draggable="true">
         <div>
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-150 dark:border-space-850">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-150 dark:border-space-850">
                 <div class="flex items-center gap-2">
                     <button type="button" class="widget-drag-handle" title="Drag to reorder" aria-label="Drag handle">
                         <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-400"></i>
@@ -191,22 +306,127 @@
                     <span class="w-2 h-2 rounded-full bg-apple-blue animate-pulse"></span>
                     <h3 class="text-xs font-bold font-outfit uppercase tracking-wider text-slate-900 dark:text-white">AI Financial Intelligence</h3>
                 </div>
-                <span class="text-[10px] font-mono text-apple-blue font-bold">TELEMETRY</span>
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-apple-blue/10 text-apple-blue border border-apple-blue/20">
+                    {{ selected_month_abbr }} TELEMETRY
+                </span>
             </div>
 
-            <div class="space-y-2.5 my-3">
-                {% for recommendation in recommendations %}
-                <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-space-900/60 border border-slate-150 dark:border-space-800 text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-apple-blue mt-0.5 flex-shrink-0"></i>
-                    <span class="leading-relaxed">{{ recommendation }}</span>
+            <!-- 50/30/20 Capital Velocity Diagnostics -->
+            <div class="p-3 rounded-xl bg-slate-50/80 dark:bg-space-900/70 border border-slate-150 dark:border-space-800 mb-3">
+                <div class="flex items-center justify-between text-[11px] mb-1.5">
+                    <span class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="pie-chart" class="w-3 h-3 text-apple-blue"></i>
+                        <span>50/30/20 Capital Rule</span>
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">
+                        {{ ai_telemetry.rule_50_30_20.savings_pct }}% Saved
+                    </span>
+                </div>
+                <!-- Segmented Multi-Color Progress Bar -->
+                <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-space-850 flex overflow-hidden mb-2">
+                    <div style="width: {{ ai_telemetry.rule_50_30_20.needs_pct }}%;" class="bg-apple-blue" title="Needs: {{ ai_telemetry.rule_50_30_20.needs_pct }}% (Target 50%)"></div>
+                    <div style="width: {{ ai_telemetry.rule_50_30_20.wants_pct }}%;" class="bg-neon-purple" title="Wants: {{ ai_telemetry.rule_50_30_20.wants_pct }}% (Target 30%)"></div>
+                    <div style="width: {{ ai_telemetry.rule_50_30_20.savings_pct }}%;" class="bg-emerald-500" title="Savings: {{ ai_telemetry.rule_50_30_20.savings_pct }}% (Target 20%)"></div>
+                </div>
+                <!-- Legend -->
+                <div class="grid grid-cols-3 text-[10px] font-mono text-slate-500 dark:text-slate-400 pt-0.5">
+                    <span class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-apple-blue"></span>
+                        <span>Needs {{ ai_telemetry.rule_50_30_20.needs_pct }}%</span>
+                    </span>
+                    <span class="flex items-center gap-1 justify-center">
+                        <span class="w-1.5 h-1.5 rounded-full bg-neon-purple"></span>
+                        <span>Wants {{ ai_telemetry.rule_50_30_20.wants_pct }}%</span>
+                    </span>
+                    <span class="flex items-center gap-1 justify-end">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>Save {{ ai_telemetry.rule_50_30_20.savings_pct }}%</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Burn Velocity & Runway Telemetry Pills -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <div class="p-2.5 rounded-xl bg-slate-50/70 dark:bg-space-900/60 border border-slate-150 dark:border-space-800">
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <i data-lucide="flame" class="w-3 h-3 text-amber-500"></i>
+                        <span>Burn Velocity</span>
+                    </div>
+                    <div class="text-xs font-bold font-mono text-slate-800 dark:text-white mt-1">
+                        {{ profile.currency }}{{ ai_telemetry.burn_rate.daily_burn|floatformat:2 }}<span class="text-[10px] font-normal text-slate-400">/day</span>
+                    </div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-50/70 dark:bg-space-900/60 border border-slate-150 dark:border-space-800">
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <i data-lucide="shield-check" class="w-3 h-3 text-emerald-500"></i>
+                        <span>Safe Cap Target</span>
+                    </div>
+                    <div class="text-xs font-bold font-mono text-slate-800 dark:text-white mt-1">
+                        {{ profile.currency }}{{ ai_telemetry.burn_rate.safe_daily_allowance|floatformat:2 }}<span class="text-[10px] font-normal text-slate-400">/day</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Telemetry Surge & Optimization Insights -->
+            <div class="space-y-2 mb-3 max-h-56 overflow-y-auto pr-0.5">
+                {% for insight in ai_telemetry.insights %}
+                <div class="p-2.5 rounded-xl bg-slate-50/90 dark:bg-space-900/70 border border-slate-150 dark:border-space-800 text-xs transition hover:border-apple-blue/30">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-[11px] text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <i data-lucide="{{ insight.icon }}" class="w-3.5 h-3.5 text-apple-blue flex-shrink-0"></i>
+                            <span>{{ insight.title }}</span>
+                        </span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono 
+                            {% if insight.badge_color == 'rose' %}bg-rose-500/10 text-rose-500 border border-rose-500/20
+                            {% elif insight.badge_color == 'amber' %}bg-amber-500/10 text-amber-500 border border-amber-500/20
+                            {% elif insight.badge_color == 'emerald' %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
+                            {% else %}bg-apple-blue/10 text-apple-blue border border-apple-blue/20{% endif %}">
+                            {{ insight.badge }}
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed mb-1.5">
+                        {{ insight.message }}
+                    </p>
+                    {% if insight.savings_tip %}
+                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 mb-1">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i>
+                        <span>{{ insight.savings_tip }}</span>
+                    </p>
+                    {% endif %}
+                    {% if insight.action_prompt %}
+                    <button type="button" onclick="triggerCopilotPrompt('{{ insight.action_prompt|escapejs }}')" 
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-apple-blue/10 hover:bg-apple-blue/20 text-apple-blue text-[10px] font-semibold transition cursor-pointer mt-0.5">
+                        <i data-lucide="zap" class="w-2.5 h-2.5"></i>
+                        <span>Action: Audit in Copilot</span>
+                    </button>
+                    {% endif %}
                 </div>
                 {% empty %}
-                <p class="text-xs text-slate-400 italic">Financial telemetry healthy. Inflows and category limits are stable.</p>
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-space-900/60 border border-slate-150 dark:border-space-800 text-xs text-slate-400 italic text-center">
+                    Financial telemetry healthy. Inflows and category limits are stable for this cycle.
+                </div>
                 {% endfor %}
+            </div>
+
+            <!-- Quick Action Copilot Prompts -->
+            <div class="flex items-center gap-1.5 flex-wrap mb-3">
+                <button type="button" onclick="triggerCopilotPrompt('Perform a complete 50/30/20 audit of my finances for {{ selected_cycle_label }}')" 
+                        class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-space-900 hover:bg-apple-blue/10 text-slate-700 dark:text-slate-300 hover:text-apple-blue border border-slate-200 dark:border-space-800 text-[10px] font-medium transition cursor-pointer">
+                    📊 50/30/20 Audit
+                </button>
+                <button type="button" onclick="triggerCopilotPrompt('Suggest budget cuts to save money this month')" 
+                        class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-space-900 hover:bg-amber-500/10 text-slate-700 dark:text-slate-300 hover:text-amber-500 border border-slate-200 dark:border-space-800 text-[10px] font-medium transition cursor-pointer">
+                    💡 Savings Tips
+                </button>
+                <button type="button" onclick="triggerCopilotPrompt('send {{ selected_month_abbr|lower }} report to my mail with spreadsheet and pdf')" 
+                        class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-space-900 hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300 hover:text-emerald-500 border border-slate-200 dark:border-space-800 text-[10px] font-medium transition cursor-pointer">
+                    📧 Email Statement
+                </button>
             </div>
         </div>
 
-        <button onclick="toggleFloatingChat()" class="w-full mt-2 py-2 px-3 rounded-xl bg-apple-blue text-white text-xs font-bold hover:brightness-110 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+        <!-- Primary Copilot Launch CTA -->
+        <button onclick="toggleFloatingChat()" class="w-full mt-1 py-2 px-3 rounded-xl bg-apple-blue text-white text-xs font-bold hover:brightness-110 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
             <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
             <span>Open Leoxur AI Copilot</span>
         </button>
@@ -236,7 +456,7 @@
                         <div class="flex items-center gap-2 font-mono text-[11px]">
                             {% if item.has_budget %}
                             <span>{{ profile.currency }}{{ item.spent|floatformat:0 }} <span class="text-slate-400">/ {{ profile.currency }}{{ item.budget|floatformat:0 }}</span></span>
-                            <a href="{% url 'delete_budget_category' item.category %}" onclick="return confirm('Clear budget limit for {{ item.category }}?');" class="text-slate-400 hover:text-rose-500 transition" title="Clear">
+                            <a href="{% url 'delete_budget_category' item.category %}?month={{ selected_month }}&year={{ selected_year }}" onclick="return confirm('Clear budget limit for {{ item.category }}?');" class="text-slate-400 hover:text-rose-500 transition" title="Clear">
                                 <i data-lucide="x" class="w-3 h-3"></i>
                             </a>
                             {% else %}
@@ -601,6 +821,8 @@
         </div>
         <form action="{% url 'set_budget' %}" method="post" class="space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="month" value="{{ selected_month }}">
+            <input type="hidden" name="year" value="{{ selected_year }}">
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Target Category</label>
                 <select name="category" required class="w-full bg-slate-100 dark:bg-space-950 border border-slate-200 dark:border-space-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-neon-purple transition dark:text-white">
@@ -888,9 +1110,37 @@
         };
     }
 
-    // Main API Load & Render Charts
+    // Period Navigation Trigger
+    function onPeriodChange() {
+        const m = document.getElementById('cycleMonthSelect').value;
+        const y = document.getElementById('cycleYearSelect').value;
+        window.location.href = `?month=${m}&year=${y}`;
+    }
+
+    // Trigger Quick Prompt into AI Copilot
+    function triggerCopilotPrompt(promptText) {
+        if (window.leoxurCopilot) {
+            window.leoxurCopilot.open();
+            window.leoxurCopilot.sendPrompt(promptText);
+        } else {
+            toggleFloatingChat();
+            setTimeout(() => {
+                const input = document.getElementById('assistantInput');
+                if (input) {
+                    input.value = promptText;
+                    const sendBtn = document.getElementById('assistantSendBtn');
+                    if (sendBtn) sendBtn.click();
+                }
+            }, 300);
+        }
+    }
+
+    // Main API Load & Render Charts (Scoped to active cycle)
     function fetchAndRenderCharts() {
-        fetch('{% url "analytics_data" %}')
+        const urlParams = new URLSearchParams(window.location.search);
+        const m = urlParams.get('month') || '{{ selected_month }}';
+        const y = urlParams.get('year') || '{{ selected_year }}';
+        fetch(`{% url "analytics_data" %}?month=${m}&year=${y}`)
             .then(res => res.json())
             .then(data => {
                 if (data.trends) renderTrendChart(data.trends);

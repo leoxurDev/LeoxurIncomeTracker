@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     # Main Dashboard
     path('', views.dashboard_view, name='dashboard'),
+    path('dashboard/', views.dashboard_view, name='dashboard_alias'),
     
     # User Authentication
     path('signup/', views.signup_view, name='signup'),
