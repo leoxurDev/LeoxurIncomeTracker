@@ -1595,6 +1595,142 @@ body {
   transform: scale(1.05);
 }
 
+/* Voice Detection & Speech Recognition Bar Styles */
+.voice-listening-banner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 16px !important;
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.14), rgba(191, 90, 242, 0.12)) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  animation: slideUpVoice 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+@keyframes slideUpVoice {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.voice-wave-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  height: 24px !important;
+}
+
+.voice-bar {
+  width: 3.5px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(to top, var(--apple-blue), var(--apple-purple)) !important;
+  animation: wavePulse 1s ease-in-out infinite !important;
+}
+.voice-bar:nth-child(2) { animation-delay: 0.15s !important; height: 16px !important; }
+.voice-bar:nth-child(3) { animation-delay: 0.3s !important; height: 22px !important; }
+.voice-bar:nth-child(4) { animation-delay: 0.45s !important; height: 14px !important; }
+.voice-bar:nth-child(5) { animation-delay: 0.6s !important; height: 10px !important; }
+
+@keyframes wavePulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+  50% { transform: scaleY(1.3); opacity: 1; }
+}
+
+.voice-pill-btn {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.voice-done-btn {
+  background: var(--apple-blue) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.35) !important;
+}
+.voice-done-btn:hover {
+  transform: scale(1.05) !important;
+  background: #0077ED !important;
+}
+
+.voice-cancel-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-secondary) !important;
+}
+.voice-cancel-btn:hover {
+  background: rgba(255, 59, 48, 0.15) !important;
+  color: var(--apple-red) !important;
+}
+
+.assistant-lang-select {
+  height: 38px !important;
+  border-radius: 999px !important;
+  padding: 0 10px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-hairline) !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+.assistant-lang-select:hover {
+  border-color: var(--apple-blue) !important;
+  background: var(--bg-elevated) !important;
+}
+
+.assistant-speaker-btn,
+.assistant-voice-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--border-hairline) !important;
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-size: 16px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  flex-shrink: 0 !important;
+}
+
+.assistant-speaker-btn:hover,
+.assistant-voice-btn:hover {
+  background: var(--bg-hover) !important;
+  transform: scale(1.08) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.assistant-speaker-btn.active {
+  background: rgba(10, 132, 255, 0.15) !important;
+  border-color: var(--apple-blue) !important;
+  color: var(--apple-blue) !important;
+}
+
+.assistant-voice-btn.listening {
+  background: linear-gradient(135deg, #FF2D55, #AF52DE, #5856D6, #007AFF) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 16px rgba(175, 82, 222, 0.6) !important;
+  animation: siriPulse 1.2s infinite alternate !important;
+}
+
+@keyframes siriPulse {
+  0% { transform: scale(1); box-shadow: 0 0 10px rgba(0, 122, 255, 0.5); }
+  100% { transform: scale(1.12); box-shadow: 0 0 22px rgba(255, 45, 85, 0.7); }
+}
+
 /* Typing Indicator Animation */
 .typing-dots {
   display: inline-flex;

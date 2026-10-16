@@ -426,9 +426,69 @@
             <button type="button" class="suggestion-chip" onclick="openSettingsModal('ai')">⚙️ Telemetry Config</button>
         </div>
 
-        <!-- Prompt Input Bar -->
+        <!-- Live Voice Listening Banner (Slides up smoothly when voice detection is active) -->
+        <div id="voiceListeningBanner" class="voice-listening-banner" style="display:none;">
+            <div class="voice-wave-container">
+                <span class="voice-bar"></span>
+                <span class="voice-bar"></span>
+                <span class="voice-bar"></span>
+                <span class="voice-bar"></span>
+                <span class="voice-bar"></span>
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div id="voiceListeningStatus" style="font-size:11.5px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#FF3B30; animation:pulse 1s infinite;"></span>
+                    <span id="voiceListeningText">Listening... Speak now</span>
+                </div>
+                <div id="voiceListeningInterim" style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-style:italic;">Listening for speech in selected language...</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <button type="button" id="voiceDoneBtn" class="voice-pill-btn voice-done-btn" title="Submit Spoken Voice Input">
+                    ✓ Done
+                </button>
+                <button type="button" id="voiceCancelBtn" class="voice-pill-btn voice-cancel-btn" title="Cancel Listening">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Prompt Input Bar with Multi-Language Voice Detection & Audio Speaker Output -->
         <div class="assistant-input-bar">
-            <input type="text" id="assistantInput" class="assistant-input" placeholder="Ask financial questions or give commands..." autocomplete="off">
+            <!-- Language Selector Dropdown -->
+            <div class="voice-lang-wrapper" style="position:relative; flex-shrink:0;">
+                <select id="assistantLangSelect" class="assistant-lang-select" title="Voice Recognition Language">
+                    <option value="auto" selected>🌐 Auto</option>
+                    <option value="en-US">🇺🇸 English</option>
+                    <option value="es-ES">🇪🇸 Español</option>
+                    <option value="hi-IN">🇮🇳 हिन्दी</option>
+                    <option value="ta-IN">🇮🇳 தமிழ்</option>
+                    <option value="fr-FR">🇫🇷 Français</option>
+                    <option value="de-DE">🇩🇪 Deutsch</option>
+                    <option value="it-IT">🇮🇹 Italiano</option>
+                    <option value="pt-BR">🇧🇷 Português</option>
+                    <option value="ar-SA">🇸🇦 العربية</option>
+                    <option value="ru-RU">🇷🇺 Русский</option>
+                    <option value="zh-CN">🇨🇳 中文</option>
+                    <option value="ja-JP">🇯🇵 日本語</option>
+                    <option value="te-IN">🇮🇳 Telugu</option>
+                    <option value="ml-IN">🇮🇳 Malayalam</option>
+                    <option value="kn-IN">🇮🇳 Kannada</option>
+                </select>
+            </div>
+
+            <input type="text" id="assistantInput" class="assistant-input" placeholder="Ask questions or tap mic to speak in any language..." autocomplete="off">
+
+            <!-- Audio Speaker Response Toggle (Text-to-Speech) -->
+            <button type="button" id="assistantSpeakerBtn" class="assistant-speaker-btn" title="Toggle AI Spoken Voice Response" aria-label="Toggle AI Voice Response">
+                <span id="speakerIcon">🔇</span>
+            </button>
+
+            <!-- Microphone Button -->
+            <button type="button" id="assistantVoiceBtn" class="assistant-voice-btn" title="Start Voice Detection (Speak in any language)" aria-label="Start Voice Detection">
+                <span class="voice-mic-icon">🎙️</span>
+            </button>
+
+            <!-- Send Button -->
             <button type="button" id="assistantSendBtn" class="assistant-send-btn" title="Send Query">
                 {% sf_icon "arrow_up_right" "sf-icon-xs" %}
             </button>
@@ -1526,6 +1586,28 @@
                 this.sessionListContainer = document.getElementById('sessionListContainer');
                 this.sessionCountBadge = document.getElementById('sessionCountBadge');
 
+                // Multi-Language Voice Detection & Audio Speaker Output Controls
+                this.voiceBtn = document.getElementById('assistantVoiceBtn');
+                this.langSelect = document.getElementById('assistantLangSelect');
+                this.speakerBtn = document.getElementById('assistantSpeakerBtn');
+                this.voiceBanner = document.getElementById('voiceListeningBanner');
+                this.voiceStatusText = document.getElementById('voiceListeningText');
+                this.voiceInterimText = document.getElementById('voiceListeningInterim');
+                this.voiceDoneBtn = document.getElementById('voiceDoneBtn');
+                this.voiceCancelBtn = document.getElementById('voiceCancelBtn');
+
+                this.isListening = false;
+                this.recognition = null;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.ttsEnabled = localStorage.getItem('leoxur_copilot_tts') === 'true';
+                this.updateSpeakerUi();
+
+                const savedVoiceLang = localStorage.getItem('leoxur_voice_lang');
+                if (savedVoiceLang && this.langSelect) {
+                    this.langSelect.value = savedVoiceLang;
+                }
+
                 // Storage keys
                 this.sessionsKey = 'leoxur_copilot_sessions_v2';
                 this.activeSessionKey = 'leoxur_copilot_active_session_v2';
@@ -1830,6 +1912,17 @@
                 if (this.closeHistoryBtn) this.closeHistoryBtn.onclick = () => this.hideHistory();
                 if (this.startNewFromHistoryBtn) this.startNewFromHistoryBtn.onclick = () => this.newChat();
 
+                // Voice Detection & TTS Controls
+                if (this.voiceBtn) this.voiceBtn.onclick = () => this.toggleVoice();
+                if (this.voiceDoneBtn) this.voiceDoneBtn.onclick = () => this.stopListening(true);
+                if (this.voiceCancelBtn) this.voiceCancelBtn.onclick = () => this.cancelListening();
+                if (this.speakerBtn) this.speakerBtn.onclick = () => this.toggleTts();
+                if (this.langSelect) {
+                    this.langSelect.onchange = (e) => {
+                        localStorage.setItem('leoxur_voice_lang', e.target.value);
+                    };
+                }
+
                 if (this.input) {
                     this.input.onkeydown = (e) => {
                         if (e.key === 'Enter') this.send();
@@ -1845,6 +1938,291 @@
                         }
                     };
                 });
+            }
+
+            toggleVoice() {
+                if (this.isListening) {
+                    this.stopListening(true);
+                } else {
+                    this.startListening();
+                }
+            }
+
+            startListening() {
+                if (this.isListening) return;
+
+                const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const selectedLang = this.langSelect ? this.langSelect.value : 'auto';
+                const langLabel = this.langSelect && this.langSelect.selectedOptions && this.langSelect.selectedOptions[0] ? this.langSelect.selectedOptions[0].text : 'Auto';
+
+                if (SpeechRec) {
+                    try {
+                        this.recognition = new SpeechRec();
+                        this.recognition.continuous = false;
+                        this.recognition.interimResults = true;
+                        this.recognition.maxAlternatives = 1;
+
+                        if (selectedLang && selectedLang !== 'auto') {
+                            this.recognition.lang = selectedLang;
+                        } else {
+                            this.recognition.lang = navigator.language || 'en-US';
+                        }
+
+                        this.recognition.onstart = () => {
+                            this.isListening = true;
+                            if (this.voiceBtn) this.voiceBtn.classList.add('listening');
+                            if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
+                            if (this.voiceStatusText) this.voiceStatusText.innerText = `Listening (${langLabel})...`;
+                            if (this.voiceInterimText) this.voiceInterimText.innerText = 'Speak in your language...';
+                        };
+
+                        this.recognition.onresult = (event) => {
+                            let interimTranscript = '';
+                            let finalTranscript = '';
+
+                            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                if (event.results[i].isFinal) {
+                                    finalTranscript += event.results[i][0].transcript;
+                                } else {
+                                    interimTranscript += event.results[i][0].transcript;
+                                }
+                            }
+
+                            const liveText = finalTranscript || interimTranscript;
+                            if (this.voiceInterimText && liveText) {
+                                this.voiceInterimText.innerText = `"${liveText}"`;
+                            }
+                            if (this.input && liveText) {
+                                this.input.value = liveText;
+                            }
+                        };
+
+                        this.recognition.onerror = (event) => {
+                            console.warn('Web Speech API error:', event.error);
+                            if (event.error === 'not-allowed') {
+                                alert('Microphone permission denied. Please allow microphone access in your browser settings.');
+                                this.cancelListening();
+                            } else if (event.error === 'no-speech') {
+                                this.cancelListening();
+                            } else {
+                                // Fall back to server-side neural multimodal audio processing
+                                this.startMediaRecorderFallback(selectedLang, langLabel);
+                            }
+                        };
+
+                        this.recognition.onend = () => {
+                            if (this.isListening) {
+                                this.stopListening(true);
+                            }
+                        };
+
+                        this.recognition.start();
+                        return;
+                    } catch (e) {
+                        console.warn('Web Speech API failed to initialize, using MediaRecorder fallback:', e);
+                    }
+                }
+
+                // Fallback for browsers without Web Speech (or on explicit failure)
+                this.startMediaRecorderFallback(selectedLang, langLabel);
+            }
+
+            async startMediaRecorderFallback(selectedLang, langLabel) {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert('Voice capture is not supported on this browser. Please use Chrome, Safari, or Edge.');
+                    return;
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaStream = stream;
+                    this.audioChunks = [];
+
+                    let options = { mimeType: 'audio/webm' };
+                    if (window.MediaRecorder && !MediaRecorder.isTypeSupported('audio/webm')) {
+                        if (MediaRecorder.isTypeSupported('audio/mp4')) options = { mimeType: 'audio/mp4' };
+                        else if (MediaRecorder.isTypeSupported('audio/ogg')) options = { mimeType: 'audio/ogg' };
+                        else options = {};
+                    }
+
+                    this.mediaRecorder = new MediaRecorder(stream, options);
+                    this.mediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) this.audioChunks.push(e.data);
+                    };
+
+                    this.mediaRecorder.onstart = () => {
+                        this.isListening = true;
+                        if (this.voiceBtn) this.voiceBtn.classList.add('listening');
+                        if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
+                        if (this.voiceStatusText) this.voiceStatusText.innerText = `Recording audio (${langLabel})...`;
+                        if (this.voiceInterimText) this.voiceInterimText.innerText = 'Listening via Gemini Neural Multimodal Engine...';
+                    };
+
+                    this.mediaRecorder.onstop = async () => {
+                        const tracks = this.mediaStream ? this.mediaStream.getTracks() : [];
+                        tracks.forEach(track => track.stop());
+                        if (this.audioChunks.length > 0 && this.shouldSubmitVoice) {
+                            const blob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType || 'audio/webm' });
+                            await this.sendAudioToServer(blob, this.mediaRecorder.mimeType || 'audio/webm', selectedLang);
+                        }
+                    };
+
+                    this.shouldSubmitVoice = true;
+                    this.mediaRecorder.start(250);
+                } catch (err) {
+                    console.error('Microphone error:', err);
+                    alert('Microphone access fault: ' + err.message);
+                    this.cancelListening();
+                }
+            }
+
+            stopListening(submit = true) {
+                this.shouldSubmitVoice = submit;
+                this.isListening = false;
+                if (this.voiceBtn) this.voiceBtn.classList.remove('listening');
+                if (this.voiceBanner) this.voiceBanner.style.display = 'none';
+
+                if (this.recognition) {
+                    try { this.recognition.stop(); } catch(e) {}
+                    this.recognition = null;
+                }
+
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    try { this.mediaRecorder.stop(); } catch(e) {}
+                }
+
+                if (submit && this.input && this.input.value.trim()) {
+                    this.send();
+                }
+            }
+
+            cancelListening() {
+                this.shouldSubmitVoice = false;
+                if (this.input) this.input.value = '';
+                this.stopListening(false);
+            }
+
+            async sendAudioToServer(blob, mimeType, selectedLang) {
+                const userBubble = document.createElement('div');
+                userBubble.className = 'msg-bubble msg-user';
+                userBubble.innerHTML = `🎙️ <em>Spoken Audio (${selectedLang || 'Auto'})</em>`;
+                this.msgContainer.appendChild(userBubble);
+
+                const loadingBubble = document.createElement('div');
+                loadingBubble.className = 'msg-bubble msg-assistant';
+                loadingBubble.innerHTML = '<span class="opacity-60 italic">Processing voice audio with Gemini Neural Multilingual Intelligence...</span>';
+                this.msgContainer.appendChild(loadingBubble);
+                this.scrollToBottom();
+
+                const formData = new FormData();
+                formData.append('audio', blob, 'voice_command.webm');
+                formData.append('language', selectedLang || 'auto');
+
+                try {
+                    const res = await fetch('/api/voice-process/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        if (data.user_transcript) {
+                            userBubble.innerHTML = `🎙️ "${data.user_transcript}" <span style="font-size:10px; opacity:0.6;">[${data.detected_language || selectedLang}]</span>`;
+                        }
+                        let respHtml = data.response || data.reply || 'Voice instruction executed successfully.';
+                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
+                            respHtml += `
+                                <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end;">
+                                    <button type="button" onclick="window.location.reload()" class="ios-btn-secondary" style="font-size:11px; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
+                                        ↻ Refresh Dashboard
+                                    </button>
+                                </div>
+                            `;
+                            window.dispatchEvent(new CustomEvent('leoxur:data-changed', { detail: data }));
+                        }
+                        loadingBubble.innerHTML = respHtml;
+
+                        const activeSess = this.getActiveSession();
+                        activeSess.messages.push({ sender: 'user', text: data.user_transcript || 'Voice Command' });
+                        activeSess.messages.push({ sender: 'assistant', html: respHtml });
+                        if (activeSess.title === 'New Conversation' || activeSess.title === 'Financial Intelligence Greeting') {
+                            activeSess.title = (data.user_transcript || 'Voice Command').slice(0, 28);
+                        }
+                        this.saveSessions();
+
+                        if (data.action_type === 'change_theme' && data.payload && data.payload.theme) {
+                            if (typeof setThemeMode === 'function') setThemeMode(data.payload.theme);
+                            localStorage.setItem('leoxur_theme', data.payload.theme);
+                        }
+                        if (data.action_type === 'change_currency') {
+                            setTimeout(() => { window.location.reload(); }, 1200);
+                        }
+
+                        if (this.ttsEnabled && (data.reply || data.response)) {
+                            this.speakResponse(data.reply || data.response, data.detected_language || selectedLang);
+                        }
+                    } else {
+                        const errHtml = `<span style="color:var(--apple-red);">Voice processing error: ${data.message || 'Unable to process audio.'}</span>`;
+                        loadingBubble.innerHTML = errHtml;
+                    }
+                } catch (err) {
+                    loadingBubble.innerHTML = `<span style="color:var(--apple-red);">Voice offline fault: ${err.message}</span>`;
+                }
+                this.scrollToBottom();
+            }
+
+            toggleTts() {
+                this.ttsEnabled = !this.ttsEnabled;
+                localStorage.setItem('leoxur_copilot_tts', this.ttsEnabled ? 'true' : 'false');
+                this.updateSpeakerUi();
+                if (!this.ttsEnabled && window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+            }
+
+            updateSpeakerUi() {
+                if (!this.speakerBtn) return;
+                this.speakerBtn.style.opacity = this.ttsEnabled ? '1' : '0.45';
+                this.speakerBtn.style.color = this.ttsEnabled ? 'var(--apple-blue)' : 'inherit';
+                this.speakerBtn.title = this.ttsEnabled ? 'Voice feedback: ON (Click to mute)' : 'Voice feedback: OFF (Click to speak replies)';
+            }
+
+            speakResponse(text, langHint) {
+                if (!window.speechSynthesis) return;
+                try {
+                    window.speechSynthesis.cancel();
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = text;
+                    let cleanText = tmp.textContent || tmp.innerText || '';
+                    cleanText = cleanText.replace(/↻ Refresh Dashboard/g, '').replace(/https?:\/\/\S+/g, '').trim();
+                    if (!cleanText) return;
+
+                    if (cleanText.length > 500) {
+                        cleanText = cleanText.substring(0, 500) + '...';
+                    }
+
+                    const utterance = new SpeechSynthesisUtterance(cleanText);
+                    const voices = window.speechSynthesis.getVoices();
+                    const targetLang = (langHint || (this.langSelect ? this.langSelect.value : 'auto') || 'en-US').toLowerCase();
+
+                    if (targetLang !== 'auto' && voices.length) {
+                        const matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(targetLang.split('-')[0])) ||
+                                             voices.find(v => v.lang.toLowerCase().includes(targetLang));
+                        if (matchedVoice) {
+                            utterance.voice = matchedVoice;
+                            utterance.lang = matchedVoice.lang;
+                        } else {
+                            utterance.lang = targetLang;
+                        }
+                    }
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.warn('Speech synthesis error:', e);
+                }
             }
 
             toggle() {
@@ -1962,6 +2340,11 @@
                         if (data.action_type === 'change_currency') {
                             setTimeout(() => { window.location.reload(); }, 1200);
                         }
+
+                        // Speak response via TTS if enabled
+                        if (this.ttsEnabled && (data.reply || data.response)) {
+                            this.speakResponse(data.reply || data.response, data.detected_language);
+                        }
                     } else {
                         const errHtml = `<span style="color:var(--apple-red);">Error: ${data.message || 'Unable to process query.'}</span>`;
                         loadingBubble.innerHTML = errHtml;
@@ -1980,6 +2363,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             window.leoxurCopilotInstance = new LeoxurCopilotUI();
+            window.leoxurCopilot = window.leoxurCopilotInstance;
             if (window.lucide) lucide.createIcons();
         });
     </script>

@@ -638,6 +638,55 @@ def savings_analyst_chat(request):
         return JsonResponse(result)
     return JsonResponse({"status": "error", "message": "Invalid request method"}, status=400)
 
+
+@login_required
+def voice_process_api(request):
+    """
+    Multimodal voice detection and processing endpoint.
+    Accepts audio data (file or base64) and language hint,
+    transcribes/processes using Gemini Multimodal Audio or returns transcription for execution.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    
+    import base64
+    from .assistant import LeoxurIntelligence
+
+    profile = request.user.profile
+    ai_key = profile.get_active_ai_key()
+    
+    audio_bytes = None
+    mime_type = "audio/webm"
+    language_hint = request.POST.get('language') or 'auto'
+    
+    if 'audio' in request.FILES:
+        audio_file = request.FILES['audio']
+        audio_bytes = audio_file.read()
+        mime_type = audio_file.content_type or 'audio/webm'
+    elif request.content_type == 'application/json':
+        import json
+        try:
+            body = json.loads(request.body)
+            b64_data = body.get('audio_base64', '')
+            if ',' in b64_data:
+                header, b64_data = b64_data.split(',', 1)
+                if 'audio/wav' in header: mime_type = 'audio/wav'
+                elif 'audio/mp3' in header: mime_type = 'audio/mp3'
+                elif 'audio/ogg' in header: mime_type = 'audio/ogg'
+            if b64_data:
+                audio_bytes = base64.b64decode(b64_data)
+            language_hint = body.get('language') or language_hint
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Invalid JSON: {str(e)}'}, status=400)
+        
+    if not audio_bytes:
+        return JsonResponse({'status': 'error', 'message': 'No audio data received'}, status=400)
+
+    intel = LeoxurIntelligence(user=request.user)
+    result = intel.process_voice_audio(audio_bytes, mime_type, language_hint, ai_key)
+    return JsonResponse(result)
+
+
 def toggle_theme(request):
     if request.method == 'POST':
         profile = request.user.profile

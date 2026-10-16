@@ -56,5 +56,6 @@ urlpatterns = [
     # API for Analytics Charts and Savings Analyst
     path('api/analytics-data/', views.analytics_data_api, name='analytics_data'),
     path('api/savings-analyst/', views.savings_analyst_chat, name='savings_analyst_chat'),
+    path('api/voice-process/', views.voice_process_api, name='voice_process_api'),
     path('api/reminders/check/', views.reminders_check_api, name='reminders_check_api'),
 ]

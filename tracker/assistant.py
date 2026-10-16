@@ -276,6 +276,92 @@ class LeoxurIntelligence:
             ''
         )
 
+    def process_voice_audio(self, audio_bytes, mime_type="audio/webm", language_hint="auto", api_key=None):
+        """
+        Multimodal voice detection and processing across global languages.
+        Understands spoken voice in Spanish, French, German, Italian, Portuguese,
+        Hindi, Tamil, Telugu, Arabic, Russian, Chinese, Japanese, etc.
+        """
+        import base64
+        key = api_key or self.get_active_ai_key()
+        if not key:
+            return {
+                'status': 'error',
+                'message': 'AI API Key is required for server-side neural voice processing. Please configure your key in AI Settings or use browser Web Speech Recognition.'
+            }
+
+        provider = (self.profile.ai_provider if self.profile else 'gemini').lower()
+        if provider != 'gemini':
+            return {
+                'status': 'error',
+                'message': f"Provider '{provider}' requires text transcription. Browser Speech Recognition has been engaged."
+            }
+
+        b64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        analytics = self._build_financial_analytics()
+        currency = analytics['currency']
+
+        system_prompt = f"""You are Leoxur Copilot, an elite autonomous multilingual financial AI agent.
+The user has provided an audio voice query.
+1. You have native fluency in every human language (Spanish, French, German, Italian, Portuguese, Hindi, Tamil, Telugu, Arabic, etc.).
+2. Listen to this voice audio, determine the language spoken (language hint: {language_hint}), and accurately transcribe the user's speech into "user_transcript".
+3. Reason through the financial request (logging expense/income, checking budgets, 50/30/20 audit, changing theme, sending report, etc.).
+4. CRITICAL: Provide the "reply" in the EXACT SAME LANGUAGE as the user's spoken voice!
+5. Follow this strict JSON schema:
+{{
+  "user_transcript": "The exact words spoken by the user in their language",
+  "detected_language": "en | es | hi | ta | fr | de | it | pt | ar | ru | zh | ja",
+  "reply": "Polished, executive response in the user's spoken language",
+  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general",
+  "payload": {{ ... }},
+  "visual_card": true | false
+}}
+Return ONLY valid JSON.
+"""
+        payload_data = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"inline_data": {"mime_type": mime_type, "data": b64_audio}},
+                        {"text": f"Listen carefully to this spoken financial audio (language hint: {language_hint}). Transcribe and execute the financial action according to instructions."}
+                    ]
+                }
+            ],
+            "system_instruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {"temperature": 0.1, "response_mime_type": "application/json"}
+        }
+
+        candidate_models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.7-flash']
+        user_agent = 'LeoxurTracker/2.5.0 (Voice Engine; Leoxur Inc.)'
+
+        last_err = None
+        for m in candidate_models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={key}"
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload_data).encode('utf-8'),
+                headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                method='POST'
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=18) as response:
+                    res_obj = json.loads(response.read().decode('utf-8'))
+                    text_content = res_obj['candidates'][0]['content']['parts'][0]['text']
+                    data = self._clean_json(text_content)
+                    action_res = self._apply_cloud_action(data)
+                    action_res['user_transcript'] = data.get('user_transcript', '')
+                    action_res['detected_language'] = data.get('detected_language', 'auto')
+                    return action_res
+            except Exception as ex:
+                last_err = str(ex)
+                continue
+
+        return {
+            'status': 'error',
+            'message': f"Voice audio processing failed: {last_err or 'No responsive endpoint'}"
+        }
+
     def process_message(self, user_text):
         """
         Analyze user query and return a structured response dictionary:
