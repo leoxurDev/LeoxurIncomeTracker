@@ -1,0 +1,979 @@
+{% extends 'tracker/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="workflow-studio-root min-h-screen text-slate-100 font-sans pb-24">
+    <!-- Top Studio Header -->
+    <div class="studio-header glass-panel border-b border-white/10 px-6 py-4 sticky top-16 z-30 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Left Info & Selector -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="workflowTitleInput" value="50/30/20 Automated Payday Splitter" class="bg-transparent text-base md:text-lg font-bold font-outfit text-white tracking-wide border-b border-transparent hover:border-white/20 focus:border-emerald-400 focus:outline-none transition px-1 py-0.5 rounded" placeholder="Workflow Name...">
+                        <span id="workflowActiveBadge" class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Active</span>
+                    </div>
+                    <div class="flex items-center gap-3 mt-0.5 text-xs text-slate-400">
+                        <span>No-Code Financial Automation & Sandbox</span>
+                        <span>•</span>
+                        <select id="savedWorkflowsDropdown" onchange="loadSelectedWorkflow(this.value)" class="bg-space-900 border border-white/10 rounded-lg text-xs py-0.5 px-2 text-slate-300 focus:outline-none focus:border-emerald-400">
+                            {% for wf in workflows %}
+                            <option value="{{ wf.id }}">{{ wf.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" onclick="createNewWorkflow()" class="text-emerald-400 hover:text-emerald-300 text-xs font-semibold cursor-pointer">+ New</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Actions Toolbar -->
+            <div class="flex items-center flex-wrap gap-2.5">
+                <!-- AI Copilot Architect Button -->
+                <button type="button" onclick="openAiArchitectModal()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600/30 to-blue-600/30 border border-purple-500/40 text-purple-200 hover:text-white hover:border-purple-400 text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-purple-500/10 cursor-pointer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    <span>✨ AI Architect</span>
+                </button>
+
+                <!-- Template Library Dropdown -->
+                <button type="button" onclick="openTemplatesModal()" class="px-3 py-2 rounded-xl bg-space-900/80 hover:bg-space-850 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <span>Templates</span>
+                </button>
+
+                <!-- Run Simulation Sandbox Button -->
+                <button type="button" id="simulateWorkflowBtn" onclick="runSimulationSandbox()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold uppercase tracking-wider transition flex items-center gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Run Sandbox</span>
+                </button>
+
+                <!-- Save Workflow Button -->
+                <button type="button" onclick="saveCurrentWorkflow()" class="px-3.5 py-2 rounded-xl bg-apple-blue hover:bg-apple-blue/90 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <span>Save</span>
+                </button>
+
+                <!-- Delete Workflow Button -->
+                <button type="button" onclick="deleteCurrentWorkflow()" class="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer" title="Delete Workflow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace: Palette + Canvas + Simulation Drawer -->
+    <div class="max-w-7xl mx-auto px-4 md:px-6 pt-6 grid grid-cols-12 gap-6 relative">
+        <!-- Left Palette Sidebar -->
+        <div class="col-span-12 lg:col-span-3 space-y-4">
+            <!-- Palette Card -->
+            <div class="glass-panel p-4 rounded-2xl border border-white/10 shadow-xl space-y-4">
+                <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <span>Block Palette</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400">Drag to canvas</span>
+                </div>
+
+                <!-- 1. Triggers Category -->
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-2">1. Triggers (When this happens)</span>
+                    <div class="space-y-2">
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'trigger', 'Salary Inflow Credited', 'Inflow > {{ currency }}30,000', 'zap', {min_amount: 30000, category: 'Salary'})">
+                            <div class="palette-icon text-amber-400 bg-amber-400/10 border border-amber-400/30">⚡</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Salary Credited</div>
+                                <div class="text-[10px] text-slate-400">Trigger on income deposit</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'trigger', 'High Outflow Surge', 'Single spend > {{ currency }}5,000', 'alert-triangle', {min_amount: 5000})">
+                            <div class="palette-icon text-rose-400 bg-rose-400/10 border border-rose-400/30">🚨</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">High Outflow Surge</div>
+                                <div class="text-[10px] text-slate-400">Spike spend detected</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'trigger', 'Bill Due in 48h', 'Upcoming scheduled payment', 'clock', {advance_days: 2})">
+                            <div class="palette-icon text-cyan-400 bg-cyan-400/10 border border-cyan-400/30">⏰</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Bill Due in 48h</div>
+                                <div class="text-[10px] text-slate-400">Scheduled bill deadline</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'trigger', 'Month-End Cycle', 'Last 3 days of monthly cycle', 'calendar', {day: 28})">
+                            <div class="palette-icon text-indigo-400 bg-indigo-400/10 border border-indigo-400/30">📅</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Month-End Cycle</div>
+                                <div class="text-[10px] text-slate-400">Cycle close telemetry</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Conditions Category -->
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-2">2. Conditions & Filters (If)</span>
+                    <div class="space-y-2">
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'condition', '50/30/20 Rule Check', 'Savings Rate < 20%', 'scale', {rule: 'savings_under_20'})">
+                            <div class="palette-icon text-cyan-400 bg-cyan-400/10 border border-cyan-400/30">⚖️</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">50/30/20 Rule Check</div>
+                                <div class="text-[10px] text-slate-400">Telemetry blueprint filter</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'condition', 'Category Match', 'Dining, Leisure, or Shopping', 'filter', {categories: ['Food', 'Shopping']})">
+                            <div class="palette-icon text-purple-400 bg-purple-400/10 border border-purple-400/30">🔍</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Category Matcher</div>
+                                <div class="text-[10px] text-slate-400">Check expense tag</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'condition', 'Liquidity Balance Check', 'Balance >= Threshold', 'dollar-sign', {min_balance: 10000})">
+                            <div class="palette-icon text-emerald-400 bg-emerald-400/10 border border-emerald-400/30">💰</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Liquidity Balance</div>
+                                <div class="text-[10px] text-slate-400">Check account surplus</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Actions Category -->
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-2">3. Actions (Then do this)</span>
+                    <div class="space-y-2">
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'action', 'Auto-Allocate Reserve', 'Transfer 20% to Vault', 'shield', {percentage: 20})">
+                            <div class="palette-icon text-emerald-400 bg-emerald-400/10 border border-emerald-400/30">🏦</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Auto-Allocate Reserve</div>
+                                <div class="text-[10px] text-slate-400">Wealth vault transfer</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'action', 'Apple Siri Voice Alert', 'Speak status aloud', 'volume-2', {message: 'Automation executed.'})">
+                            <div class="palette-icon text-blue-400 bg-blue-400/10 border border-blue-400/30">🔊</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Siri Voice Alert</div>
+                                <div class="text-[10px] text-slate-400">Natural voice speech</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'action', 'Telemetry Alert Email', 'Dispatch notice to inbox', 'mail', {subject: 'Telemetry Alert'})">
+                            <div class="palette-icon text-violet-400 bg-violet-400/10 border border-violet-400/30">📧</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Telemetry Email</div>
+                                <div class="text-[10px] text-slate-400">Instant email notification</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'action', 'Cap Category Budget', 'Freeze remaining limit', 'lock', {freeze_budget: true})">
+                            <div class="palette-icon text-rose-400 bg-rose-400/10 border border-rose-400/30">🛡️</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Cap Budget</div>
+                                <div class="text-[10px] text-slate-400">Freeze category spend</div>
+                            </div>
+                        </div>
+                        <div class="palette-node-item" draggable="true" ondragstart="handlePaletteDragStart(event, 'action', 'Autonomous Copilot Action', 'AI autonomous agent prompt', 'bot', {prompt: 'Analyze financial health'})">
+                            <div class="palette-icon text-amber-400 bg-amber-400/10 border border-amber-400/30">🤖</div>
+                            <div>
+                                <div class="text-xs font-bold text-white">Copilot AI Agent</div>
+                                <div class="text-[10px] text-slate-400">Autonomous intelligence</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Financial Sandbox Context -->
+            <div class="glass-panel p-4 rounded-2xl border border-white/10 shadow-lg text-xs space-y-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Ledger Telemetry</span>
+                <div class="flex justify-between py-1 border-b border-white/5">
+                    <span class="text-slate-400">Monthly Inflow:</span>
+                    <span class="font-mono font-bold text-emerald-400">{{ currency }}{{ telemetry.total_income|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-white/5">
+                    <span class="text-slate-400">Monthly Outflow:</span>
+                    <span class="font-mono font-bold text-rose-400">{{ currency }}{{ telemetry.total_expense|floatformat:2 }}</span>
+                </div>
+                <div class="flex justify-between py-1">
+                    <span class="text-slate-400">Net Surplus:</span>
+                    <span class="font-mono font-bold text-cyan-400">{{ currency }}{{ telemetry.net_balance|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Interactive Drag-and-Drop Canvas -->
+        <div class="col-span-12 lg:col-span-9 flex flex-col space-y-4">
+            <!-- Canvas Container -->
+            <div id="workflowCanvasContainer" class="workflow-canvas relative w-full h-[580px] rounded-2xl border border-white/15 overflow-hidden shadow-2xl" ondragover="handleCanvasDragOver(event)" ondrop="handleCanvasDrop(event)">
+                <!-- Canvas Grid Dots -->
+                <div class="canvas-grid-dots absolute inset-0 pointer-events-none"></div>
+
+                <!-- SVG Connectors Layer -->
+                <svg id="canvasSvgLayer" class="absolute inset-0 w-full h-full pointer-events-none z-10"></svg>
+
+                <!-- Nodes Container -->
+                <div id="canvasNodesLayer" class="absolute inset-0 w-full h-full z-20"></div>
+
+                <!-- Canvas Watermark / Guide -->
+                <div class="absolute bottom-4 left-4 z-0 pointer-events-none text-[11px] text-slate-500 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Drag nodes from palette • Click output handle to connect • Click node to edit</span>
+                </div>
+
+                <!-- Canvas Zoom / Reset Controls -->
+                <div class="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-space-950/80 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg">
+                    <button type="button" onclick="autoLayoutNodes()" class="px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer" title="Auto Align Nodes">Auto Align</button>
+                    <button type="button" onclick="clearCanvas()" class="px-2.5 py-1 text-[11px] font-semibold text-red-400 hover:text-red-300 rounded-lg hover:bg-red-500/10 transition cursor-pointer" title="Clear Canvas">Clear</button>
+                </div>
+            </div>
+
+            <!-- Simulation Console & Real-time Trace Log Drawer -->
+            <div id="simulationTraceCard" class="glass-panel rounded-2xl border border-white/10 p-5 shadow-2xl space-y-3">
+                <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        <h4 class="text-xs font-bold font-outfit uppercase tracking-wider text-white">Sandbox Simulation Console & Telemetry Trace</h4>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="simulatedEventSelect" class="bg-space-900 border border-white/10 rounded-lg text-xs py-1 px-2 text-slate-300 focus:outline-none focus:border-emerald-400">
+                            <option value="salary">Inflow: Salary Credited ({{ currency }}60,000)</option>
+                            <option value="dining">Outflow: Dining Spend Surge ({{ currency }}6,500)</option>
+                            <option value="bill">Scheduled: Rent Bill Due ({{ currency }}15,000)</option>
+                            <option value="small_spend">Outflow: Normal Groceries ({{ currency }}1,200)</option>
+                        </select>
+                        <button type="button" onclick="runSimulationSandbox()" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 rounded-lg text-xs font-bold transition cursor-pointer">
+                            Trigger Simulation
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Terminal / Log Output Area -->
+                <div id="simulationLogsContainer" class="font-mono text-xs text-slate-300 bg-space-950/90 rounded-xl p-3 border border-white/5 h-36 overflow-y-auto space-y-1">
+                    <div class="text-slate-500">// Ready. Click "Run Sandbox" or choose an event above to test end-to-end automation.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Architect Modal -->
+<div id="aiArchitectModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+    <div class="modal-container glass-panel max-w-lg w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl space-y-4">
+        <div class="flex justify-between items-center pb-3 border-b border-white/10">
+            <h3 class="font-bold font-outfit text-base text-white uppercase tracking-wider flex items-center gap-2">
+                <span class="text-purple-400">✨</span>
+                <span>Leoxur AI Workflow Architect</span>
+            </h3>
+            <button onclick="closeModal('aiArchitectModal')" class="text-slate-400 hover:text-white transition cursor-pointer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+            Tell Leoxur Copilot what automation you want in natural language or speech. The AI will synthesize the trigger, conditions, and actions into a complete canvas workflow.
+        </p>
+        <div>
+            <textarea id="aiWorkflowPrompt" rows="3" class="w-full bg-space-950 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-purple-400 transition" placeholder="e.g. When salary above {{ currency }}30,000 arrives, save 20% to emergency fund and notify me via Siri voice if dining spend exceeds {{ currency }}8,000..."></textarea>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="synthesizeWorkflowWithAi()" id="aiGenerateWfBtn" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold uppercase tracking-wider hover:brightness-110 transition shadow-lg shadow-purple-500/20 cursor-pointer">
+                Synthesize Workflow Graph
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Modal -->
+<div id="templatesModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+    <div class="modal-container glass-panel max-w-xl w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl space-y-4">
+        <div class="flex justify-between items-center pb-3 border-b border-white/10">
+            <h3 class="font-bold font-outfit text-base text-white uppercase tracking-wider flex items-center gap-2">
+                <span>📚</span>
+                <span>Pre-Built Wealth Workflow Templates</span>
+            </h3>
+            <button onclick="closeModal('templatesModal')" class="text-slate-400 hover:text-white transition cursor-pointer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div class="p-3.5 rounded-xl border border-white/10 bg-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition cursor-pointer" onclick="loadTemplateByName('splitter')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white">⚡ 50/30/20 Automated Payday Splitter</span>
+                    <span class="text-[10px] text-emerald-400 font-extrabold uppercase">Wealth Growth</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Triggers on salary inflow, checks needs/wants balance, transfers 20% to savings vault, and announces via Siri voice.</p>
+            </div>
+            <div class="p-3.5 rounded-xl border border-white/10 bg-white/5 hover:border-rose-500/50 hover:bg-rose-500/5 transition cursor-pointer" onclick="loadTemplateByName('surge')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white">🚨 Discretionary Outflow Surge Guardian</span>
+                    <span class="text-[10px] text-rose-400 font-extrabold uppercase">Spend Control</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Detects high spend in dining/entertainment, freezes remaining monthly limit, and sends real-time telemetry email.</p>
+            </div>
+            <div class="p-3.5 rounded-xl border border-white/10 bg-white/5 hover:border-purple-500/50 hover:bg-purple-500/5 transition cursor-pointer" onclick="loadTemplateByName('bills')">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white">⏰ Autonomous Bill Settlement Guardian</span>
+                    <span class="text-[10px] text-purple-400 font-extrabold uppercase">Bill Automation</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Monitors bills 48h prior to due date, verifies account liquidity, and automatically queues settlement with audit notice.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Node Inspector Modal / Drawer -->
+<div id="nodeInspectorModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+    <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl space-y-4">
+        <div class="flex justify-between items-center pb-3 border-b border-white/10">
+            <h3 id="inspectorNodeTitleHeader" class="font-bold font-outfit text-base text-white uppercase tracking-wider">
+                Configure Node
+            </h3>
+            <button onclick="closeModal('nodeInspectorModal')" class="text-slate-400 hover:text-white transition cursor-pointer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Title</label>
+                <input type="text" id="inspectorNodeTitleInput" class="w-full bg-space-950 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-400">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Subtitle / Summary</label>
+                <input type="text" id="inspectorNodeSubtitleInput" class="w-full bg-space-950 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-400">
+            </div>
+            <div id="inspectorDynamicConfigContainer" class="space-y-3 pt-1">
+                <!-- Dynamically filled depending on node type -->
+            </div>
+        </div>
+        <div class="flex items-center gap-2 pt-2 border-t border-white/10">
+            <button type="button" onclick="saveNodeInspectorChanges()" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold uppercase tracking-wider transition cursor-pointer">
+                Apply Settings
+            </button>
+            <button type="button" onclick="deleteActiveInspectorNode()" class="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider transition cursor-pointer">
+                Delete Node
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modern Glassmorphic Workflow Studio Styles */
+.workflow-studio-root {
+    background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05), transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.04), transparent 40%);
+}
+.palette-node-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    cursor: grab;
+    transition: all 0.18s ease;
+    user-select: none;
+}
+.palette-node-item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+    transform: translateX(3px);
+}
+.palette-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.workflow-canvas {
+    background-color: #0b0f17;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+.canvas-node {
+    position: absolute;
+    width: 210px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    cursor: move;
+    user-select: none;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+.canvas-node:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+.canvas-node.selected {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.35) !important;
+}
+.canvas-node.sim-active {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.5) !important;
+    animation: simPulse 0.8s infinite alternate;
+}
+.canvas-node.sim-passed {
+    border-color: #06b6d4 !important;
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.5) !important;
+}
+.canvas-node.sim-executed {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.6) !important;
+}
+@keyframes simPulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.03); }
+}
+.canvas-handle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #0b0f17;
+    position: absolute;
+    cursor: crosshair;
+    transition: transform 0.15s, background 0.15s;
+}
+.canvas-handle:hover {
+    transform: scale(1.3);
+    background: #10b981;
+}
+.handle-in {
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.handle-out {
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.connection-wire {
+    stroke: rgba(255, 255, 255, 0.28);
+    stroke-width: 2.5;
+    fill: none;
+    transition: stroke 0.2s;
+}
+.connection-wire.active {
+    stroke: #10b981;
+    stroke-width: 3.5;
+    stroke-dasharray: 6;
+    animation: dashAnim 0.6s linear infinite;
+}
+@keyframes dashAnim {
+    to { stroke-dashoffset: -12; }
+}
+</style>
+
+<script>
+// =========================================================================
+// MONEY WORKFLOW NO-CODE CANVAS & SANDBOX CONTROLLER
+// =========================================================================
+
+const initialWorkflows = {{ workflows_json|safe }};
+let currentWorkflow = initialWorkflows.length ? initialWorkflows[0] : null;
+
+let canvasNodes = [];
+let canvasEdges = [];
+let selectedNodeId = null;
+let connectingSourceNodeId = null;
+let isDraggingNode = false;
+let dragNodeOffset = { x: 0, y: 0 };
+let activeDragNode = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (currentWorkflow && currentWorkflow.canvas_state && currentWorkflow.canvas_state.nodes) {
+        loadWorkflowData(currentWorkflow);
+    } else {
+        createNewWorkflow();
+    }
+});
+
+function loadSelectedWorkflow(id) {
+    const wf = initialWorkflows.find(w => w.id == id);
+    if (wf) {
+        currentWorkflow = wf;
+        loadWorkflowData(wf);
+    }
+}
+
+function loadWorkflowData(wf) {
+    document.getElementById('workflowTitleInput').value = wf.name || 'Untitled Workflow';
+    const activeBadge = document.getElementById('workflowActiveBadge');
+    if (activeBadge) {
+        activeBadge.innerText = wf.is_active ? 'Active' : 'Disabled';
+        activeBadge.className = wf.is_active 
+            ? 'px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+            : 'px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30';
+    }
+
+    const state = wf.canvas_state || {};
+    canvasNodes = JSON.parse(JSON.stringify(state.nodes || []));
+    canvasEdges = JSON.parse(JSON.stringify(state.edges || []));
+    renderCanvas();
+}
+
+function createNewWorkflow() {
+    currentWorkflow = {
+        id: null,
+        name: '⚡ Custom Wealth Automation Protocol',
+        description: 'User-defined automated money flow',
+        trigger_type: 'inflow_salary',
+        is_active: true,
+        canvas_state: {
+            nodes: [
+                { id: 'node_' + Date.now(), type: 'trigger', title: 'Salary Inflow Credited', subtitle: 'Inflow > {{ currency }}30,000', icon: 'zap', x: 80, y: 140, config: { min_amount: 30000 } },
+                { id: 'node_' + (Date.now() + 1), type: 'action', title: 'Apple Siri Voice Alert', subtitle: 'Voice announcement', icon: 'volume-2', x: 420, y: 140, config: { message: 'Inflow confirmed!' } }
+            ],
+            edges: []
+        }
+    };
+    loadWorkflowData(currentWorkflow);
+}
+
+// ---------------- Drag from Palette to Canvas ----------------
+function handlePaletteDragStart(e, type, title, subtitle, icon, config) {
+    e.dataTransfer.setData('application/json', JSON.stringify({ type, title, subtitle, icon, config }));
+}
+
+function handleCanvasDragOver(e) {
+    e.preventDefault();
+}
+
+function handleCanvasDrop(e) {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData('application/json');
+    if (!raw) return;
+    try {
+        const data = JSON.parse(raw);
+        const rect = document.getElementById('workflowCanvasContainer').getBoundingClientRect();
+        const x = Math.max(20, Math.min(e.clientX - rect.left - 100, rect.width - 230));
+        const y = Math.max(20, Math.min(e.clientY - rect.top - 40, rect.height - 110));
+
+        const newNode = {
+            id: 'node_' + Date.now(),
+            type: data.type,
+            title: data.title,
+            subtitle: data.subtitle,
+            icon: data.icon,
+            x: Math.round(x),
+            y: Math.round(y),
+            config: data.config || {}
+        };
+        canvasNodes.push(newNode);
+        renderCanvas();
+    } catch(err) {
+        console.warn('Drop error:', err);
+    }
+}
+
+// ---------------- Canvas Rendering & Node Movement ----------------
+function renderCanvas() {
+    const nodesLayer = document.getElementById('canvasNodesLayer');
+    const svgLayer = document.getElementById('canvasSvgLayer');
+    if (!nodesLayer || !svgLayer) return;
+
+    nodesLayer.innerHTML = '';
+    svgLayer.innerHTML = '';
+
+    // Render connection wires
+    canvasEdges.forEach(edge => {
+        const srcNode = canvasNodes.find(n => n.id === edge.from);
+        const tgtNode = canvasNodes.find(n => n.id === edge.to);
+        if (srcNode && tgtNode) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const x1 = srcNode.x + 210;
+            const y1 = srcNode.y + 40;
+            const x2 = tgtNode.x;
+            const y2 = tgtNode.y + 40;
+            const dx = Math.abs(x2 - x1) * 0.5;
+
+            path.setAttribute('d', `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`);
+            path.setAttribute('class', `connection-wire edge-${edge.from}-${edge.to}`);
+            svgLayer.appendChild(path);
+        }
+    });
+
+    // Render nodes
+    canvasNodes.forEach(node => {
+        const div = document.createElement('div');
+        div.className = `canvas-node ${node.id === selectedNodeId ? 'selected' : ''}`;
+        div.id = node.id;
+        div.style.left = node.x + 'px';
+        div.style.top = node.y + 'px';
+
+        let badgeColor = 'text-amber-400 bg-amber-400/10 border-amber-400/30';
+        let typeLabel = 'Trigger';
+        if (node.type === 'condition') {
+            badgeColor = 'text-cyan-400 bg-cyan-400/10 border-cyan-400/30';
+            typeLabel = 'Condition';
+        } else if (node.type === 'action') {
+            badgeColor = 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
+            typeLabel = 'Action';
+        }
+
+        div.innerHTML = `
+            <div class="handle-in canvas-handle" title="Input connection" onclick="handleTargetHandleClick('${node.id}', event)"></div>
+            <div class="handle-out canvas-handle" title="Output connection" onclick="handleSourceHandleClick('${node.id}', event)"></div>
+            <div class="flex items-center justify-between mb-1.5 pointer-events-none">
+                <span class="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeColor}">${typeLabel}</span>
+                <span class="text-[10px] text-slate-500 font-mono">#${node.id.slice(-4)}</span>
+            </div>
+            <div class="flex items-center gap-2 pointer-events-none">
+                <div class="text-base">${getNodeEmoji(node)}</div>
+                <div class="overflow-hidden">
+                    <div class="text-xs font-bold text-white truncate">${node.title}</div>
+                    <div class="text-[10px] text-slate-400 truncate">${node.subtitle || ''}</div>
+                </div>
+            </div>
+        `;
+
+        // Node drag listeners
+        div.onmousedown = (e) => {
+            if (e.target.classList.contains('canvas-handle')) return;
+            isDraggingNode = true;
+            activeDragNode = node;
+            selectedNodeId = node.id;
+            dragNodeOffset.x = e.clientX - node.x;
+            dragNodeOffset.y = e.clientY - node.y;
+            renderCanvas();
+        };
+
+        div.ondblclick = () => {
+            openNodeInspector(node.id);
+        };
+
+        nodesLayer.appendChild(div);
+    });
+}
+
+function getNodeEmoji(node) {
+    if (node.icon === 'zap') return '⚡';
+    if (node.icon === 'alert-triangle') return '🚨';
+    if (node.icon === 'clock') return '⏰';
+    if (node.icon === 'calendar') return '📅';
+    if (node.icon === 'scale') return '⚖️';
+    if (node.icon === 'filter') return '🔍';
+    if (node.icon === 'dollar-sign') return '💰';
+    if (node.icon === 'shield') return '🏦';
+    if (node.icon === 'volume-2') return '🔊';
+    if (node.icon === 'mail') return '📧';
+    if (node.icon === 'lock') return '🛡️';
+    if (node.icon === 'bot') return '🤖';
+    return '🧩';
+}
+
+document.addEventListener('mousemove', (e) => {
+    if (isDraggingNode && activeDragNode) {
+        const container = document.getElementById('workflowCanvasContainer');
+        const rect = container.getBoundingClientRect();
+        let newX = e.clientX - dragNodeOffset.x;
+        let newY = e.clientY - dragNodeOffset.y;
+        newX = Math.max(10, Math.min(newX, rect.width - 225));
+        newY = Math.max(10, Math.min(newY, rect.height - 95));
+        activeDragNode.x = Math.round(newX);
+        activeDragNode.y = Math.round(newY);
+        renderCanvas();
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    isDraggingNode = false;
+    activeDragNode = null;
+});
+
+// ---------------- Wire Connections ----------------
+function handleSourceHandleClick(srcId, e) {
+    e.stopPropagation();
+    connectingSourceNodeId = srcId;
+    showiOSToast('Select target node handle to connect wire', '🔗');
+}
+
+function handleTargetHandleClick(tgtId, e) {
+    e.stopPropagation();
+    if (connectingSourceNodeId && connectingSourceNodeId !== tgtId) {
+        const exists = canvasEdges.some(edge => edge.from === connectingSourceNodeId && edge.to === tgtId);
+        if (!exists) {
+            canvasEdges.push({ from: connectingSourceNodeId, to: tgtId, label: 'Flow' });
+            renderCanvas();
+            showiOSToast('Nodes connected successfully', '⚡');
+        }
+    }
+    connectingSourceNodeId = null;
+}
+
+function clearCanvas() {
+    if (confirm('Clear all nodes on the canvas?')) {
+        canvasNodes = [];
+        canvasEdges = [];
+        renderCanvas();
+    }
+}
+
+function autoLayoutNodes() {
+    let currentX = 50;
+    canvasNodes.forEach((node, idx) => {
+        node.x = currentX;
+        node.y = 120 + ((idx % 2) * 90);
+        currentX += 260;
+    });
+    renderCanvas();
+}
+
+// ---------------- Node Inspector Modal ----------------
+let activeInspectorNodeId = null;
+
+function openNodeInspector(nodeId) {
+    const node = canvasNodes.find(n => n.id === nodeId);
+    if (!node) return;
+    activeInspectorNodeId = nodeId;
+    document.getElementById('inspectorNodeTitleHeader').innerText = `Configure ${node.title}`;
+    document.getElementById('inspectorNodeTitleInput').value = node.title;
+    document.getElementById('inspectorNodeSubtitleInput').value = node.subtitle || '';
+
+    const dynamicContainer = document.getElementById('inspectorDynamicConfigContainer');
+    dynamicContainer.innerHTML = '';
+
+    if (node.type === 'trigger') {
+        dynamicContainer.innerHTML = `
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Trigger Threshold ({{ currency }})</label>
+                <input type="number" id="inspectorMinAmount" value="${node.config?.min_amount || 25000}" class="w-full bg-space-950 border border-white/10 rounded-xl p-2 text-xs text-white">
+            </div>
+        `;
+    } else if (node.type === 'action') {
+        dynamicContainer.innerHTML = `
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Action Percentage / Value</label>
+                <input type="number" id="inspectorActionPct" value="${node.config?.percentage || 20}" class="w-full bg-space-950 border border-white/10 rounded-xl p-2 text-xs text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Custom Message / Siri Speech</label>
+                <input type="text" id="inspectorActionMsg" value="${node.config?.message || 'Automation triggered.'}" class="w-full bg-space-950 border border-white/10 rounded-xl p-2 text-xs text-white">
+            </div>
+        `;
+    }
+    openModal('nodeInspectorModal');
+}
+
+function saveNodeInspectorChanges() {
+    const node = canvasNodes.find(n => n.id === activeInspectorNodeId);
+    if (node) {
+        node.title = document.getElementById('inspectorNodeTitleInput').value;
+        node.subtitle = document.getElementById('inspectorNodeSubtitleInput').value;
+        if (!node.config) node.config = {};
+        const minAmt = document.getElementById('inspectorMinAmount');
+        if (minAmt) node.config.min_amount = parseFloat(minAmt.value);
+        const pct = document.getElementById('inspectorActionPct');
+        if (pct) node.config.percentage = parseFloat(pct.value);
+        const msg = document.getElementById('inspectorActionMsg');
+        if (msg) node.config.message = msg.value;
+        renderCanvas();
+    }
+    closeModal('nodeInspectorModal');
+}
+
+function deleteActiveInspectorNode() {
+    if (activeInspectorNodeId) {
+        canvasNodes = canvasNodes.filter(n => n.id !== activeInspectorNodeId);
+        canvasEdges = canvasEdges.filter(e => e.from !== activeInspectorNodeId && e.to !== activeInspectorNodeId);
+        renderCanvas();
+        closeModal('nodeInspectorModal');
+    }
+}
+
+// ---------------- Save & Delete Workflow API ----------------
+async function saveCurrentWorkflow() {
+    const name = document.getElementById('workflowTitleInput').value.trim() || 'Untitled Workflow';
+    const payload = {
+        id: currentWorkflow ? currentWorkflow.id : null,
+        name: name,
+        description: currentWorkflow?.description || 'Custom workflow',
+        trigger_type: currentWorkflow?.trigger_type || 'inflow_salary',
+        is_active: true,
+        canvas_state: {
+            nodes: canvasNodes,
+            edges: canvasEdges
+        }
+    };
+
+    try {
+        const res = await fetch('/api/workflows/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            if (currentWorkflow) currentWorkflow.id = data.id;
+            showiOSToast('Workflow saved successfully', '💾');
+        } else {
+            alert('Save error: ' + data.message);
+        }
+    } catch(e) {
+        alert('Network fault while saving workflow: ' + e.message);
+    }
+}
+
+async function deleteCurrentWorkflow() {
+    if (!currentWorkflow || !currentWorkflow.id) {
+        clearCanvas();
+        return;
+    }
+    if (confirm(`Delete workflow '${currentWorkflow.name}'?`)) {
+        try {
+            const res = await fetch(`/api/workflows/delete/${currentWorkflow.id}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken() }
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showiOSToast('Workflow deleted', '🗑️');
+                window.location.reload();
+            }
+        } catch(e) {
+            alert('Error deleting workflow: ' + e.message);
+        }
+    }
+}
+
+// ---------------- End-to-End Sandbox Simulation ----------------
+async function runSimulationSandbox() {
+    const logsContainer = document.getElementById('simulationLogsContainer');
+    const simType = document.getElementById('simulatedEventSelect').value;
+    logsContainer.innerHTML = '<div class="text-emerald-400 animate-pulse">// 🚀 Initiating simulation sequence...</div>';
+
+    let testEvent = { title: 'Salary Inflow', amount: '60000.00' };
+    if (simType === 'dining') testEvent = { title: 'Dining Surge Outflow', amount: '6500.00' };
+    else if (simType === 'bill') testEvent = { title: 'Rent Bill Due', amount: '15000.00' };
+    else if (simType === 'small_spend') testEvent = { title: 'Daily Groceries', amount: '1200.00' };
+
+    try {
+        const res = await fetch('/api/workflows/simulate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                workflow_id: currentWorkflow ? currentWorkflow.id : null,
+                nodes: canvasNodes,
+                edges: canvasEdges,
+                test_event: testEvent
+            })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            // Render logs
+            logsContainer.innerHTML = data.logs.map(line => `<div>${line}</div>`).join('');
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+
+            // Highlight wires and nodes sequentially
+            const statuses = data.node_statuses || {};
+            canvasNodes.forEach(n => {
+                const el = document.getElementById(n.id);
+                if (el && statuses[n.id]) {
+                    el.classList.add(`sim-${statuses[n.id]}`);
+                    setTimeout(() => el.classList.remove(`sim-${statuses[n.id]}`), 3500);
+                }
+            });
+            document.querySelectorAll('.connection-wire').forEach(w => {
+                w.classList.add('active');
+                setTimeout(() => w.classList.remove('active'), 3500);
+            });
+
+            showiOSToast('Simulation succeeded', '✅');
+        } else {
+            logsContainer.innerHTML = `<div class="text-rose-400">Simulation fault: ${data.message}</div>`;
+        }
+    } catch(e) {
+        logsContainer.innerHTML = `<div class="text-rose-400">Network fault during simulation: ${e.message}</div>`;
+    }
+}
+
+// ---------------- AI Workflow Architect ----------------
+function openAiArchitectModal() {
+    openModal('aiArchitectModal');
+}
+
+async function synthesizeWorkflowWithAi() {
+    const promptInput = document.getElementById('aiWorkflowPrompt');
+    const prompt = promptInput.value.trim();
+    if (!prompt) {
+        alert('Please specify your workflow requirements.');
+        return;
+    }
+
+    const btn = document.getElementById('aiGenerateWfBtn');
+    btn.disabled = true;
+    btn.innerText = 'Synthesizing with Leoxur AI...';
+
+    try {
+        const res = await fetch('/api/workflows/generate-ai/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ prompt: prompt })
+        });
+        const data = await res.json();
+        if (data.status === 'success' && data.workflow) {
+            closeModal('aiArchitectModal');
+            loadWorkflowData(data.workflow);
+            showiOSToast(data.message, '✨');
+        } else {
+            alert('AI error: ' + data.message);
+        }
+    } catch(e) {
+        alert('AI synthesis fault: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Synthesize Workflow Graph';
+    }
+}
+// ---------------- Template Library ----------------
+function openTemplatesModal() {
+    openModal('templatesModal');
+}
+
+function loadTemplateByName(key) {
+    if (key === 'splitter') {
+        const wf = initialWorkflows.find(w => w.name.includes('50/30/20')) || initialWorkflows[0];
+        if (wf) loadWorkflowData(wf);
+    } else if (key === 'surge') {
+        const wf = initialWorkflows.find(w => w.name.includes('Surge')) || initialWorkflows[1];
+        if (wf) loadWorkflowData(wf);
+    } else if (key === 'bills') {
+        const wf = initialWorkflows.find(w => w.name.includes('Bill')) || initialWorkflows[2];
+        if (wf) loadWorkflowData(wf);
+    }
+    closeModal('templatesModal');
+    showiOSToast('Template loaded onto canvas', '⚡');
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal('aiArchitectModal');
+        closeModal('templatesModal');
+        closeModal('nodeInspectorModal');
+    }
+});
+</script>
+{% endblock %}

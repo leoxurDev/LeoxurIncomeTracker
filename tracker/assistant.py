@@ -216,8 +216,9 @@ class LeoxurIntelligence:
         reminders = Reminder.objects.filter(user=self.user).order_by('due_date')
         pending_reminders = reminders.filter(is_paid=False)
         reminders_list = []
-        for r in pending_reminders[:5]:
-            reminders_list.append(f"• '{r.title}': {currency}{r.amount:.2f} due on {r.due_date.strftime('%Y-%m-%d')}")
+        for r in pending_reminders:
+            rec_tag = f" [{r.get_recurrence_period_display()}]" if r.is_recurring else ""
+            reminders_list.append(f"• ID {r.id}: '{r.title}': {currency}{r.amount:.2f} due on {r.due_date.strftime('%Y-%m-%d')}{rec_tag}")
         reminders_str = "\n".join(reminders_list) if reminders_list else "No pending bill reminders."
 
         # Recent Transactions
@@ -323,7 +324,7 @@ Follow this strict JSON schema:
   "user_transcript": "The exact words spoken by the user in their language",
   "detected_language": "en | es | hi | ta | fr | de | it | pt | ar | ru | zh | ja",
   "reply": "Warm, natural, conversational response in the user's spoken language ready for human voice speech",
-  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general",
+  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | delete_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general",
   "payload": {{ ... }},
   "visual_card": true | false
 }}
@@ -624,7 +625,7 @@ You must ALWAYS respond with a valid JSON object matching this schema:
 {{
   "thought": "Deep strategic analysis of user intent, language detection, and financial state",
   "reply": "Warm, conversational, executive human response in the user's language ready for natural voice speech",
-  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general | guide",
+  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | delete_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general | guide",
   "payload": {{ ... }},
   "visual_card": true | false
 }}
@@ -1144,16 +1145,43 @@ Return ONLY valid JSON.
 
         elif action_type == 'pay_reminder':
             title = payload.get('title')
+            rem_id = payload.get('id')
             rem = Reminder.objects.filter(user=self.user, is_paid=False)
-            if title:
+            if rem_id:
+                rem = rem.filter(id=rem_id)
+            elif title:
                 rem = rem.filter(title__icontains=title)
             r_obj = rem.first()
             if r_obj:
                 r_obj.is_paid = True
                 r_obj.save()
                 reply = reply or f"Marked bill '{r_obj.title}' ({currency}{r_obj.amount:.2f}) as paid."
-            html = self._format_bubble_html("Bill Settled", reply, "bg-apple-green/10 text-apple-green")
-            return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'set_reminder', 'payload': payload}
+                html = self._format_bubble_html("Bill Settled", reply, "bg-apple-green/10 text-apple-green")
+                return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'pay_reminder', 'payload': payload}
+            else:
+                reply = reply or f"Could not find an unsettled bill matching '{title or 'specified'}'."
+                html = self._format_bubble_html("Bill Not Found", reply, "bg-apple-orange/10 text-apple-orange")
+                return {'status': 'warning', 'reply': reply, 'response': html, 'action_type': 'pay_reminder', 'payload': payload}
+
+        elif action_type == 'delete_reminder':
+            title = payload.get('title')
+            rem_id = payload.get('id')
+            rem = Reminder.objects.filter(user=self.user)
+            if rem_id:
+                rem = rem.filter(id=rem_id)
+            elif title and title.lower() not in ['all', 'everything']:
+                rem = rem.filter(title__icontains=title)
+            count = rem.count()
+            if count > 0:
+                first_t = rem.first().title
+                rem.delete()
+                reply = reply or (f"Deleted scheduled bill reminder for '{first_t}'." if count == 1 else f"Deleted {count} scheduled bills.")
+                html = self._format_bubble_html("Bill Reminder Deleted", reply, "bg-apple-red/10 text-apple-red")
+                return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'delete_reminder', 'payload': payload}
+            else:
+                reply = reply or f"Could not find any scheduled bill matching '{title or 'specified'}' to delete."
+                html = self._format_bubble_html("Bill Not Found", reply, "bg-apple-orange/10 text-apple-orange")
+                return {'status': 'warning', 'reply': reply, 'response': html, 'action_type': 'delete_reminder', 'payload': payload}
 
         elif action_type == 'change_currency':
             new_curr = payload.get('currency', '$')

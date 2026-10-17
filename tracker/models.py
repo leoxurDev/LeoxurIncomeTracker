@@ -191,3 +191,23 @@ class ProcessedEmail(models.Model):
 
     def __str__(self):
         return self.message_id
+
+
+class MoneyWorkflow(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='money_workflows')
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True, default='')
+    trigger_type = models.CharField(max_length=50, default='inflow_salary')
+    is_active = models.BooleanField(default=True)
+    canvas_state = models.JSONField(default=dict, blank=True)
+    execution_count = models.IntegerField(default=0)
+    last_executed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+

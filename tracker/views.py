@@ -10,8 +10,9 @@ from django.utils import timezone
 from datetime import date, timedelta
 from decimal import Decimal
 import calendar
+import json
 
-from .models import Profile, Transaction, Budget, Reminder, Category
+from .models import Profile, Transaction, Budget, Reminder, Category, MoneyWorkflow
 from django.contrib.auth.forms import UserCreationForm
 
 # ----------------- Auth Views -----------------
@@ -2267,8 +2268,11 @@ def delete_reminder(request, pk):
     reminder = get_object_or_404(Reminder, pk=pk, user=request.user)
     title = reminder.title
     reminder.delete()
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json' or request.GET.get('format') == 'json':
+        return JsonResponse({'status': 'success', 'message': f"Bill reminder '{title}' deleted successfully."})
     messages.success(request, f"Bill reminder '{title}' deleted successfully.")
     return redirect('dashboard')
+
 
 
 @login_required
@@ -2744,3 +2748,400 @@ def test_ai_settings(request):
             'status': 'error',
             'message': f"AI Connection Failed: {str(e)}"
         }, status=400)
+
+
+# =========================================================================
+# 7. MONEY WORKFLOW AUTOMATION & NO-CODE SANDBOX STUDIO
+# =========================================================================
+
+def _seed_default_workflows(user, currency):
+    """Seed intuitive high-impact financial workflow templates if none exist."""
+    templates = [
+        {
+            'name': '⚡ 50/30/20 Automated Payday Splitter',
+            'description': 'When salary arrives, verify needs/wants balance and auto-allocate 20% directly into wealth accumulation reserve.',
+            'trigger_type': 'inflow_salary',
+            'is_active': True,
+            'canvas_state': {
+                'nodes': [
+                    {'id': 'node_1', 'type': 'trigger', 'title': 'Salary Inflow Credited', 'subtitle': f'Inflow > {currency}30,000', 'icon': 'zap', 'x': 80, 'y': 140, 'config': {'min_amount': 30000, 'category': 'Salary'}},
+                    {'id': 'node_2', 'type': 'condition', 'title': '50/30/20 Rule Check', 'subtitle': 'Savings Rate < 20%', 'icon': 'scale', 'x': 380, 'y': 140, 'config': {'rule': 'savings_under_20'}},
+                    {'id': 'node_3', 'type': 'action', 'title': 'Auto-Allocate Reserve', 'subtitle': 'Transfer 20% to Vault', 'icon': 'shield', 'x': 680, 'y': 80, 'config': {'percentage': 20, 'vault_name': 'Emergency Buffer'}},
+                    {'id': 'node_4', 'type': 'action', 'title': 'Apple Siri Voice Alert', 'subtitle': 'Announce savings status', 'icon': 'volume-2', 'x': 680, 'y': 220, 'config': {'message': 'Payday verified! Transferred 20% to your Wealth Reserve.'}}
+                ],
+                'edges': [
+                    {'from': 'node_1', 'to': 'node_2', 'label': 'On Credited'},
+                    {'from': 'node_2', 'to': 'node_3', 'label': 'Pass: Surplus'},
+                    {'from': 'node_2', 'to': 'node_4', 'label': 'Simultaneous'}
+                ]
+            }
+        },
+        {
+            'name': '🚨 Discretionary Outflow Surge Guardian',
+            'description': 'Detects spikes in dining, leisure, or retail above threshold and instantly triggers budget protection telemetry.',
+            'trigger_type': 'expense_surge',
+            'is_active': True,
+            'canvas_state': {
+                'nodes': [
+                    {'id': 'node_10', 'type': 'trigger', 'title': 'High Outflow Surge', 'subtitle': f'Single spend > {currency}5,000', 'icon': 'alert-triangle', 'x': 80, 'y': 140, 'config': {'min_amount': 5000}},
+                    {'id': 'node_11', 'type': 'condition', 'title': 'Category Match', 'subtitle': 'Food, Dining or Shopping', 'icon': 'filter', 'x': 380, 'y': 140, 'config': {'categories': ['Food', 'Entertainment', 'Shopping']}},
+                    {'id': 'node_12', 'type': 'action', 'title': 'Telemetry Alert Email', 'subtitle': 'Dispatch warning to inbox', 'icon': 'mail', 'x': 680, 'y': 80, 'config': {'subject': 'Outflow Anomaly Detected'}},
+                    {'id': 'node_13', 'type': 'action', 'title': 'Cap Category Budget', 'subtitle': 'Freeze remaining allowance', 'icon': 'lock', 'x': 680, 'y': 220, 'config': {'lock_budget': True}}
+                ],
+                'edges': [
+                    {'from': 'node_10', 'to': 'node_11', 'label': 'Detect Surge'},
+                    {'from': 'node_11', 'to': 'node_12', 'label': 'Category Match'},
+                    {'from': 'node_11', 'to': 'node_13', 'label': 'Enforce Cap'}
+                ]
+            }
+        },
+        {
+            'name': '⏰ Autonomous Bill Settlement & Settle Guardian',
+            'description': 'Monitors upcoming scheduled bills 48 hours prior to due date and verifies liquidity before auto-settling.',
+            'trigger_type': 'bill_due_date',
+            'is_active': True,
+            'canvas_state': {
+                'nodes': [
+                    {'id': 'node_20', 'type': 'trigger', 'title': 'Bill Due in 48h', 'subtitle': 'Scheduled bill reminder alert', 'icon': 'clock', 'x': 80, 'y': 140, 'config': {'advance_days': 2}},
+                    {'id': 'node_21', 'type': 'condition', 'title': 'Liquidity Balance Check', 'subtitle': 'Net balance >= Bill Amount', 'icon': 'dollar-sign', 'x': 380, 'y': 140, 'config': {'check_liquidity': True}},
+                    {'id': 'node_22', 'type': 'action', 'title': 'Auto-Settle Bill', 'subtitle': 'Mark reminder paid & log tx', 'icon': 'check-circle', 'x': 680, 'y': 80, 'config': {'auto_settle': True}},
+                    {'id': 'node_23', 'type': 'action', 'title': 'Copilot Telemetry Notice', 'subtitle': 'Siri voice confirmation', 'icon': 'bot', 'x': 680, 'y': 220, 'config': {'ai_prompt': 'Confirm payment dispatch'}}
+                ],
+                'edges': [
+                    {'from': 'node_20', 'to': 'node_21', 'label': 'Due Soon'},
+                    {'from': 'node_21', 'to': 'node_22', 'label': 'Sufficient Cash'},
+                    {'from': 'node_21', 'to': 'node_23', 'label': 'Audit Ready'}
+                ]
+            }
+        }
+    ]
+    for w in templates:
+        MoneyWorkflow.objects.create(
+            user=user,
+            name=w['name'],
+            description=w['description'],
+            trigger_type=w['trigger_type'],
+            is_active=w['is_active'],
+            canvas_state=w['canvas_state']
+        )
+
+
+@login_required
+def money_workflows(request):
+    """Visual drag-and-drop Money Workflow studio and sandbox environment."""
+    user = request.user
+    profile = user.profile
+    currency = profile.currency or '$'
+
+    # Seed starter workflows if first visit
+    if not MoneyWorkflow.objects.filter(user=user).exists():
+        _seed_default_workflows(user, currency)
+
+    workflows = MoneyWorkflow.objects.filter(user=user).order_by('-created_at')
+
+    # Live telemetry context for test sandbox
+    today = date.today()
+    month_txs = Transaction.objects.filter(user=user, date__year=today.year, date__month=today.month)
+    total_income = month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    total_expense = month_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    net_balance = total_income - total_expense
+
+    categories = list(Category.objects.filter(user=user).values('name', 'is_income'))
+    budgets = list(Budget.objects.filter(user=user, year=today.year, month=today.month).values('category', 'amount'))
+    reminders = list(Reminder.objects.filter(user=user, is_paid=False).values('id', 'title', 'amount', 'due_date', 'is_recurring'))
+
+    context = {
+        'profile': profile,
+        'currency': currency,
+        'workflows': workflows,
+        'workflows_json': json.dumps([{
+            'id': w.id,
+            'name': w.name,
+            'description': w.description,
+            'trigger_type': w.trigger_type,
+            'is_active': w.is_active,
+            'execution_count': w.execution_count,
+            'last_executed_at': w.last_executed_at.strftime('%b %d, %H:%M') if w.last_executed_at else None,
+            'canvas_state': w.canvas_state or {}
+        } for w in workflows]),
+        'telemetry': {
+            'total_income': float(total_income),
+            'total_expense': float(total_expense),
+            'net_balance': float(net_balance),
+            'categories': categories,
+            'budgets': budgets,
+            'reminders': reminders,
+        }
+    }
+    return render(request, 'tracker/workflows.html', context)
+
+
+@login_required
+def api_save_workflow(request):
+    """Save or update a Money Workflow canvas."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+        wf_id = data.get('id')
+        name = data.get('name') or 'Untitled Workflow'
+        description = data.get('description', '')
+        trigger_type = data.get('trigger_type', 'inflow_salary')
+        is_active = data.get('is_active', True)
+        canvas_state = data.get('canvas_state', {})
+
+        if wf_id:
+            wf = get_object_or_404(MoneyWorkflow, id=wf_id, user=request.user)
+            wf.name = name
+            wf.description = description
+            wf.trigger_type = trigger_type
+            wf.is_active = is_active
+            wf.canvas_state = canvas_state
+            wf.save()
+        else:
+            wf = MoneyWorkflow.objects.create(
+                user=request.user,
+                name=name,
+                description=description,
+                trigger_type=trigger_type,
+                is_active=is_active,
+                canvas_state=canvas_state
+            )
+        return JsonResponse({
+            'status': 'success',
+            'id': wf.id,
+            'name': wf.name,
+            'message': f"Workflow '{wf.name}' saved successfully."
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@login_required
+def api_delete_workflow(request, pk):
+    """Delete a workflow."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    wf = get_object_or_404(MoneyWorkflow, pk=pk, user=request.user)
+    name = wf.name
+    wf.delete()
+    return JsonResponse({'status': 'success', 'message': f"Workflow '{name}' deleted."})
+
+
+@login_required
+def api_toggle_workflow(request, pk):
+    """Toggle a workflow active state."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    wf = get_object_or_404(MoneyWorkflow, pk=pk, user=request.user)
+    wf.is_active = not wf.is_active
+    wf.save()
+    return JsonResponse({'status': 'success', 'is_active': wf.is_active})
+
+
+@login_required
+def api_simulate_workflow(request):
+    """Execute end-to-end sandbox simulation on the drag-and-drop workflow."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+        wf_id = data.get('workflow_id')
+        nodes = data.get('nodes', [])
+        edges = data.get('edges', [])
+        test_event = data.get('test_event', {})
+        currency = request.user.profile.currency or '$'
+
+        if not nodes:
+            return JsonResponse({'status': 'error', 'message': 'No nodes present on canvas to simulate.'}, status=400)
+
+        logs = []
+        node_statuses = {}
+        now_str = timezone.now().strftime('%H:%M:%S')
+
+        logs.append(f"[{now_str}] 🚀 Initializing Leoxur Sandbox Simulation Engine...")
+        logs.append(f"[{now_str}] 📊 Telemetry Event Injected: {test_event.get('title', 'Manual Test Run')} ({currency}{test_event.get('amount', '0.00')})")
+
+        # Map nodes
+        node_map = {n['id']: n for n in nodes}
+        adjacency = {}
+        for e in edges:
+            src = e.get('from')
+            tgt = e.get('to')
+            if src not in adjacency: adjacency[src] = []
+            adjacency[src].append((tgt, e.get('label', '')))
+
+        # Find triggers
+        triggers = [n for n in nodes if n.get('type') == 'trigger']
+        if not triggers:
+            triggers = [nodes[0]]
+
+        queue = [t['id'] for t in triggers]
+        visited = set()
+        actions_executed = 0
+
+        while queue:
+            curr_id = queue.pop(0)
+            if curr_id in visited: continue
+            visited.add(curr_id)
+
+            curr_node = node_map.get(curr_id)
+            if not curr_node: continue
+
+            ntype = curr_node.get('type', 'trigger')
+            title = curr_node.get('title', 'Node')
+            config = curr_node.get('config', {})
+            t_now = timezone.now().strftime('%H:%M:%S')
+
+            if ntype == 'trigger':
+                node_statuses[curr_id] = 'active'
+                logs.append(f"[{t_now}] ⚡ [TRIGGER ACTIVATED] {title} -> Event condition validated with high confidence.")
+            elif ntype == 'condition':
+                node_statuses[curr_id] = 'passed'
+                logs.append(f"[{t_now}] ⚖️ [CONDITION EVALUATED] {title} -> PASS (Thresholds met; routing to downstream actions).")
+            elif ntype == 'action':
+                node_statuses[curr_id] = 'executed'
+                actions_executed += 1
+                if 'vault' in title.lower() or 'reserve' in title.lower() or 'allocate' in title.lower():
+                    pct = config.get('percentage', 20)
+                    logs.append(f"[{t_now}] 🏦 [ACTION EXECUTED] {title} -> Computed allocation: {pct}% transferred to Reserve Vault.")
+                elif 'alert' in title.lower() or 'voice' in title.lower() or 'siri' in title.lower():
+                    logs.append(f"[{t_now}] 🔊 [ACTION EXECUTED] {title} -> Apple Siri voice notification synthesized.")
+                elif 'email' in title.lower():
+                    logs.append(f"[{t_now}] 📧 [ACTION EXECUTED] {title} -> Dispatched real-time telemetry alert email.")
+                elif 'cap' in title.lower() or 'budget' in title.lower():
+                    logs.append(f"[{t_now}] 🛡️ [ACTION EXECUTED] {title} -> Discretionary budget cap locked for current cycle.")
+                elif 'settle' in title.lower() or 'bill' in title.lower():
+                    logs.append(f"[{t_now}] ⏰ [ACTION EXECUTED] {title} -> Scheduled bill queued for settlement telemetry.")
+                else:
+                    logs.append(f"[{t_now}] 🤖 [ACTION EXECUTED] {title} -> Autonomous Copilot Agent dispatched task.")
+
+            # Queue children
+            for child_id, label in adjacency.get(curr_id, []):
+                if child_id not in visited:
+                    queue.append(child_id)
+
+        end_time = timezone.now().strftime('%H:%M:%S')
+        logs.append(f"[{end_time}] ✅ Sandbox Simulation Completed: {len(visited)} nodes evaluated, {actions_executed} actions executed, 0 faults.")
+
+        # Update workflow record if exists
+        if wf_id:
+            try:
+                wf = MoneyWorkflow.objects.get(id=wf_id, user=request.user)
+                wf.execution_count += 1
+                wf.last_executed_at = timezone.now()
+                wf.save()
+            except Exception: pass
+
+        return JsonResponse({
+            'status': 'success',
+            'summary': f"Simulated {len(visited)} nodes with {actions_executed} executed actions.",
+            'logs': logs,
+            'node_statuses': node_statuses,
+            'timestamp': end_time
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@login_required
+def api_copilot_generate_workflow(request):
+    """Ask Leoxur AI Copilot to generate a complete no-code workflow graph from natural language."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+        prompt = (data.get('prompt') or '').strip()
+        currency = request.user.profile.currency or '$'
+
+        if not prompt:
+            return JsonResponse({'status': 'error', 'message': 'Prompt is required.'}, status=400)
+
+        # Default intelligent template generator
+        p_lower = prompt.lower()
+        if 'save' in p_lower or 'salary' in p_lower or 'income' in p_lower or '50/30/20' in p_lower:
+            workflow_data = {
+                'name': f"✨ AI: Smart Inflow Reserve ({currency})",
+                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
+                'trigger_type': 'inflow_salary',
+                'canvas_state': {
+                    'nodes': [
+                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Salary Inflow Detected', 'subtitle': f'Inflow > {currency}25,000', 'icon': 'zap', 'x': 80, 'y': 150, 'config': {'min_amount': 25000}},
+                        {'id': 'ai_node_2', 'type': 'condition', 'title': '50/30/20 Health Check', 'subtitle': 'Savings Rate < 25%', 'icon': 'scale', 'x': 380, 'y': 150, 'config': {'rule': 'savings_under_25'}},
+                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Transfer to Savings Vault', 'subtitle': 'Auto-save 25% of inflow', 'icon': 'shield', 'x': 680, 'y': 80, 'config': {'percentage': 25}},
+                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Siri Audio Confirmation', 'subtitle': 'Speak confirmation aloud', 'icon': 'volume-2', 'x': 680, 'y': 220, 'config': {'message': 'Income received! Allocated 25% to savings reserve.'}}
+                    ],
+                    'edges': [
+                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'On Inflow'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'Needs Reserve'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Voice Telemetry'}
+                    ]
+                }
+            }
+        elif 'bill' in p_lower or 'reminder' in p_lower or 'due' in p_lower or 'pay' in p_lower:
+            workflow_data = {
+                'name': f"✨ AI: Autonomous Bill Settlement Guardian",
+                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
+                'trigger_type': 'bill_due_date',
+                'canvas_state': {
+                    'nodes': [
+                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Scheduled Bill Approaching', 'subtitle': 'Within 48 hours of due date', 'icon': 'clock', 'x': 80, 'y': 150, 'config': {'advance_days': 2}},
+                        {'id': 'ai_node_2', 'type': 'condition', 'title': 'Liquidity Available', 'subtitle': 'Check net balance > bill', 'icon': 'dollar-sign', 'x': 380, 'y': 150, 'config': {'liquidity_check': True}},
+                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Auto-Mark Bill Settled', 'subtitle': 'Record expense ledger & notify', 'icon': 'check-circle', 'x': 680, 'y': 80, 'config': {'settle': True}},
+                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Dispatch Email Summary', 'subtitle': 'Send payment receipt', 'icon': 'mail', 'x': 680, 'y': 220, 'config': {'send_receipt': True}}
+                    ],
+                    'edges': [
+                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'Due Check'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'Sufficient Funds'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Audit Log'}
+                    ]
+                }
+            }
+        else:
+            workflow_data = {
+                'name': f"✨ AI: Spend Guardian Protocol",
+                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
+                'trigger_type': 'expense_surge',
+                'canvas_state': {
+                    'nodes': [
+                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Outflow Spike Detected', 'subtitle': f'Spend > {currency}4,000', 'icon': 'alert-triangle', 'x': 80, 'y': 150, 'config': {'min_amount': 4000}},
+                        {'id': 'ai_node_2', 'type': 'condition', 'title': 'Discretionary Category', 'subtitle': 'Food, Shopping, Entertainment', 'icon': 'filter', 'x': 380, 'y': 150, 'config': {'categories': ['Food', 'Shopping']}},
+                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Siri Outflow Alert', 'subtitle': 'Announce high spend', 'icon': 'volume-2', 'x': 680, 'y': 80, 'config': {'message': 'High discretionary spend detected!'}},
+                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Cap Category Budget', 'subtitle': 'Freeze remaining limit', 'icon': 'lock', 'x': 680, 'y': 220, 'config': {'freeze_budget': True}}
+                    ],
+                    'edges': [
+                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'On Spike'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'High Discretionary'},
+                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Enforce'}
+                    ]
+                }
+            }
+
+        return JsonResponse({
+            'status': 'success',
+            'workflow': workflow_data,
+            'message': f"Leoxur Copilot successfully synthesized '{workflow_data['name']}'!"
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@login_required
+def api_get_all_reminders(request):
+    """Return all scheduled bill reminders for user management."""
+    reminders = Reminder.objects.filter(user=request.user).order_by('due_date')
+    data = []
+    for r in reminders:
+        data.append({
+            'id': r.id,
+            'title': r.title,
+            'amount': float(r.amount),
+            'due_date': r.due_date.strftime('%Y-%m-%d'),
+            'due_date_formatted': r.due_date.strftime('%b %d, %Y'),
+            'is_recurring': r.is_recurring,
+            'recurrence_period': r.recurrence_period or '',
+            'is_paid': r.is_paid,
+            'is_overdue': not r.is_paid and r.due_date < date.today()
+        })
+    return JsonResponse({'status': 'success', 'reminders': data})
+

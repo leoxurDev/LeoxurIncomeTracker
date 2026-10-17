@@ -272,22 +272,76 @@
 
         /* Voice Listening Equalizer Banner */
         .voice-listening-banner-v2 {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.18), rgba(175, 82, 222, 0.16));
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            box-sizing: border-box;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 40;
+        }
+        .voice-listening-banner-v2.active {
             display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
-            padding: 10px 16px !important;
-            background: linear-gradient(135deg, rgba(0, 113, 227, 0.16), rgba(175, 82, 222, 0.14)) !important;
-            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-            backdrop-filter: blur(30px) !important;
-            -webkit-backdrop-filter: blur(30px) !important;
-            box-sizing: border-box !important;
-            flex-shrink: 0 !important;
             animation: siriBannerEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
         @keyframes siriBannerEnter {
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        .voice-action-pills {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            margin-left: auto !important;
+            position: relative !important;
+            z-index: 50 !important;
+        }
+        .voice-action-pill {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            border-radius: 999px !important;
+            border: none !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            outline: none !important;
+            transition: all 0.16s ease !important;
+        }
+        .voice-action-pill.done-pill {
+            padding: 6px 14px !important;
+            background: #007aff !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(0, 122, 255, 0.35) !important;
+        }
+        .voice-action-pill.done-pill:hover,
+        .voice-action-pill.done-pill:active {
+            background: #0066d6 !important;
+            transform: scale(1.04) !important;
+        }
+        .voice-action-pill.cancel-pill {
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(255, 255, 255, 0.16) !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+        }
+        .voice-action-pill.cancel-pill:hover,
+        .voice-action-pill.cancel-pill:active {
+            background: rgba(255, 69, 58, 0.35) !important;
+            border-color: rgba(255, 69, 58, 0.65) !important;
+            color: #ff453a !important;
+            transform: scale(1.1) !important;
         }
 
         /* Input Dock */
@@ -549,7 +603,7 @@
             </div>
 
             <nav class="nav-center-links" aria-label="Primary Navigation">
-                <button type="button" class="nav-segment-btn active" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
+                <button type="button" class="nav-segment-btn {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
                     {% sf_icon "clock" "sf-icon-xs" %}
                     <span>Today</span>
                 </button>
@@ -569,6 +623,13 @@
                     {% sf_icon "analytics" "sf-icon-xs" %}
                     <span>Analytics</span>
                 </button>
+                <a href="{% url 'money_workflows' %}" class="nav-segment-btn {% if request.resolver_match.url_name == 'money_workflows' %}active{% endif %}" data-nav="workflows" title="Money Automation & AI Sandbox">
+                    <svg class="sf-icon-xs" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span>Workflows</span>
+                    <span style="font-size: 8.5px; font-weight: 800; padding: 1px 5px; border-radius: 999px; background: rgba(56, 239, 125, 0.16); color: #38ef7d; border: 1px solid rgba(56, 239, 125, 0.32); margin-left: 2px;">SANDBOX</span>
+                </a>
             </nav>
 
             <div class="nav-actions">
@@ -928,7 +989,12 @@
             </div>
             <div class="voice-action-pills">
                 <button type="button" id="voiceDoneBtn" class="voice-action-pill done-pill" title="Process spoken instruction">Done</button>
-                <button type="button" id="voiceCancelBtn" class="voice-action-pill cancel-pill" title="Cancel listening">✕</button>
+                <button type="button" id="voiceCancelBtn" class="voice-action-pill cancel-pill" title="Cancel listening" aria-label="Close voice recording">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
         </div>
 
@@ -1459,6 +1525,9 @@
                     top: offsetPosition,
                     behavior: 'smooth'
                 });
+            } else if (targetId) {
+                // If on another page like /workflows/, navigate back to dashboard section
+                window.location.href = `/?nav=${navKey}#${targetId}`;
             }
         }
 
@@ -2420,7 +2489,17 @@
                 // Voice Detection & TTS Controls
                 if (this.voiceBtn) this.voiceBtn.onclick = () => this.toggleVoice();
                 if (this.voiceDoneBtn) this.voiceDoneBtn.onclick = () => this.stopListening(true);
-                if (this.voiceCancelBtn) this.voiceCancelBtn.onclick = () => this.cancelListening();
+                if (this.voiceCancelBtn) {
+                    const doCancel = (e) => {
+                        if (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                        this.cancelListening();
+                    };
+                    this.voiceCancelBtn.onclick = doCancel;
+                    this.voiceCancelBtn.ontouchend = doCancel;
+                }
                 if (this.speakerBtn) this.speakerBtn.onclick = () => this.toggleTts();
                 if (this.langSelect) {
                     this.langSelect.onchange = (e) => {
@@ -2476,8 +2555,13 @@
                         this.recognition.onstart = () => {
                             this.isListening = true;
                             if (this.voiceBtn) this.voiceBtn.classList.add('listening');
-                            if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
-                            if (this.suggestionStrip) this.suggestionStrip.style.display = 'none';
+                            if (this.voiceBanner) {
+                                this.voiceBanner.classList.add('active');
+                                this.voiceBanner.style.setProperty('display', 'flex', 'important');
+                            }
+                            if (this.suggestionStrip) {
+                                this.suggestionStrip.style.setProperty('display', 'none', 'important');
+                            }
                             if (this.voiceStatusText) this.voiceStatusText.innerText = `Siri Listening (${langLabel})...`;
                             if (this.voiceInterimText) this.voiceInterimText.innerText = 'Speak in your preferred language...';
                             this.scrollToBottom();
@@ -2560,8 +2644,13 @@
                     this.mediaRecorder.onstart = () => {
                         this.isListening = true;
                         if (this.voiceBtn) this.voiceBtn.classList.add('listening');
-                        if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
-                        if (this.suggestionStrip) this.suggestionStrip.style.display = 'none';
+                        if (this.voiceBanner) {
+                            this.voiceBanner.classList.add('active');
+                            this.voiceBanner.style.setProperty('display', 'flex', 'important');
+                        }
+                        if (this.suggestionStrip) {
+                            this.suggestionStrip.style.setProperty('display', 'none', 'important');
+                        }
                         if (this.voiceStatusText) this.voiceStatusText.innerText = `Recording audio (${langLabel})...`;
                         if (this.voiceInterimText) this.voiceInterimText.innerText = 'Listening via Gemini Neural Multimodal Engine...';
                         this.scrollToBottom();
@@ -2589,17 +2678,30 @@
                 this.shouldSubmitVoice = submit;
                 this.isListening = false;
                 if (this.voiceBtn) this.voiceBtn.classList.remove('listening');
-                if (this.voiceBanner) this.voiceBanner.style.display = 'none';
-                if (this.suggestionStrip) this.suggestionStrip.style.display = 'flex';
+                if (this.voiceBanner) {
+                    this.voiceBanner.classList.remove('active');
+                    this.voiceBanner.style.setProperty('display', 'none', 'important');
+                }
+                if (this.suggestionStrip) {
+                    this.suggestionStrip.style.setProperty('display', 'flex', 'important');
+                }
                 this.scrollToBottom();
 
                 if (this.recognition) {
+                    try { this.recognition.abort(); } catch(e) {}
                     try { this.recognition.stop(); } catch(e) {}
                     this.recognition = null;
                 }
 
                 if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
                     try { this.mediaRecorder.stop(); } catch(e) {}
+                }
+
+                if (this.mediaStream) {
+                    try {
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                    } catch(e) {}
+                    this.mediaStream = null;
                 }
 
                 if (submit && this.input && this.input.value.trim()) {
@@ -2610,6 +2712,24 @@
             cancelListening() {
                 this.shouldSubmitVoice = false;
                 if (this.input) this.input.value = '';
+
+                if (this.recognition) {
+                    try { this.recognition.abort(); } catch(e) {}
+                    try { this.recognition.stop(); } catch(e) {}
+                    this.recognition = null;
+                }
+
+                if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                    try { this.mediaRecorder.stop(); } catch(e) {}
+                }
+
+                if (this.mediaStream) {
+                    try {
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                    } catch(e) {}
+                    this.mediaStream = null;
+                }
+
                 this.stopListening(false);
             }
 

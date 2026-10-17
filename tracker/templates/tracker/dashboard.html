@@ -638,7 +638,13 @@
                         <p class="text-[10px] text-slate-400">Upcoming payments & alerts</p>
                     </div>
                 </div>
-                <button onclick="openModal('reminderModal')" class="text-rose-500 hover:underline text-xs font-bold cursor-pointer">+ Bill</button>
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="openAllBillsModal()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold cursor-pointer flex items-center gap-1">
+                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                        <span>Manage All</span>
+                    </button>
+                    <button onclick="openModal('reminderModal')" class="text-rose-500 hover:underline text-xs font-bold cursor-pointer">+ Bill</button>
+                </div>
             </div>
 
             <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
@@ -649,8 +655,14 @@
                         <span class="text-xs font-bold text-red-500 block">{{ reminder.title }}</span>
                         <span class="text-[10px] text-red-400 font-mono">Overdue • {{ reminder.due_date|date:"M d" }}</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-red-500">{{ profile.currency }}{{ reminder.amount }}</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-mono font-bold text-red-500 mr-1">{{ profile.currency }}{{ reminder.amount }}</span>
+                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-red-400 hover:text-red-300 transition cursor-pointer" title="Edit Bill">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i>
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-red-400 hover:text-white hover:bg-red-500/25 rounded transition cursor-pointer" title="Delete Scheduled Bill">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
                         <form action="{% url 'pay_reminder' reminder.id %}" method="post" class="inline">
                             {% csrf_token %}
                             <button type="submit" class="px-2 py-1 rounded-md bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition cursor-pointer">Settle</button>
@@ -666,10 +678,13 @@
                         <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 block">{{ reminder.title }}</span>
                         <span class="text-[10px] text-slate-400 font-mono">Due {{ reminder.due_date|date:"M d" }}{% if reminder.is_recurring %} • {{ reminder.get_recurrence_period_display }}{% endif %}</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{{ profile.currency }}{{ reminder.amount }}</span>
-                        <button onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-slate-400 hover:text-apple-blue transition cursor-pointer" title="Edit">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 mr-1">{{ profile.currency }}{{ reminder.amount }}</span>
+                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-slate-400 hover:text-apple-blue transition cursor-pointer" title="Edit Bill">
                             <i data-lucide="edit-3" class="w-3 h-3"></i>
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition cursor-pointer" title="Delete Scheduled Bill">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
                         </button>
                         <form action="{% url 'pay_reminder' reminder.id %}" method="post" class="inline">
                             {% csrf_token %}
@@ -1005,10 +1020,58 @@
                     <option value="YEARLY">Yearly</option>
                 </select>
             </div>
-            <button type="submit" class="w-full py-2.5 rounded-xl bg-neon-rose text-white text-xs font-bold uppercase tracking-wider hover:brightness-110 transition shadow-sm mt-2 cursor-pointer">
-                Save Changes
-            </button>
+            <div class="flex items-center gap-2 mt-2">
+                <button type="submit" class="flex-1 py-2.5 rounded-xl bg-neon-rose text-white text-xs font-bold uppercase tracking-wider hover:brightness-110 transition shadow-sm cursor-pointer">
+                    Save Changes
+                </button>
+                <button type="button" id="edit-rem-delete-btn" class="px-4 py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-xs font-bold uppercase tracking-wider transition shadow-sm cursor-pointer" title="Delete Scheduled Bill">
+                    Delete
+                </button>
+            </div>
         </form>
+    </div>
+</div>
+
+<!-- All Scheduled Bills & Recurrences Manager Modal -->
+<div id="allBillsModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+    <div class="modal-container glass-panel max-w-2xl w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl max-h-[85vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850 flex-shrink-0">
+            <div>
+                <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-rose-500"></i>
+                    <span>All Scheduled Bills & Recurrences</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Manage, filter, settle or delete any scheduled payment without limits</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="closeModal('allBillsModal'); openModal('reminderModal')" class="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white text-xs font-semibold transition cursor-pointer">
+                    + New Bill
+                </button>
+                <button onclick="closeModal('allBillsModal')" class="text-slate-400 hover:text-white transition cursor-pointer p-1">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter tabs & search -->
+        <div class="flex items-center justify-between gap-3 mb-4 flex-shrink-0">
+            <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-space-950 p-1 rounded-xl border border-slate-200 dark:border-space-800 text-xs">
+                <button type="button" class="all-bills-filter-tab px-3 py-1 rounded-lg font-semibold active bg-white dark:bg-space-850 text-slate-900 dark:text-white shadow-xs cursor-pointer" data-filter="all" onclick="filterAllBills('all')">All</button>
+                <button type="button" class="all-bills-filter-tab px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer" data-filter="active" onclick="filterAllBills('active')">Pending</button>
+                <button type="button" class="all-bills-filter-tab px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer" data-filter="recurring" onclick="filterAllBills('recurring')">Recurring</button>
+                <button type="button" class="all-bills-filter-tab px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer" data-filter="overdue" onclick="filterAllBills('overdue')">Overdue</button>
+                <button type="button" class="all-bills-filter-tab px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white cursor-pointer" data-filter="paid" onclick="filterAllBills('paid')">Paid</button>
+            </div>
+            <div class="relative flex-1 max-w-xs">
+                <input type="text" id="allBillsSearchInput" oninput="filterAllBillsBySearch()" placeholder="Search bills..." class="w-full bg-slate-100 dark:bg-space-950 border border-slate-200 dark:border-space-800 rounded-xl py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:border-rose-500 transition dark:text-white">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+            </div>
+        </div>
+
+        <!-- Scrollable Bills List -->
+        <div id="allBillsListContainer" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+            <div class="text-center py-8 text-xs text-slate-400">Loading bills...</div>
+        </div>
     </div>
 </div>
 
@@ -1527,15 +1590,134 @@
                 document.getElementById('edit-rem-period').value = recurrencePeriod;
             }
         }
+        const delBtn = document.getElementById('edit-rem-delete-btn');
+        if (delBtn) {
+            delBtn.onclick = () => {
+                closeModal('editReminderModal');
+                triggerDeleteReminder(id, title);
+            };
+        }
         openModal('editReminderModal');
     }
 
-    function triggerDeleteReminder(id) {
-        if (confirm("Confirm deletion of this bill reminder schedule?")) {
-            const form = document.getElementById('delete-reminder-form');
+    function triggerDeleteReminder(id, title = 'this bill') {
+        if (confirm(`Confirm deletion of scheduled bill '${title}'? This action cannot be undone.`)) {
+            let form = document.getElementById('delete-reminder-form');
+            if (!form) {
+                form = document.createElement('form');
+                form.id = 'delete-reminder-form';
+                form.method = 'post';
+                form.style.display = 'none';
+                const csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = 'csrfmiddlewaretoken';
+                csrf.value = getCsrfToken();
+                form.appendChild(csrf);
+                document.body.appendChild(form);
+            }
             form.action = `/reminder/delete/${id}/`;
             form.submit();
         }
+    }
+
+    let allBillsCached = [];
+    let currentBillsFilter = 'all';
+
+    async function openAllBillsModal() {
+        openModal('allBillsModal');
+        const container = document.getElementById('allBillsListContainer');
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400">Loading bills...</div>';
+        try {
+            const res = await fetch('/api/reminders/all/');
+            const data = await res.json();
+            if (data.status === 'success') {
+                allBillsCached = data.reminders || [];
+                renderAllBillsList();
+            } else {
+                container.innerHTML = '<div class="text-center py-6 text-xs text-red-400">Failed to load bills.</div>';
+            }
+        } catch(e) {
+            container.innerHTML = '<div class="text-center py-6 text-xs text-red-400">Network fault while loading bills.</div>';
+        }
+    }
+
+    function filterAllBills(filter) {
+        currentBillsFilter = filter;
+        document.querySelectorAll('.all-bills-filter-tab').forEach(tab => {
+            if (tab.getAttribute('data-filter') === filter) {
+                tab.classList.add('bg-white', 'dark:bg-space-850', 'text-slate-900', 'dark:text-white', 'shadow-xs');
+                tab.classList.remove('text-slate-500', 'dark:text-slate-400');
+            } else {
+                tab.classList.remove('bg-white', 'dark:bg-space-850', 'text-slate-900', 'dark:text-white', 'shadow-xs');
+                tab.classList.add('text-slate-500', 'dark:text-slate-400');
+            }
+        });
+        renderAllBillsList();
+    }
+
+    function filterAllBillsBySearch() {
+        renderAllBillsList();
+    }
+
+    function renderAllBillsList() {
+        const container = document.getElementById('allBillsListContainer');
+        const query = (document.getElementById('allBillsSearchInput')?.value || '').toLowerCase().trim();
+        const currency = '{{ profile.currency|default:"$" }}';
+
+        let filtered = allBillsCached.filter(b => {
+            if (query && !b.title.toLowerCase().includes(query)) return false;
+            if (currentBillsFilter === 'active') return !b.is_paid;
+            if (currentBillsFilter === 'recurring') return b.is_recurring;
+            if (currentBillsFilter === 'overdue') return b.is_overdue;
+            if (currentBillsFilter === 'paid') return b.is_paid;
+            return true;
+        });
+
+        if (!filtered.length) {
+            container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400 italic">No scheduled bills found matching this view.</div>';
+            return;
+        }
+
+        container.innerHTML = filtered.map(b => {
+            const statusBadge = b.is_paid 
+                ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">PAID</span>'
+                : (b.is_overdue 
+                    ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">OVERDUE</span>'
+                    : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">PENDING</span>');
+
+            const recurTag = b.is_recurring 
+                ? `<span class="text-[10px] text-purple-400 font-semibold">• ${b.recurrence_period || 'Recurring'}</span>`
+                : '';
+
+            return `
+                <div class="p-3 rounded-xl border border-slate-200/70 dark:border-space-850 bg-slate-50 dark:bg-space-900/50 flex items-center justify-between hover:border-slate-300 transition">
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-900 dark:text-white">${b.title}</span>
+                            ${statusBadge}
+                            ${recurTag}
+                        </div>
+                        <div class="text-[11px] text-slate-400 font-mono">Due: ${b.due_date_formatted || b.due_date}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono font-bold text-slate-900 dark:text-white mr-1">${currency}${parseFloat(b.amount).toFixed(2)}</span>
+                        ${!b.is_paid ? `
+                            <form action="/reminder/pay/${b.id}/" method="post" class="inline">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
+                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer">Settle</button>
+                            </form>
+                        ` : ''}
+                        <button type="button" onclick="openEditReminderModal(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${b.amount}', '${b.due_date}', ${b.is_recurring}, '${b.recurrence_period || ''}'); closeModal('allBillsModal');" class="p-1.5 text-slate-400 hover:text-apple-blue hover:bg-apple-blue/10 rounded-lg transition cursor-pointer" title="Edit">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder(${b.id}, '${b.title.replace(/'/g, "\\'")}')" class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition cursor-pointer" title="Delete">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        if (window.lucide) window.lucide.createIcons();
     }
 
     // Client-side Ledger Filter, Search, Sort & Pagination

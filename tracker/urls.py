@@ -59,4 +59,14 @@ urlpatterns = [
     path('api/voice-process/', views.voice_process_api, name='voice_process_api'),
     path('api/voice-speak/', views.voice_speak_api, name='voice_speak_api'),
     path('api/reminders/check/', views.reminders_check_api, name='reminders_check_api'),
+    path('api/reminders/all/', views.api_get_all_reminders, name='api_get_all_reminders'),
+
+    # Money Workflow Automation & No-Code Sandbox Studio
+    path('workflows/', views.money_workflows, name='money_workflows'),
+    path('api/workflows/save/', views.api_save_workflow, name='api_save_workflow'),
+    path('api/workflows/delete/<int:pk>/', views.api_delete_workflow, name='api_delete_workflow'),
+    path('api/workflows/toggle/<int:pk>/', views.api_toggle_workflow, name='api_toggle_workflow'),
+    path('api/workflows/simulate/', views.api_simulate_workflow, name='api_simulate_workflow'),
+    path('api/workflows/generate-ai/', views.api_copilot_generate_workflow, name='api_copilot_generate_workflow'),
 ]
+
