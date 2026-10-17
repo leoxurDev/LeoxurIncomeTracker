@@ -218,25 +218,83 @@
             border-color: rgba(255, 59, 48, 0.3) !important;
         }
 
+        /* Chat Messages Container */
+        .assistant-messages {
+            flex: 1 1 0% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain !important;
+            padding: 16px 18px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            scroll-behavior: smooth !important;
+        }
+
+        .copilot-suggestion-strip {
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            overflow-x: auto !important;
+            padding: 6px 16px !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-top: 1px solid var(--border-hairline) !important;
+            scrollbar-width: none !important;
+        }
+        .copilot-suggestion-strip::-webkit-scrollbar {
+            display: none !important;
+        }
+        .copilot-suggestion-chip {
+            height: 24px !important;
+            padding: 0 10px !important;
+            border-radius: 999px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: var(--text-secondary) !important;
+            font-size: 11px !important;
+            font-weight: 500 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            white-space: nowrap !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            flex-shrink: 0 !important;
+        }
+        .copilot-suggestion-chip:hover {
+            background: rgba(0, 113, 227, 0.15) !important;
+            color: var(--apple-blue) !important;
+            border-color: rgba(0, 113, 227, 0.35) !important;
+            transform: translateY(-0.5px) !important;
+        }
+
         /* Voice Listening Equalizer Banner */
         .voice-listening-banner-v2 {
             display: flex !important;
             align-items: center !important;
             gap: 12px !important;
-            padding: 12px 18px !important;
-            background: linear-gradient(135deg, rgba(0, 113, 227, 0.18), rgba(175, 82, 222, 0.16)) !important;
-            border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            padding: 10px 16px !important;
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.16), rgba(175, 82, 222, 0.14)) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
             backdrop-filter: blur(30px) !important;
             -webkit-backdrop-filter: blur(30px) !important;
             box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            animation: siriBannerEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        @keyframes siriBannerEnter {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Input Dock */
         .copilot-input-dock {
             background: var(--bg-card) !important;
             border-top: 1px solid var(--border-hairline) !important;
-            padding: 10px 16px 14px 16px !important;
+            padding: 8px 16px 14px 16px !important;
             display: flex !important;
             flex-direction: column !important;
             gap: 8px !important;
@@ -250,71 +308,91 @@
             gap: 8px !important;
         }
 
-        .copilot-voice-toggle-chip {
+        /* Apple Minimal Speaker Toggle */
+        .apple-speaker-toggle-btn {
             height: 26px !important;
             padding: 0 10px !important;
             border-radius: 999px !important;
-            background: rgba(0, 113, 227, 0.12) !important;
-            border: 1px solid rgba(0, 113, 227, 0.35) !important;
+            background: rgba(0, 113, 227, 0.1) !important;
+            border: 1px solid rgba(0, 113, 227, 0.28) !important;
             color: var(--apple-blue) !important;
             font-size: 11px !important;
-            font-weight: 700 !important;
+            font-weight: 600 !important;
             display: inline-flex !important;
             align-items: center !important;
             gap: 5px !important;
             cursor: pointer !important;
-            transition: all 0.2s ease !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
             white-space: nowrap !important;
         }
-        .copilot-voice-toggle-chip:hover {
+        .apple-speaker-toggle-btn:hover {
+            background: rgba(0, 113, 227, 0.18) !important;
             transform: translateY(-0.5px) !important;
         }
-        .copilot-voice-toggle-chip.active {
-            background: rgba(52, 199, 89, 0.14) !important;
-            border-color: rgba(52, 199, 89, 0.4) !important;
-            color: #30D158 !important;
+        .apple-speaker-toggle-btn.speaking {
+            box-shadow: 0 0 12px rgba(0, 113, 227, 0.5) !important;
+            animation: speakerPulse 1.4s infinite ease-in-out !important;
         }
-        .copilot-voice-toggle-chip:not(.active) {
+        @keyframes speakerPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.04); opacity: 0.85; }
+        }
+        .apple-speaker-toggle-btn:not(.active) {
             background: var(--bg-subtle) !important;
             border-color: var(--border-hairline) !important;
-            color: var(--text-secondary) !important;
-            opacity: 0.7 !important;
+            color: var(--text-tertiary) !important;
+            opacity: 0.75 !important;
         }
 
-        .copilot-lang-select {
-            height: 26px !important;
-            border-radius: 999px !important;
-            padding: 0 10px !important;
-            font-size: 11px !important;
-            font-weight: 600 !important;
+        /* Apple Minimal Language Selector */
+        .apple-lang-wrapper {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 5px !important;
             background: var(--bg-subtle) !important;
-            color: var(--text-primary) !important;
             border: 1px solid var(--border-hairline) !important;
-            outline: none !important;
-            cursor: pointer !important;
+            border-radius: 999px !important;
+            padding: 0 8px 0 10px !important;
+            height: 26px !important;
             transition: all 0.2s ease !important;
         }
-        .copilot-lang-select:hover {
+        .apple-lang-wrapper:hover {
             border-color: var(--apple-blue) !important;
         }
+        .apple-globe-icon {
+            color: var(--text-tertiary) !important;
+            flex-shrink: 0 !important;
+        }
+        .apple-lang-select {
+            border: none !important;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            font-size: 11px !important;
+            font-weight: 500 !important;
+            outline: none !important;
+            cursor: pointer !important;
+            padding-right: 2px !important;
+            font-family: inherit !important;
+        }
 
+        /* Apple Unified Input Capsule */
         .copilot-input-capsule {
             display: flex !important;
             align-items: center !important;
             flex-wrap: nowrap !important;
-            gap: 8px !important;
+            gap: 6px !important;
             background: var(--bg-subtle) !important;
-            border: 1.5px solid var(--border-hairline) !important;
-            border-radius: 999px !important;
-            padding: 4px 6px 4px 16px !important;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-            transition: all 0.2s ease !important;
+            border: 1px solid var(--border-hairline) !important;
+            border-radius: 24px !important;
+            padding: 4px 6px 4px 14px !important;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
             min-width: 0 !important;
         }
         .copilot-input-capsule:focus-within {
             border-color: var(--apple-blue) !important;
             background: var(--bg-elevated) !important;
-            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18) !important;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.16) !important;
         }
 
         .copilot-text-input {
@@ -327,49 +405,52 @@
             font-size: 13.5px !important;
             font-family: inherit !important;
             outline: none !important;
-            padding: 8px 0 !important;
+            padding: 7px 0 !important;
         }
 
         .copilot-btn-group {
             display: flex !important;
             align-items: center !important;
-            gap: 6px !important;
+            gap: 4px !important;
             flex-shrink: 0 !important;
         }
 
-        .copilot-mic-btn {
-            width: 36px !important;
-            height: 36px !important;
-            min-width: 36px !important;
+        /* Apple Minimal Mic Button */
+        .apple-mic-btn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
             border-radius: 50% !important;
-            background: var(--bg-elevated) !important;
-            border: 1px solid var(--border-hairline) !important;
-            color: var(--text-primary) !important;
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-secondary) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             cursor: pointer !important;
-            font-size: 15px !important;
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
-        .copilot-mic-btn:hover {
+        .apple-mic-btn:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-primary) !important;
             transform: scale(1.08) !important;
-            border-color: var(--apple-blue) !important;
-            background: rgba(0, 113, 227, 0.12) !important;
-            color: var(--apple-blue) !important;
         }
-        .copilot-mic-btn.listening {
-            background: linear-gradient(135deg, #FF2D55, #AF52DE, #007AFF) !important;
-            color: #fff !important;
-            border-color: transparent !important;
-            box-shadow: 0 0 18px rgba(175, 82, 222, 0.7) !important;
-            animation: siriMicPulse 1.2s infinite alternate !important;
+        .apple-mic-btn.listening {
+            background: linear-gradient(135deg, #FF2D55, #AF52DE, #0071E3) !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 0 14px rgba(175, 82, 222, 0.7) !important;
+            animation: siriMicGlow 1.5s infinite ease-in-out !important;
+        }
+        @keyframes siriMicGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(0, 113, 227, 0.5); }
+            50% { transform: scale(1.12); box-shadow: 0 0 20px rgba(255, 45, 85, 0.8); }
         }
 
-        .copilot-send-btn {
-            width: 36px !important;
-            height: 36px !important;
-            min-width: 36px !important;
+        /* Apple Minimal Send Button */
+        .apple-send-btn {
+            width: 30px !important;
+            height: 30px !important;
+            min-width: 30px !important;
             border-radius: 50% !important;
             background: var(--apple-blue) !important;
             color: #FFFFFF !important;
@@ -379,14 +460,14 @@
             align-items: center !important;
             justify-content: center !important;
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            box-shadow: 0 2px 10px rgba(0, 113, 227, 0.4) !important;
+            box-shadow: 0 2px 8px rgba(0, 113, 227, 0.35) !important;
         }
-        .copilot-send-btn:hover {
+        .apple-send-btn:hover {
             transform: scale(1.08) !important;
             background: #0077ED !important;
         }
-        .copilot-send-btn:active {
-            transform: scale(0.92) !important;
+        .apple-send-btn:active {
+            transform: scale(0.94) !important;
         }
     </style>
     
@@ -799,22 +880,35 @@
             </div>
         </div>
 
-        <!-- Suggestion Chips Bar -->
-        <div class="suggestion-chips" style="padding:8px 16px; display:flex; gap:6px; overflow-x:auto; border-top:1px solid var(--border-hairline);">
-            <button type="button" class="suggestion-chip" data-prompt="send oct report to my mail with spreadsheet and pdf">📧 Email PDF & Excel Report</button>
-            <button type="button" class="suggestion-chip" data-prompt="Cashflow diagnostic">📊 Cashflow Audit</button>
-            <button type="button" class="suggestion-chip" data-prompt="Give me visual suggestions to utilize money properly">💡 Money Advice & Chart</button>
-            <button type="button" class="suggestion-chip" data-prompt="Check budgets">🎯 Check Budgets</button>
-            <button type="button" class="suggestion-chip" data-prompt="Fetch IMAP details">📬 IMAP Sync & Mail</button>
-            <button type="button" class="suggestion-chip" data-prompt="Switch to dark theme">🌙 Dark Mode</button>
-            <button type="button" class="suggestion-chip" data-prompt="Switch to light mode">☀️ Light Mode</button>
-            <button type="button" class="suggestion-chip" onclick="openSettingsModal('ai')">⚙️ Telemetry Config</button>
+        <!-- Compact Suggestion Strip -->
+        <div id="copilotSuggestionStrip" class="copilot-suggestion-strip">
+            <button type="button" class="copilot-suggestion-chip" data-prompt="send oct report to my mail with spreadsheet and pdf">
+                <span>📧</span> Email PDF & Excel
+            </button>
+            <button type="button" class="copilot-suggestion-chip" data-prompt="Cashflow diagnostic">
+                <span>📊</span> 50/30/20 Audit
+            </button>
+            <button type="button" class="copilot-suggestion-chip" data-prompt="Give me visual suggestions to utilize money properly">
+                <span>💡</span> Money Advice
+            </button>
+            <button type="button" class="copilot-suggestion-chip" data-prompt="Check budgets">
+                <span>🎯</span> Check Budgets
+            </button>
+            <button type="button" class="copilot-suggestion-chip" data-prompt="Fetch IMAP details">
+                <span>📬</span> IMAP Sync
+            </button>
+            <button type="button" class="copilot-suggestion-chip" onclick="openSettingsModal('ai')">
+                <span>⚙️</span> Telemetry Config
+            </button>
         </div>
 
-        <!-- Live Voice Listening Banner with Multi-Tone Equalizer -->
+        <!-- Apple Siri Animated Soundwave Equalizer -->
         <div id="voiceListeningBanner" class="voice-listening-banner-v2" style="display:none;">
             <div class="voice-siri-orb">
-                <span class="orb-inner">🎙️</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
             </div>
             <div class="voice-equalizer-bars">
                 <span class="eq-bar"></span>
@@ -828,56 +922,77 @@
             <div class="voice-text-column">
                 <div id="voiceListeningStatus" class="voice-title-text">
                     <span class="rec-red-dot"></span>
-                    <span id="voiceListeningText">Listening... Speak now</span>
+                    <span id="voiceListeningText">Siri Listening...</span>
                 </div>
-                <div id="voiceListeningInterim" class="voice-transcription-preview">"Speak in your preferred language..."</div>
+                <div id="voiceListeningInterim" class="voice-transcription-preview">"Speak in any language..."</div>
             </div>
             <div class="voice-action-pills">
-                <button type="button" id="voiceDoneBtn" class="voice-action-pill done-pill" title="Process spoken instruction">✓ Done</button>
+                <button type="button" id="voiceDoneBtn" class="voice-action-pill done-pill" title="Process spoken instruction">Done</button>
                 <button type="button" id="voiceCancelBtn" class="voice-action-pill cancel-pill" title="Cancel listening">✕</button>
             </div>
         </div>
 
-        <!-- Redesigned Ergonomic Input Dock -->
+        <!-- Apple Unified Input Dock -->
         <div class="copilot-input-dock">
             <!-- Language and Mode Toolbar -->
             <div class="copilot-toolbar-strip">
-                <div class="copilot-lang-pill">
-                    <select id="assistantLangSelect" class="copilot-lang-select" title="Voice Recognition Language">
-                        <option value="auto" selected>🌐 Auto Detect Language</option>
-                        <option value="en-US">🇺🇸 English (US/UK)</option>
-                        <option value="es-ES">🇪🇸 Español (Spanish)</option>
-                        <option value="hi-IN">🇮🇳 हिन्दी / Hinglish</option>
-                        <option value="ta-IN">🇮🇳 தமிழ் / Tanglish</option>
-                        <option value="fr-FR">🇫🇷 Français (French)</option>
-                        <option value="de-DE">🇩🇪 Deutsch (German)</option>
-                        <option value="it-IT">🇮🇹 Italiano (Italian)</option>
-                        <option value="pt-BR">🇧🇷 Português</option>
-                        <option value="ar-SA">🇸🇦 العربية (Arabic)</option>
-                        <option value="ru-RU">🇷🇺 Русский (Russian)</option>
-                        <option value="zh-CN">🇨🇳 中文 (Mandarin)</option>
-                        <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
-                        <option value="te-IN">🇮🇳 Telugu</option>
-                        <option value="ml-IN">🇮🇳 Malayalam</option>
-                        <option value="kn-IN">🇮🇳 Kannada</option>
+                <div class="apple-lang-wrapper">
+                    <svg class="apple-globe-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <select id="assistantLangSelect" class="apple-lang-select" title="Voice Recognition Language">
+                        <option value="auto" selected>Auto Detect</option>
+                        <option value="en-US">English (US/UK)</option>
+                        <option value="ta-IN">தமிழ் (Tamil)</option>
+                        <option value="hi-IN">हिन्दी (Hindi)</option>
+                        <option value="es-ES">Español</option>
+                        <option value="fr-FR">Français</option>
+                        <option value="de-DE">Deutsch</option>
+                        <option value="it-IT">Italiano</option>
+                        <option value="pt-BR">Português</option>
+                        <option value="ar-SA">العربية</option>
+                        <option value="ru-RU">Русский</option>
+                        <option value="zh-CN">中文</option>
+                        <option value="ja-JP">日本語</option>
+                        <option value="te-IN">తెలుగు</option>
+                        <option value="ml-IN">മലയാളം</option>
+                        <option value="kn-IN">ಕನ್ನಡ</option>
                     </select>
                 </div>
-                <button type="button" id="assistantSpeakerBtn" class="copilot-voice-toggle-chip active" title="Natural Human Voice: Active (Click to mute)">
-                    <span class="voice-status-icon" id="speakerIcon">🔊</span>
-                    <span class="voice-toggle-label">Voice ON</span>
+
+                <!-- Apple Minimal Speaker Toggle -->
+                <button type="button" id="assistantSpeakerBtn" class="apple-speaker-toggle-btn active" title="Siri Voice: Speaking (Tap to mute)">
+                    <span id="speakerIconSlot" class="apple-speaker-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                        </svg>
+                    </span>
+                    <span id="speakerLabel">Siri Voice</span>
                 </button>
             </div>
 
-            <!-- Primary Chat Input Capsule -->
+            <!-- Apple Unified Input Capsule -->
             <div class="copilot-input-capsule">
-                <input type="text" id="assistantInput" class="copilot-text-input" placeholder="Ask financial questions or tap mic to speak in any language..." autocomplete="off">
+                <input type="text" id="assistantInput" class="copilot-text-input" placeholder="Ask financial questions or tap mic to speak..." autocomplete="off">
                 
                 <div class="copilot-btn-group">
-                    <button type="button" id="assistantVoiceBtn" class="copilot-mic-btn" title="Tap to speak in any language" aria-label="Start Voice Detection">
-                        <span class="mic-icon-glyph">🎙️</span>
+                    <!-- Apple Minimal Mic Button -->
+                    <button type="button" id="assistantVoiceBtn" class="apple-mic-btn" title="Tap to speak with Siri" aria-label="Start Voice Dictation">
+                        <svg class="apple-mic-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
                     </button>
-                    <button type="button" id="assistantSendBtn" class="copilot-send-btn" title="Send Query" aria-label="Send Query">
-                        {% sf_icon "arrow_up_right" "sf-icon-xs" %}
+                    <!-- Apple Minimal Send Button -->
+                    <button type="button" id="assistantSendBtn" class="apple-send-btn" title="Send message" aria-label="Send Query">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
                     </button>
                 </div>
             </div>
@@ -1984,6 +2099,7 @@
                 this.voiceInterimText = document.getElementById('voiceListeningInterim');
                 this.voiceDoneBtn = document.getElementById('voiceDoneBtn');
                 this.voiceCancelBtn = document.getElementById('voiceCancelBtn');
+                this.suggestionStrip = document.getElementById('copilotSuggestionStrip');
 
                 this.isListening = false;
                 this.recognition = null;
@@ -2318,7 +2434,7 @@
                     };
                 }
 
-                document.querySelectorAll('.suggestion-chip').forEach(chip => {
+                document.querySelectorAll('.copilot-suggestion-chip, .suggestion-chip').forEach(chip => {
                     chip.onclick = () => {
                         const prompt = chip.getAttribute('data-prompt');
                         if (prompt && this.input) {
@@ -2361,8 +2477,10 @@
                             this.isListening = true;
                             if (this.voiceBtn) this.voiceBtn.classList.add('listening');
                             if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
-                            if (this.voiceStatusText) this.voiceStatusText.innerText = `Listening (${langLabel})...`;
-                            if (this.voiceInterimText) this.voiceInterimText.innerText = 'Speak in your language...';
+                            if (this.suggestionStrip) this.suggestionStrip.style.display = 'none';
+                            if (this.voiceStatusText) this.voiceStatusText.innerText = `Siri Listening (${langLabel})...`;
+                            if (this.voiceInterimText) this.voiceInterimText.innerText = 'Speak in your preferred language...';
+                            this.scrollToBottom();
                         };
 
                         this.recognition.onresult = (event) => {
@@ -2443,8 +2561,10 @@
                         this.isListening = true;
                         if (this.voiceBtn) this.voiceBtn.classList.add('listening');
                         if (this.voiceBanner) this.voiceBanner.style.display = 'flex';
+                        if (this.suggestionStrip) this.suggestionStrip.style.display = 'none';
                         if (this.voiceStatusText) this.voiceStatusText.innerText = `Recording audio (${langLabel})...`;
                         if (this.voiceInterimText) this.voiceInterimText.innerText = 'Listening via Gemini Neural Multimodal Engine...';
+                        this.scrollToBottom();
                     };
 
                     this.mediaRecorder.onstop = async () => {
@@ -2470,6 +2590,8 @@
                 this.isListening = false;
                 if (this.voiceBtn) this.voiceBtn.classList.remove('listening');
                 if (this.voiceBanner) this.voiceBanner.style.display = 'none';
+                if (this.suggestionStrip) this.suggestionStrip.style.display = 'flex';
+                this.scrollToBottom();
 
                 if (this.recognition) {
                     try { this.recognition.stop(); } catch(e) {}
@@ -2579,24 +2701,37 @@
 
             updateSpeakerUi() {
                 if (!this.speakerBtn) return;
-                const hintEl = document.getElementById('copilotVoiceHint');
+                const iconSlot = document.getElementById('speakerIconSlot');
+                const label = document.getElementById('speakerLabel');
                 if (this.ttsEnabled) {
                     this.speakerBtn.classList.add('active');
-                    this.speakerBtn.innerHTML = '<span class="voice-status-icon">🔊</span><span class="voice-toggle-label">Voice ON</span>';
-                    this.speakerBtn.title = 'Natural Human Voice: Active (Click to mute)';
-                    if (hintEl) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
+                    this.speakerBtn.title = 'Siri Voice Feedback: Active (Tap to mute)';
+                    if (iconSlot) {
+                        iconSlot.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+                        </svg>`;
+                    }
+                    if (label) label.textContent = 'Siri Voice';
                 } else {
                     this.speakerBtn.classList.remove('active');
-                    this.speakerBtn.innerHTML = '<span class="voice-status-icon">🔇</span><span class="voice-toggle-label">Voice OFF</span>';
-                    this.speakerBtn.title = 'Natural Human Voice: Muted (Click to enable)';
-                    if (hintEl) hintEl.innerHTML = '<span>🔇 Voice Feedback Muted</span>';
+                    this.speakerBtn.title = 'Siri Voice Feedback: Muted (Tap to enable)';
+                    if (iconSlot) {
+                        iconSlot.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                            <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>`;
+                    }
+                    if (label) label.textContent = 'Muted';
                 }
             }
 
             async speakResponse(text, langHint) {
                 if (!this.ttsEnabled) return;
                 
-                // Stop any existing audio
+                // Stop any playing audio
                 if (this.currentAudio) {
                     try { this.currentAudio.pause(); } catch(e) {}
                     this.currentAudio = null;
@@ -2606,87 +2741,111 @@
                 }
 
                 const targetLang = (langHint || (this.langSelect ? this.langSelect.value : 'auto') || 'en').toLowerCase();
-                const hintEl = document.getElementById('copilotVoiceHint');
+                const speakerBtn = this.speakerBtn;
 
-                // 1. Call server-side Natural Human Neural Speech (/api/voice-speak/)
+                // 1. Clean and normalize text for natural Siri speech
+                const tmp = document.createElement('div');
+                tmp.innerHTML = text;
+                let cleanText = tmp.textContent || tmp.innerText || '';
+                cleanText = cleanText.replace(/↻\s*Refresh Dashboard/gi, '')
+                                     .replace(/https?:\/\/\S+/gi, '')
+                                     .replace(/[*_#`~>]/g, '')
+                                     .trim();
+
+                // Natural currency pronunciations
+                cleanText = cleanText.replace(/₹\s*([0-9,.]+)/g, '$1 rupees')
+                                     .replace(/\$\s*([0-9,.]+)/g, '$1 dollars')
+                                     .replace(/€\s*([0-9,.]+)/g, '$1 euros')
+                                     .replace(/£\s*([0-9,.]+)/g, '$1 pounds');
+                
+                // If Tamil script is detected, speak natural Tamil units
+                if (/[\u0B80-\u0BFF]/.test(cleanText)) {
+                    cleanText = cleanText.replace(/rupees/gi, 'ரூபாய்');
+                } else if (/[\u0900-\u097F]/.test(cleanText)) {
+                    cleanText = cleanText.replace(/rupees/gi, 'रुपये');
+                }
+
+                if (!cleanText) return;
+                // Limit spoken speech to 1-2 conversational sentences like Siri
+                const sentences = cleanText.split(/(?<=[.!?])\s+/);
+                cleanText = (sentences.length > 2 ? sentences.slice(0, 2).join(' ') : cleanText).trim();
+                if (cleanText.length > 350) cleanText = cleanText.substring(0, 350) + '...';
+
+                // 2. High-Fidelity Apple Siri / Neural client voices FIRST (macOS Samantha, Alex, Meena, Lekha, Google Neural)
+                const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+                let siriVoice = null;
+
+                if (voices && voices.length) {
+                    let langCode = targetLang === 'auto' ? 'en' : targetLang;
+                    if (/[\u0B80-\u0BFF]/.test(cleanText)) langCode = 'ta-IN';
+                    else if (/[\u0900-\u097F]/.test(cleanText)) langCode = 'hi-IN';
+                    else if (/[\u0C00-\u0C7F]/.test(cleanText)) langCode = 'te-IN';
+                    
+                    const baseLang = langCode.split('-')[0].toLowerCase();
+                    const candidates = voices.filter(v => v.lang.toLowerCase().startsWith(baseLang));
+
+                    if (candidates.length) {
+                        siriVoice = candidates.find(v => {
+                            const n = v.name.toLowerCase();
+                            return n.includes('siri') || n.includes('samantha') || n.includes('alex') ||
+                                   n.includes('meena') || n.includes('lekha') || n.includes('enhanced') ||
+                                   n.includes('premium') || n.includes('natural');
+                        }) || candidates[0];
+                    }
+                }
+
+                if (siriVoice && window.speechSynthesis) {
+                    try {
+                        const utterance = new SpeechSynthesisUtterance(cleanText);
+                        utterance.voice = siriVoice;
+                        utterance.lang = siriVoice.lang;
+                        // Confident, smooth conversational Siri cadence
+                        utterance.rate = 1.02;
+                        utterance.pitch = 1.02;
+                        utterance.volume = 1.0;
+
+                        if (speakerBtn) speakerBtn.classList.add('speaking');
+                        utterance.onend = () => {
+                            if (speakerBtn) speakerBtn.classList.remove('speaking');
+                        };
+                        utterance.onerror = () => {
+                            if (speakerBtn) speakerBtn.classList.remove('speaking');
+                        };
+
+                        window.speechSynthesis.speak(utterance);
+                        return;
+                    } catch (e) {
+                        console.warn('Native Siri speech synthesis error, using server fallback:', e);
+                    }
+                }
+
+                // 3. Fallback to server-side neural speech (/api/voice-speak/) if no client voice exists
                 try {
-                    if (hintEl) hintEl.innerHTML = '<span>🎙️ Speaking with human voice...</span>';
                     const res = await fetch('/api/voice-speak/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': getCsrfToken()
                         },
-                        body: JSON.stringify({ text: text, language: targetLang })
+                        body: JSON.stringify({ text: cleanText, language: targetLang })
                     });
                     const data = await res.json();
                     if (data.status === 'success' && data.audio_base64) {
                         const audio = new Audio(data.audio_base64);
                         this.currentAudio = audio;
+                        if (speakerBtn) speakerBtn.classList.add('speaking');
                         audio.onended = () => {
                             this.currentAudio = null;
-                            if (hintEl && this.ttsEnabled) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
+                            if (speakerBtn) speakerBtn.classList.remove('speaking');
                         };
                         audio.onerror = () => {
                             this.currentAudio = null;
-                            this.fallbackBrowserSpeech(text, targetLang);
+                            if (speakerBtn) speakerBtn.classList.remove('speaking');
                         };
                         await audio.play();
-                        return;
                     }
                 } catch (e) {
-                    console.warn('Server natural speech failed, falling back to browser synthesis:', e);
-                }
-
-                // 2. High-fidelity client-side speech synthesis fallback
-                this.fallbackBrowserSpeech(text, targetLang);
-            }
-
-            fallbackBrowserSpeech(text, targetLang) {
-                if (!window.speechSynthesis) return;
-                try {
-                    const tmp = document.createElement('div');
-                    tmp.innerHTML = text;
-                    let cleanText = tmp.textContent || tmp.innerText || '';
-                    cleanText = cleanText.replace(/↻ Refresh Dashboard/g, '').replace(/https?:\/\/\S+/g, '').trim();
-                    cleanText = cleanText.replace(/₹\s*([0-9,.]+)/g, '$1 rupees')
-                                         .replace(/\$\s*([0-9,.]+)/g, '$1 dollars')
-                                         .replace(/€\s*([0-9,.]+)/g, '$1 euros')
-                                         .replace(/£\s*([0-9,.]+)/g, '$1 pounds');
-                    if (!cleanText) return;
-                    if (cleanText.length > 400) cleanText = cleanText.substring(0, 400) + '...';
-
-                    const utterance = new SpeechSynthesisUtterance(cleanText);
-                    const voices = window.speechSynthesis.getVoices();
-
-                    let bestVoice = null;
-                    if (voices && voices.length) {
-                        const langCode = targetLang === 'auto' ? (navigator.language || 'en') : targetLang;
-                        const baseLang = langCode.split('-')[0].toLowerCase();
-                        
-                        const candidates = voices.filter(v => v.lang.toLowerCase().startsWith(baseLang));
-                        if (candidates.length) {
-                            bestVoice = candidates.find(v => {
-                                const name = v.name.toLowerCase();
-                                return name.includes('natural') || name.includes('neural') || name.includes('enhanced') || name.includes('siri') || name.includes('google') || name.includes('samantha');
-                            }) || candidates[0];
-                        }
-                    }
-
-                    if (bestVoice) {
-                        utterance.voice = bestVoice;
-                        utterance.lang = bestVoice.lang;
-                    }
-                    utterance.rate = 0.98;
-                    utterance.pitch = 1.0;
-
-                    const hintEl = document.getElementById('copilotVoiceHint');
-                    utterance.onend = () => {
-                        if (hintEl && this.ttsEnabled) hintEl.innerHTML = '<span>⚡ Natural Human Voice Ready</span>';
-                    };
-                    window.speechSynthesis.speak(utterance);
-                } catch (e) {
-                    console.warn('Speech synthesis fallback error:', e);
+                    console.warn('Voice speech fallback error:', e);
                 }
             }
 
