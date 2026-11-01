@@ -41,8 +41,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
 
   db:
     image: mysql:8.0

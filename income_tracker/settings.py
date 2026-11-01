@@ -55,6 +55,13 @@ MIDDLEWARE = [
     'tracker.middleware.LeoxurSecurityHeadersMiddleware',
 ]
 
+# Enable WhiteNoise static file serving if installed (e.g. in Docker production container)
+try:
+    import whitenoise  # noqa: F401
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+except ImportError:
+    pass
+
 ROOT_URLCONF = 'income_tracker.urls'
 
 TEMPLATES = [
