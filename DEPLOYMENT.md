@@ -87,60 +87,53 @@ flowchart TD
 
 ## 🐳 Containerized Deployment with Docker Compose
 
-Docker Compose runs the entire Leoxur stack—Django, MySQL, Nginx reverse proxy with SSL, Prometheus, Grafana, Node Exporter, and cAdvisor—in isolated containers with zero manual configuration.
+Docker Compose runs the production Leoxur stack—Django WSGI (Gunicorn), MySQL 8.0, Nginx reverse proxy with SSL, and automated Certbot renewal—in isolated containers with automatic migrations and static collection.
 
-### 1. Clone & Configure Secrets
+### 1. Point DNS to Your Server IP
+Before running the deployment script, create an **A Record** in your domain registrar (GoDaddy, Namecheap, Cloudflare, Route53, Hostinger):
+- **Type**: `A`
+- **Name / Host**: `@` (or `tracker` if using a subdomain like `tracker.yourdomain.com`)
+- **Value / Target**: `YOUR_SERVER_PUBLIC_IP`
+- **TTL**: Auto or 300 seconds
+
+### 2. Configure Environment Secrets
 ```bash
-git clone https://github.com/leoxurDev/LeoxurIncomeTracker.git
-cd LeoxurIncomeTracker
+# Copy the production template
+cp .env.example .env
 
-# Copy and edit production environment variables
-cp .env.example .env 2>/dev/null || cat << 'EOF' > .env
-SECRET_KEY=leoxur_super_secret_production_key_change_me_99238123
-ALLOWED_HOSTS=tracker.yourdomain.com,localhost,127.0.0.1
-USE_MYSQL=True
-DB_NAME=income_tracker
-DB_USER=leoxur_admin
-DB_PASSWORD=SecureProductionDBPass2026!
-DB_ROOT_PASSWORD=RootProductionDBPass2026!
-DOMAIN_NAME=tracker.yourdomain.com
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=your_email@gmail.com
-EMAIL_HOST_PASSWORD=your_16_char_google_app_password
-EMAIL_USE_TLS=True
-EOF
+# Edit .env with your domain name and secure passwords
+nano .env
 ```
+Ensure you set:
+- `DOMAIN_NAME=tracker.yourdomain.com`
+- `ALLOWED_HOSTS=tracker.yourdomain.com,www.tracker.yourdomain.com`
+- `CSRF_TRUSTED_ORIGINS=https://tracker.yourdomain.com,https://www.tracker.yourdomain.com`
+- `SECRET_KEY=your_secure_random_key_min_50_chars`
+- `ACME_EMAIL=your_email@gmail.com`
 
-### 2. Launch the Multi-Container Stack
-```bash
-# Build and start all 8 services in background
-docker-compose up -d --build
-
-# Verify container statuses
-docker-compose ps
-```
-
-### 3. Initialize Database Migrations & Superuser
-```bash
-# Wait 10 seconds for MySQL to complete initialization
-sleep 10
-
-# Execute database migrations
-docker-compose exec web python3 manage.py migrate
-
-# Create your primary administrative account
-docker-compose exec web python3 manage.py createsuperuser
-
-# Seed default financial categories
-docker-compose exec web python3 seed_data.py
-```
-
-### 4. Issue Production SSL Certificates (Let's Encrypt)
-Run the automated SSL bootstrap script:
+### 3. Deploy Stack with Automated SSL
+Run the included one-step bootstrapper:
 ```bash
 chmod +x init-ssl.sh
 ./init-ssl.sh
+```
+This script automatically:
+1. Validates your domain and environment.
+2. Creates temporary boot certificates to start Nginx.
+3. Requests official Let's Encrypt certificates from Certbot via HTTP-01 challenge.
+4. Auto-reloads Nginx with live TLS 1.3 certificates.
+5. Runs migrations, collects static assets, and launches Gunicorn in the background.
+
+### 4. Verification & Status Check
+```bash
+# Check container status
+docker compose ps
+
+# View live application & access logs
+docker compose logs -f web
+
+# View rotating host logs
+tail -f logs/leoxur_requests.log
 ```
 
 ---

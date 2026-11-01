@@ -1,4 +1,4 @@
-# 🍎 Leoxur Income & Expense Tracker
+# Leoxur Income & Expense Tracker
 ### Autonomous Financial Telemetry, AI Copilot & Multi-Cloud Ledger Engine
 
 [![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)

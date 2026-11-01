@@ -3,8 +3,8 @@
 {% block title %}Dashboard // Leoxur Financial Telemetry{% endblock %}
 
 {% block content %}
-<!-- Welcome & Quick Actions Bar -->
-<div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
+<!-- Welcome & Unified Action Header -->
+<div class="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 animate-fade-in">
     <div>
         <div class="flex items-center gap-2.5">
             <h2 class="text-2xl lg:text-3xl font-extrabold font-outfit tracking-tight text-slate-900 dark:text-white">
@@ -17,37 +17,45 @@
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Real-time assets ledger, cashflow telemetry, and predictive budget analytics.</p>
     </div>
     
-    <!-- Action Pills Group -->
+    <!-- Institutional Action Pills (Consistent heights, paddings, and icons) -->
     <div class="flex flex-wrap items-center gap-2">
-        <button onclick="openModal('transactionModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-apple-blue text-white text-xs font-bold hover:brightness-110 transition shadow-sm hover:shadow-apple-blue/30 cursor-pointer">
+        <button type="button" onclick="openModal('transactionModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-apple-blue text-white text-xs font-bold hover:brightness-110 transition shadow-sm hover:shadow-apple-blue/30 cursor-pointer" title="Record an Inflow or Outflow">
             <i data-lucide="plus-circle" class="w-4 h-4"></i>
             <span>Log Event</span>
         </button>
-        <button onclick="openBudgetModal('Total')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer">
+        <button type="button" onclick="openBudgetModal('Total')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Establish or Rebalance Budget Caps">
             <i data-lucide="sliders" class="w-4 h-4 text-neon-purple"></i>
             <span>Set Budget</span>
         </button>
-        <button onclick="openModal('reminderModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer">
-            <i data-lucide="bell" class="w-4 h-4 text-neon-rose"></i>
+        <button type="button" onclick="openModal('reminderModal')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Schedule Bill or Obligation">
+            <i data-lucide="bell" class="w-4 h-4 text-rose-500"></i>
             <span>Schedule Bill</span>
         </button>
-        <button onclick="openModal('categoryModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer">
-            <i data-lucide="tag" class="w-3.5 h-3.5 text-neon-violet"></i>
+        <button type="button" onclick="openAllBillsModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Review & Toggle All Bills">
+            <i data-lucide="layers" class="w-4 h-4 text-amber-500"></i>
+            <span>Manage Bills (<span id="commandBarBillsCount">{{ pending_reminders_count }}</span>)</span>
+        </button>
+        <button type="button" onclick="openModal('categoryModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Manage Custom Categories">
+            <i data-lucide="tag" class="w-3.5 h-3.5 text-indigo-400"></i>
             <span>Category</span>
         </button>
-        <button onclick="openModal('importModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Import Spreadsheets">
+        <button type="button" onclick="openModal('importModal')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Import Spreadsheets">
             <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-slate-400"></i>
             <span>Import</span>
         </button>
-        <button onclick="openSettingsModal('ai')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Configure AI, SMTP & IMAP">
-            <i data-lucide="settings" class="w-3.5 h-3.5 text-apple-blue"></i>
-            <span>Config (AI & Mail)</span>
+        <button type="button" onclick="openSettingsModal('ai')" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Configure AI, SMTP & IMAP">
+            <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>Config</span>
         </button>
-        <button id="customizeLayoutBtn" onclick="toggleCustomizationMode()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Customize Layout by Drag and Drop">
+        <button type="button" onclick="if(window.leoxurCopilot) { window.leoxurCopilot.open(); } else { toggleFloatingChat(); }" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-apple-blue/15 to-neon-purple/20 text-slate-900 dark:text-white border border-apple-blue/30 hover:border-apple-blue text-xs font-bold transition cursor-pointer" title="Consult World Professional Financial Boss">
+            <span class="text-xs">👑</span>
+            <span>Financial Boss</span>
+        </button>
+        <button type="button" id="customizeLayoutBtn" onclick="toggleCustomizationMode()" class="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-space-900 hover:bg-slate-200 dark:hover:bg-space-850 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-space-800 text-xs font-semibold transition cursor-pointer" title="Customize Layout by Drag and Drop">
             <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-neon-cyan"></i>
-            <span id="customizeLayoutBtnText">Customize Layout</span>
+            <span id="customizeLayoutBtnText">Layout</span>
         </button>
-        <button id="resetLayoutBtn" onclick="resetWidgetLayout()" class="hidden inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/20 text-xs font-semibold transition cursor-pointer" title="Reset default layout">
+        <button type="button" id="resetLayoutBtn" onclick="resetWidgetLayout()" class="hidden inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/20 text-xs font-semibold transition cursor-pointer" title="Reset default layout">
             <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
             <span>Reset</span>
         </button>
@@ -228,11 +236,11 @@
     </div>
 
     <!-- 4. Budget & Financial Health Telemetry -->
-    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-apple-blue/30">
+    <div class="glass-panel p-5 rounded-2xl relative transition-all duration-200 hover:-translate-y-0.5 border border-white/10 flex flex-col justify-between group hover:border-apple-blue/30 min-h-[148px]">
         <div>
             <div class="flex items-center justify-between mb-2">
                 <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Budget & Health</span>
-                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider
+                <span id="overallBudgetScoreBadge" class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider
                     {% if health_score >= 85 %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
                     {% elif health_score >= 60 %}bg-amber-500/10 text-amber-500 border border-amber-500/20
                     {% else %}bg-rose-500/10 text-rose-500 border border-rose-500/20{% endif %}">
@@ -240,26 +248,28 @@
                 </span>
             </div>
             
-            {% if overall_budget > 0 %}
-            <div class="flex items-baseline justify-between">
-                <h3 class="text-xl font-bold font-outfit font-mono text-slate-800 dark:text-white">
-                    {{ overall_percentage }}<span class="text-xs font-normal text-slate-400">% used</span>
-                </h3>
-                <span class="text-xs text-slate-400 font-mono">Limit: {{ profile.currency }}{{ overall_budget|floatformat:0 }}</span>
+            <div id="overallBudgetDetailsBlock">
+                {% if overall_budget > 0 %}
+                <div class="flex items-baseline justify-between">
+                    <h3 class="text-2xl font-extrabold font-outfit font-mono tracking-tight text-slate-800 dark:text-white">
+                        <span id="overallBudgetPctVal">{{ overall_percentage }}</span><span class="text-xs font-normal text-slate-400">% used</span>
+                    </h3>
+                    <span class="text-xs text-slate-400 font-mono">Limit: {{ profile.currency }}<span id="overallBudgetLimitVal">{{ overall_budget|floatformat:0 }}</span></span>
+                </div>
+                <div class="w-full bg-slate-200 dark:bg-space-850 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                    <div id="overallBudgetProgressBar" class="h-full bg-gradient-to-r {% if overall_raw_percentage >= 100 %}from-rose-500 to-red-600 animate-pulse{% elif overall_raw_percentage >= 80 %}from-amber-400 to-orange-500{% else %}from-apple-blue to-neon-purple{% endif %}" 
+                         style="width: {{ overall_percentage }}%;"></div>
+                </div>
+                {% else %}
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-xs text-slate-400">No overall budget set</span>
+                    <button onclick="openBudgetModal('Total')" class="text-apple-blue hover:underline text-xs font-bold cursor-pointer">+ Set Cap</button>
+                </div>
+                {% endif %}
             </div>
-            <div class="w-full bg-slate-200 dark:bg-space-850 rounded-full h-1.5 mt-2.5 overflow-hidden">
-                <div class="h-full bg-gradient-to-r {% if overall_raw_percentage >= 100 %}from-rose-500 to-red-600 animate-pulse{% elif overall_raw_percentage >= 80 %}from-amber-400 to-orange-500{% else %}from-apple-blue to-neon-purple{% endif %}" 
-                     style="width: {{ overall_percentage }}%;"></div>
-            </div>
-            {% else %}
-            <div class="flex items-center justify-between pt-1">
-                <span class="text-xs text-slate-400">No overall budget set</span>
-                <button onclick="openBudgetModal('Total')" class="text-apple-blue hover:underline text-xs font-bold cursor-pointer">+ Set Cap</button>
-            </div>
-            {% endif %}
         </div>
         <p class="pt-3 mt-3 border-t border-slate-100 dark:border-space-850 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Remains: <strong class="text-slate-700 dark:text-slate-300 font-mono">{% if overall_budget > 0 %}{{ profile.currency }}{{ overall_remaining|floatformat:0 }}{% else %}—{% endif %}</strong></span>
+            <span>Remains: <strong id="overallBudgetRemainsVal" class="text-slate-700 dark:text-slate-300 font-mono">{% if overall_budget > 0 %}{{ profile.currency }}{{ overall_remaining|floatformat:0 }}{% else %}—{% endif %}</strong></span>
             <span class="text-[10px] text-slate-400 font-mono">Runway: {{ days_remaining_in_month }}d</span>
         </p>
     </div>
@@ -432,8 +442,8 @@
         </button>
     </div>
 
-    <!-- 3. Category Budgets Widget -->
-    <div id="budgetsSection" data-widget-id="widget-budgets" class="dashboard-widget glass-panel p-5 rounded-2xl border border-white/10 col-span-12 lg:col-span-4 flex flex-col justify-between" draggable="true">
+    <!-- 3. Category Budgets Widget (50% Width) -->
+    <div id="budgetsSection" data-widget-id="widget-budgets" class="dashboard-widget glass-panel p-5 rounded-2xl border border-white/10 col-span-12 lg:col-span-6 flex flex-col justify-between" draggable="true">
         <div>
             <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-150 dark:border-space-850">
                 <div class="flex items-center gap-2">
@@ -448,42 +458,161 @@
                 <button onclick="openBudgetModal('Total')" class="text-apple-blue hover:underline text-xs font-bold cursor-pointer">+ Cap</button>
             </div>
 
-            <div class="space-y-3.5 max-h-80 overflow-y-auto pr-1">
+            <div id="budgetsSectionList" class="space-y-3 max-h-80 overflow-y-auto pr-1">
                 {% for item in budget_data %}
-                <div>
-                    <div class="flex items-center justify-between text-xs mb-1">
+                <div id="budget-card-{{ item.category }}" data-category="{{ item.category }}" class="budget-card-item transition-all duration-300 p-2 rounded-xl bg-slate-50/60 dark:bg-space-900/40 border border-slate-150 dark:border-space-850 hover:border-slate-200 dark:hover:border-space-800">
+                    <div class="flex items-center justify-between text-xs mb-1.5">
                         <span class="font-semibold text-slate-800 dark:text-slate-200">{{ item.category }}</span>
                         <div class="flex items-center gap-2 font-mono text-[11px]">
                             {% if item.has_budget %}
-                            <span>{{ profile.currency }}{{ item.spent|floatformat:0 }} <span class="text-slate-400">/ {{ profile.currency }}{{ item.budget|floatformat:0 }}</span></span>
-                            <a href="{% url 'delete_budget_category' item.category %}?month={{ selected_month }}&year={{ selected_year }}" onclick="return confirm('Clear budget limit for {{ item.category }}?');" class="text-slate-400 hover:text-rose-500 transition" title="Clear">
+                            <span class="budget-amounts-text font-bold text-slate-700 dark:text-slate-300">{{ profile.currency }}<span class="budget-spent-val">{{ item.spent|floatformat:0 }}</span> <span class="text-slate-400 font-normal">/ {{ profile.currency }}<span class="budget-limit-val">{{ item.budget|floatformat:0 }}</span></span></span>
+                            <button type="button" onclick="deleteBudgetCategory('{{ item.category|escapejs }}', this)" class="text-slate-400 hover:text-rose-500 transition cursor-pointer p-0.5 rounded" title="Clear budget cap">
                                 <i data-lucide="x" class="w-3 h-3"></i>
-                            </a>
+                            </button>
                             {% else %}
-                            <button onclick="openBudgetModal('{{ item.category|escapejs }}')" class="text-apple-blue hover:underline text-[10px] font-bold">Assign Limit</button>
+                            <button type="button" onclick="openBudgetModal('{{ item.category|escapejs }}')" class="px-2 py-0.5 rounded-md bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold transition cursor-pointer">+ Set Cap</button>
                             {% endif %}
                         </div>
                     </div>
                     {% if item.has_budget %}
                     <div class="w-full bg-slate-200 dark:bg-space-850 rounded-full h-1.5 overflow-hidden">
-                        <div class="h-full rounded-full {% if item.raw_percentage >= 100 %}bg-rose-500 animate-pulse{% elif item.raw_percentage >= 80 %}bg-amber-400{% else %}bg-apple-blue{% endif %}" 
+                        <div class="budget-progress-bar h-full rounded-full transition-all duration-500 {% if item.raw_percentage >= 100 %}bg-rose-500 animate-pulse{% elif item.raw_percentage >= 80 %}bg-amber-400{% else %}bg-apple-blue{% endif %}" 
                              style="width: {{ item.percentage }}%;"></div>
                     </div>
-                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1">
-                        <span class="{% if item.raw_percentage >= 100 %}text-rose-500 font-bold{% elif item.raw_percentage >= 80 %}text-amber-500{% endif %}">{{ item.raw_percentage }}% used</span>
-                        <span>{% if item.raw_percentage < 100 %}Remains: {{ profile.currency }}{{ item.remaining|floatformat:0 }}{% else %}Over: {{ profile.currency }}{{ item.overage|floatformat:0 }}{% endif %}</span>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1.5">
+                        <span class="budget-pct-text {% if item.raw_percentage >= 100 %}text-rose-500 font-bold{% elif item.raw_percentage >= 80 %}text-amber-500{% endif %}"><span class="budget-raw-pct">{{ item.raw_percentage }}</span>% used</span>
+                        <span class="budget-remaining-text">{% if item.raw_percentage < 100 %}Remains: {{ profile.currency }}<span class="budget-remaining-val">{{ item.remaining|floatformat:0 }}</span>{% else %}Over: {{ profile.currency }}<span class="budget-remaining-val">{{ item.overage|floatformat:0 }}</span>{% endif %}</span>
+                    </div>
+                    {% else %}
+                    <div class="w-full bg-slate-100 dark:bg-space-850/50 rounded-full h-1.5 overflow-hidden border border-dashed border-slate-200 dark:border-space-800"></div>
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1.5">
+                        <span>Spent: {{ profile.currency }}{{ item.spent|floatformat:0 }}</span>
+                        <span class="italic text-[9.5px]">No cap established</span>
                     </div>
                     {% endif %}
                 </div>
                 {% empty %}
-                <p class="text-xs text-slate-400 italic">No budget limits configured.</p>
+                <p id="noBudgetsMsg" class="text-xs text-slate-400 italic py-4 text-center">No category budgets configured.</p>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-    <!-- 4. Financial Activity Ledger Widget -->
-    <div id="ledgerSection" data-widget-id="widget-ledger" class="dashboard-widget glass-panel p-6 rounded-2xl border border-white/10 col-span-12 lg:col-span-8 flex flex-col justify-between" draggable="true">
+    <!-- 4. Scheduled Bills & Reminders Widget (50% Width) -->
+    <div id="remindersSection" data-widget-id="widget-bills" class="dashboard-widget glass-panel p-5 rounded-2xl border border-white/10 col-span-12 lg:col-span-6 flex flex-col justify-between" draggable="true">
+        <div>
+            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-150 dark:border-space-850">
+                <div class="flex items-center gap-2">
+                    <button type="button" class="widget-drag-handle" title="Drag to reorder" aria-label="Drag handle">
+                        <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-400"></i>
+                    </button>
+                    <div>
+                        <h3 class="text-xs font-bold font-outfit uppercase tracking-wider text-slate-900 dark:text-white">Scheduled Bills</h3>
+                        <p class="text-[10px] text-slate-400">Upcoming obligations & status switcher</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="openAllBillsModal()" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-semibold cursor-pointer flex items-center gap-1 transition">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>Manage</span>
+                    </button>
+                    <button type="button" onclick="openModal('reminderModal')" class="text-rose-500 hover:underline text-xs font-bold cursor-pointer">+ Bill</button>
+                </div>
+            </div>
+
+            <!-- Bill Status Filter Pills -->
+            <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/70 dark:bg-space-950/70 border border-slate-200/50 dark:border-space-850 mb-3 text-[10.5px] font-semibold">
+                <button type="button" onclick="filterWidgetBills('pending', this)" class="widget-bill-filter active flex-1 py-1 rounded-lg text-center font-bold transition cursor-pointer bg-white dark:bg-space-850 text-slate-900 dark:text-white shadow-xs">
+                    Pending (<span id="widgetPendingCount">{{ pending_reminders_count }}</span>)
+                </button>
+                <button type="button" onclick="filterWidgetBills('paid', this)" class="widget-bill-filter flex-1 py-1 rounded-lg text-center font-medium transition cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
+                    Paid (<span id="widgetPaidCount">{{ paid_reminders_count }}</span>)
+                </button>
+                <button type="button" onclick="filterWidgetBills('all', this)" class="widget-bill-filter flex-1 py-1 rounded-lg text-center font-medium transition cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
+                    All (<span id="widgetAllCount">{{ all_reminders_count }}</span>)
+                </button>
+            </div>
+
+            <div id="widgetBillsContainer" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                <!-- Overdue Alerts -->
+                {% for reminder in overdue_reminders %}
+                <div id="bill-row-{{ reminder.id }}" data-bill-status="pending" data-is-overdue="true" class="widget-bill-row p-2.5 rounded-xl border border-red-500/30 bg-red-500/10 flex items-center justify-between transition-all duration-200 hover:border-red-500/50">
+                    <div class="min-w-0 pr-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-bold text-red-500 truncate block">{{ reminder.title }}</span>
+                            <span class="bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-rose-500/20 text-rose-500 border border-rose-500/30">OVERDUE</span>
+                        </div>
+                        <span class="text-[10px] text-red-400 font-mono">Due {{ reminder.due_date|date:"M d" }}{% if reminder.is_recurring %} • {{ reminder.get_recurrence_period_display }}{% endif %}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="text-xs font-mono font-bold text-red-500 mr-0.5">{{ profile.currency }}{{ reminder.amount }}</span>
+                        <button type="button" onclick="toggleBillStatus({{ reminder.id }}, this)" class="bill-toggle-action px-2 py-1 rounded-md bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition cursor-pointer shadow-xs" title="Click to change status to Paid">
+                            Mark Paid
+                        </button>
+                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-red-400 hover:text-red-300 transition cursor-pointer" title="Edit Bill">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i>
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-red-400 hover:text-white hover:bg-red-500/25 rounded transition cursor-pointer" title="Delete Scheduled Bill">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Upcoming Bills -->
+                {% for reminder in upcoming_reminders %}
+                <div id="bill-row-{{ reminder.id }}" data-bill-status="pending" data-is-overdue="false" class="widget-bill-row p-2.5 rounded-xl border border-slate-200/60 dark:border-space-850 bg-slate-50 dark:bg-space-900/40 flex items-center justify-between transition-all duration-200 hover:border-slate-300">
+                    <div class="min-w-0 pr-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate block">{{ reminder.title }}</span>
+                            <span class="bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-blue-500/15 text-blue-500 border border-blue-500/25">PENDING</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">Due {{ reminder.due_date|date:"M d" }}{% if reminder.is_recurring %} • {{ reminder.get_recurrence_period_display }}{% endif %}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 mr-0.5">{{ profile.currency }}{{ reminder.amount }}</span>
+                        <button type="button" onclick="toggleBillStatus({{ reminder.id }}, this)" class="bill-toggle-action px-2 py-1 rounded-md bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer" title="Click to change status to Paid">
+                            Mark Paid
+                        </button>
+                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-slate-400 hover:text-apple-blue transition cursor-pointer" title="Edit Bill">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i>
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition cursor-pointer" title="Delete Scheduled Bill">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Paid Bills List (Hidden by default under Pending filter) -->
+                {% for reminder in paid_reminders %}
+                <div id="bill-row-{{ reminder.id }}" data-bill-status="paid" data-is-overdue="false" class="widget-bill-row hidden p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between transition-all duration-200 hover:border-emerald-500/40 opacity-80 hover:opacity-100">
+                    <div class="min-w-0 pr-2">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 line-through opacity-75 truncate block">{{ reminder.title }}</span>
+                            <span class="bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">PAID</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">Due {{ reminder.due_date|date:"M d" }}{% if reminder.is_recurring %} • {{ reminder.get_recurrence_period_display }}{% endif %}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="text-xs font-mono font-bold text-slate-600 dark:text-slate-400 mr-0.5">{{ profile.currency }}{{ reminder.amount }}</span>
+                        <button type="button" onclick="toggleBillStatus({{ reminder.id }}, this)" class="bill-toggle-action px-2 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer" title="Click to revert status to Pending">
+                            ↩ Mark Pending
+                        </button>
+                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition cursor-pointer" title="Delete Scheduled Bill">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <p id="noWidgetBillsMsg" class="{% if overdue_reminders or upcoming_reminders %}hidden{% endif %} text-xs text-slate-400 italic text-center py-4">No scheduled bills matching this view.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Financial Activity Ledger Widget (Full 12-Column Width) -->
+    <div id="ledgerSection" data-widget-id="widget-ledger" class="dashboard-widget glass-panel p-6 rounded-2xl border border-white/10 col-span-12 flex flex-col justify-between" draggable="true">
         <div>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5 pb-3 border-b border-slate-150 dark:border-space-850">
                 <div class="flex items-center gap-2.5">
@@ -499,7 +628,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="openModal('transactionModal')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-xs font-bold transition cursor-pointer">
+                    <button onclick="openModal('transactionModal')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-apple-blue text-white hover:brightness-110 text-xs font-bold transition shadow-sm cursor-pointer">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                         <span>Add Entry</span>
                     </button>
@@ -509,7 +638,7 @@
             <!-- Ledger Filter and Search Bar -->
             <div class="bg-slate-100/60 dark:bg-space-900/50 border border-slate-200/60 dark:border-space-850 p-2.5 rounded-xl flex flex-wrap items-center gap-2 mb-4">
                 <!-- Search input -->
-                <div class="relative flex-grow min-w-[160px]">
+                <div class="relative flex-grow min-w-[200px]">
                     <input type="text" id="search-ledger" oninput="applyLedgerFiltersAndSort()" placeholder="Search description, category, amount..." class="w-full bg-white dark:bg-space-950 border border-slate-200 dark:border-space-800 rounded-lg py-1.5 pl-8 pr-3 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-apple-blue transition">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
@@ -625,82 +754,6 @@
         </div>
     </div>
 
-    <!-- 5. Scheduled Bills & Reminders Widget -->
-    <div id="remindersSection" data-widget-id="widget-bills" class="dashboard-widget glass-panel p-5 rounded-2xl border border-white/10 col-span-12 lg:col-span-4 flex flex-col justify-between" draggable="true">
-        <div>
-            <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-150 dark:border-space-850">
-                <div class="flex items-center gap-2">
-                    <button type="button" class="widget-drag-handle" title="Drag to reorder" aria-label="Drag handle">
-                        <i data-lucide="grip-vertical" class="w-4 h-4 text-slate-400"></i>
-                    </button>
-                    <div>
-                        <h3 class="text-xs font-bold font-outfit uppercase tracking-wider text-slate-900 dark:text-white">Scheduled Bills</h3>
-                        <p class="text-[10px] text-slate-400">Upcoming payments & alerts</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" onclick="openAllBillsModal()" class="text-slate-400 hover:text-slate-200 text-xs font-semibold cursor-pointer flex items-center gap-1">
-                        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-                        <span>Manage All</span>
-                    </button>
-                    <button onclick="openModal('reminderModal')" class="text-rose-500 hover:underline text-xs font-bold cursor-pointer">+ Bill</button>
-                </div>
-            </div>
-
-            <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
-                <!-- Overdue Alerts -->
-                {% for reminder in overdue_reminders %}
-                <div class="p-2.5 rounded-xl border border-red-500/30 bg-red-500/10 flex items-center justify-between">
-                    <div>
-                        <span class="text-xs font-bold text-red-500 block">{{ reminder.title }}</span>
-                        <span class="text-[10px] text-red-400 font-mono">Overdue • {{ reminder.due_date|date:"M d" }}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-mono font-bold text-red-500 mr-1">{{ profile.currency }}{{ reminder.amount }}</span>
-                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-red-400 hover:text-red-300 transition cursor-pointer" title="Edit Bill">
-                            <i data-lucide="edit-3" class="w-3 h-3"></i>
-                        </button>
-                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-red-400 hover:text-white hover:bg-red-500/25 rounded transition cursor-pointer" title="Delete Scheduled Bill">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
-                        <form action="{% url 'pay_reminder' reminder.id %}" method="post" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" class="px-2 py-1 rounded-md bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider hover:brightness-110 transition cursor-pointer">Settle</button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-
-                <!-- Upcoming Bills -->
-                {% for reminder in upcoming_reminders %}
-                <div class="p-2.5 rounded-xl border border-slate-200/60 dark:border-space-850 bg-slate-50 dark:bg-space-900/40 flex items-center justify-between hover:border-slate-300 transition">
-                    <div>
-                        <span class="text-xs font-semibold text-slate-800 dark:text-slate-200 block">{{ reminder.title }}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">Due {{ reminder.due_date|date:"M d" }}{% if reminder.is_recurring %} • {{ reminder.get_recurrence_period_display }}{% endif %}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 mr-1">{{ profile.currency }}{{ reminder.amount }}</span>
-                        <button type="button" onclick="openEditReminderModal({{ reminder.id }}, '{{ reminder.title|escapejs }}', '{{ reminder.amount }}', '{{ reminder.due_date|date:'Y-m-d' }}', {% if reminder.is_recurring %}true{% else %}false{% endif %}, '{{ reminder.recurrence_period|default_if_none:'' }}')" class="p-1 text-slate-400 hover:text-apple-blue transition cursor-pointer" title="Edit Bill">
-                            <i data-lucide="edit-3" class="w-3 h-3"></i>
-                        </button>
-                        <button type="button" onclick="triggerDeleteReminder({{ reminder.id }}, '{{ reminder.title|escapejs }}')" class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition cursor-pointer" title="Delete Scheduled Bill">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
-                        <form action="{% url 'pay_reminder' reminder.id %}" method="post" class="inline">
-                            {% csrf_token %}
-                            <button type="submit" class="px-2 py-1 rounded-md bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer">Settle</button>
-                        </form>
-                    </div>
-                </div>
-                {% empty %}
-                {% if not overdue_reminders %}
-                <p class="text-xs text-slate-400 italic">No scheduled bills pending.</p>
-                {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
     <!-- 6. Deep Visual Analytics Widget -->
     <div id="analyticsSection" data-widget-id="widget-analytics" class="dashboard-widget glass-panel p-6 rounded-2xl border border-white/10 col-span-12 flex flex-col justify-between" draggable="true">
         <div>
@@ -777,7 +830,7 @@
 <!-- ================= MODALS SECTION ================= -->
 
 <!-- Transaction Modal (Log Event) -->
-<div id="transactionModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="transactionModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -823,7 +876,7 @@
 </div>
 
 <!-- Budget Modal -->
-<div id="budgetModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="budgetModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -834,7 +887,7 @@
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <form action="{% url 'set_budget' %}" method="post" class="space-y-4">
+        <form id="budgetModalForm" action="{% url 'set_budget' %}" method="post" class="space-y-4">
             {% csrf_token %}
             <input type="hidden" name="month" value="{{ selected_month }}">
             <input type="hidden" name="year" value="{{ selected_year }}">
@@ -859,7 +912,7 @@
 </div>
 
 <!-- Reminder Modal (Schedule Bill) -->
-<div id="reminderModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="reminderModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -905,7 +958,7 @@
 </div>
 
 <!-- Category Creation Modal -->
-<div id="categoryModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="categoryModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -937,7 +990,7 @@
 </div>
 
 <!-- Edit Transaction Modal -->
-<div id="editTransactionModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="editTransactionModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -982,7 +1035,7 @@
 </div>
 
 <!-- Edit Reminder Modal -->
-<div id="editReminderModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="editReminderModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -1033,7 +1086,7 @@
 </div>
 
 <!-- All Scheduled Bills & Recurrences Manager Modal -->
-<div id="allBillsModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="allBillsModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-2xl w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl max-h-[85vh] flex flex-col">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850 flex-shrink-0">
             <div>
@@ -1076,7 +1129,7 @@
 </div>
 
 <!-- Import Modal (Spreadsheet Upload) -->
-<div id="importModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200">
+<div id="importModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm items-center justify-center px-4 transition-all duration-200" style="display:none;">
     <div class="modal-container glass-panel max-w-md w-full rounded-2xl border border-white/15 p-6 relative shadow-2xl">
         <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-150 dark:border-space-850">
             <h3 class="font-bold font-outfit text-base text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -1701,12 +1754,9 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-mono font-bold text-slate-900 dark:text-white mr-1">${currency}${parseFloat(b.amount).toFixed(2)}</span>
-                        ${!b.is_paid ? `
-                            <form action="/reminder/pay/${b.id}/" method="post" class="inline">
-                                <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
-                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer">Settle</button>
-                            </form>
-                        ` : ''}
+                        <button type="button" onclick="toggleBillStatusFromModal(${b.id}, this)" class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition cursor-pointer ${b.is_paid ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/25' : 'bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20'}">
+                            ${b.is_paid ? '↩ Mark Pending' : '✓ Mark Paid'}
+                        </button>
                         <button type="button" onclick="openEditReminderModal(${b.id}, '${b.title.replace(/'/g, "\\'")}', '${b.amount}', '${b.due_date}', ${b.is_recurring}, '${b.recurrence_period || ''}'); closeModal('allBillsModal');" class="p-1.5 text-slate-400 hover:text-apple-blue hover:bg-apple-blue/10 rounded-lg transition cursor-pointer" title="Edit">
                             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
                         </button>
@@ -1848,9 +1898,9 @@
 
         // Restore saved widget layout order
         try {
-            const savedOrder = JSON.parse(localStorage.getItem('leoxur_widget_order') || '[]');
+            const savedOrder = JSON.parse(localStorage.getItem('leoxur_widget_order_v4') || '[]');
             const resetBtn = document.getElementById('resetLayoutBtn');
-            if (savedOrder && savedOrder.length > 0) {
+            if (savedOrder && savedOrder.length >= 6) {
                 if (resetBtn) resetBtn.classList.remove('hidden');
                 savedOrder.forEach(wid => {
                     const el = grid.querySelector(`[data-widget-id="${wid}"]`);
@@ -1914,12 +1964,14 @@
         const grid = document.getElementById('dashboardWidgetGrid');
         if (!grid) return;
         const order = Array.from(grid.querySelectorAll('.dashboard-widget')).map(w => w.getAttribute('data-widget-id') || w.id);
-        localStorage.setItem('leoxur_widget_order', JSON.stringify(order));
+        localStorage.setItem('leoxur_widget_order_v4', JSON.stringify(order));
         const resetBtn = document.getElementById('resetLayoutBtn');
         if (resetBtn) resetBtn.classList.remove('hidden');
     }
 
     function resetWidgetLayout() {
+        localStorage.removeItem('leoxur_widget_order_v4');
+        localStorage.removeItem('leoxur_widget_order_v3');
         localStorage.removeItem('leoxur_widget_order');
         showiOSToast('Restoring default dashboard layout...', '↺');
         setTimeout(() => window.location.reload(), 450);
@@ -1939,8 +1991,413 @@
         }
     }
 
-    // Dropzone logic
+    // --- Frictionless Interactive Bill Status Toggling & Management ---
+    let currentWidgetBillsFilter = 'pending';
+
+    function filterWidgetBills(filter, btn) {
+        currentWidgetBillsFilter = filter;
+        document.querySelectorAll('.widget-bill-filter').forEach(b => {
+            if (b === btn) {
+                b.classList.add('active', 'bg-white', 'dark:bg-space-850', 'text-slate-900', 'dark:text-white', 'shadow-xs');
+                b.classList.remove('text-slate-500', 'dark:text-slate-400', 'font-medium');
+                b.classList.add('font-bold');
+            } else {
+                b.classList.remove('active', 'bg-white', 'dark:bg-space-850', 'text-slate-900', 'dark:text-white', 'shadow-xs', 'font-bold');
+                b.classList.add('text-slate-500', 'dark:text-slate-400', 'font-medium');
+            }
+        });
+        applyWidgetBillsFilter();
+    }
+
+    function applyWidgetBillsFilter() {
+        const rows = document.querySelectorAll('.widget-bill-row');
+        let visibleCount = 0;
+        rows.forEach(r => {
+            const st = r.getAttribute('data-bill-status');
+            if (currentWidgetBillsFilter === 'all') {
+                r.classList.remove('hidden');
+                visibleCount++;
+            } else if (currentWidgetBillsFilter === 'paid') {
+                if (st === 'paid') {
+                    r.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    r.classList.add('hidden');
+                }
+            } else {
+                // Pending (default)
+                if (st === 'pending') {
+                    r.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    r.classList.add('hidden');
+                }
+            }
+        });
+        const noMsg = document.getElementById('noWidgetBillsMsg');
+        if (noMsg) {
+            if (visibleCount === 0) noMsg.classList.remove('hidden');
+            else noMsg.classList.add('hidden');
+        }
+    }
+
+    function recalculateWidgetBillCounts() {
+        const pendingRows = document.querySelectorAll('.widget-bill-row[data-bill-status="pending"]');
+        const paidRows = document.querySelectorAll('.widget-bill-row[data-bill-status="paid"]');
+        const pCount = pendingRows.length;
+        const pdCount = paidRows.length;
+        const aCount = pCount + pdCount;
+
+        const pendEl = document.getElementById('widgetPendingCount');
+        const paidEl = document.getElementById('widgetPaidCount');
+        const allEl = document.getElementById('widgetAllCount');
+        const cmdEl = document.getElementById('commandBarBillsCount');
+
+        if (pendEl) pendEl.innerText = pCount;
+        if (paidEl) paidEl.innerText = pdCount;
+        if (allEl) allEl.innerText = aCount;
+        if (cmdEl) cmdEl.innerText = pCount;
+    }
+
+    async function toggleBillStatus(id, btn) {
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch(`/reminder/toggle/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showiOSToast(data.message, data.is_paid ? '✓' : '↩');
+                
+                const row = document.getElementById(`bill-row-${id}`);
+                if (row) {
+                    row.setAttribute('data-bill-status', data.is_paid ? 'paid' : 'pending');
+                    const pill = row.querySelector('.bill-status-pill');
+                    const actionBtn = row.querySelector('.bill-toggle-action');
+                    const titleSpan = row.querySelector('.truncate');
+                    
+                    if (data.is_paid) {
+                        row.classList.remove('border-red-500/30', 'bg-red-500/10', 'border-slate-200/60');
+                        row.classList.add('border-emerald-500/20', 'bg-emerald-500/5', 'opacity-80');
+                        if (pill) {
+                            pill.className = 'bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30';
+                            pill.innerText = 'PAID';
+                        }
+                        if (actionBtn) {
+                            actionBtn.className = 'bill-toggle-action px-2 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer';
+                            actionBtn.innerText = '↩ Mark Pending';
+                            actionBtn.title = 'Click to revert status to Pending';
+                        }
+                        if (titleSpan) titleSpan.classList.add('line-through', 'opacity-75');
+                    } else {
+                        row.classList.remove('border-emerald-500/20', 'bg-emerald-500/5', 'opacity-80');
+                        row.classList.add('border-slate-200/60', 'bg-slate-50', 'dark:bg-space-900/40');
+                        if (pill) {
+                            pill.className = 'bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-blue-500/15 text-blue-500 border border-blue-500/25';
+                            pill.innerText = 'PENDING';
+                        }
+                        if (actionBtn) {
+                            actionBtn.className = 'bill-toggle-action px-2 py-1 rounded-md bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer';
+                            actionBtn.innerText = 'Mark Paid';
+                            actionBtn.title = 'Click to change status to Paid';
+                        }
+                        if (titleSpan) titleSpan.classList.remove('line-through', 'opacity-75');
+                    }
+                }
+                recalculateWidgetBillCounts();
+                applyWidgetBillsFilter();
+            } else {
+                showiOSToast(data.message || 'Error updating status', '⚠');
+            }
+        } catch(e) {
+            showiOSToast('Network fault updating status', '⚠');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function toggleBillStatusFromModal(id, btn) {
+        if (btn) btn.disabled = true;
+        try {
+            const res = await fetch(`/reminder/toggle/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showiOSToast(data.message, data.is_paid ? '✓' : '↩');
+                const cached = allBillsCached.find(b => b.id === id);
+                if (cached) {
+                    cached.is_paid = data.is_paid;
+                    cached.is_overdue = data.is_overdue;
+                }
+                renderAllBillsList();
+                
+                // Synchronize widget row
+                const widgetRow = document.getElementById(`bill-row-${id}`);
+                if (widgetRow) {
+                    widgetRow.setAttribute('data-bill-status', data.is_paid ? 'paid' : 'pending');
+                    const pill = widgetRow.querySelector('.bill-status-pill');
+                    const actionBtn = widgetRow.querySelector('.bill-toggle-action');
+                    const titleSpan = widgetRow.querySelector('.truncate');
+                    if (data.is_paid) {
+                        widgetRow.classList.remove('border-red-500/30', 'bg-red-500/10', 'border-slate-200/60');
+                        widgetRow.classList.add('border-emerald-500/20', 'bg-emerald-500/5', 'opacity-80');
+                        if (pill) {
+                            pill.className = 'bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30';
+                            pill.innerText = 'PAID';
+                        }
+                        if (actionBtn) {
+                            actionBtn.className = 'bill-toggle-action px-2 py-1 rounded-md bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer';
+                            actionBtn.innerText = '↩ Mark Pending';
+                        }
+                        if (titleSpan) titleSpan.classList.add('line-through', 'opacity-75');
+                    } else {
+                        widgetRow.classList.remove('border-emerald-500/20', 'bg-emerald-500/5', 'opacity-80');
+                        widgetRow.classList.add('border-slate-200/60', 'bg-slate-50', 'dark:bg-space-900/40');
+                        if (pill) {
+                            pill.className = 'bill-status-pill px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-blue-500/15 text-blue-500 border border-blue-500/25';
+                            pill.innerText = 'PENDING';
+                        }
+                        if (actionBtn) {
+                            actionBtn.className = 'bill-toggle-action px-2 py-1 rounded-md bg-apple-blue/10 text-apple-blue hover:bg-apple-blue/20 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer';
+                            actionBtn.innerText = 'Mark Paid';
+                        }
+                        if (titleSpan) titleSpan.classList.remove('line-through', 'opacity-75');
+                    }
+                    recalculateWidgetBillCounts();
+                    applyWidgetBillsFilter();
+                }
+            } else {
+                showiOSToast(data.message || 'Error updating status', '⚠');
+            }
+        } catch(e) {
+            showiOSToast('Network fault updating status', '⚠');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    // --- Dynamic Budget Updates (No Page Reload, No Scroll Jump) ---
+    function updateBudgetWidgetDom(data) {
+        if (data.category && data.category.toLowerCase() === 'total') {
+            const pctEl = document.getElementById('overallBudgetPctVal');
+            const limitEl = document.getElementById('overallBudgetLimitVal');
+            const remEl = document.getElementById('overallBudgetRemainsVal');
+            const barEl = document.getElementById('overallBudgetProgressBar');
+            if (pctEl) pctEl.innerText = data.raw_percentage;
+            if (limitEl) limitEl.innerText = data.budget.toFixed(0);
+            if (remEl) remEl.innerText = `${data.currency}${data.remaining.toFixed(0)}`;
+            if (barEl) {
+                barEl.style.width = `${data.percentage}%`;
+                barEl.className = `h-full bg-gradient-to-r ${data.raw_percentage >= 100 ? 'from-rose-500 to-red-600 animate-pulse' : (data.raw_percentage >= 80 ? 'from-amber-400 to-orange-500' : 'from-apple-blue to-neon-purple')}`;
+            }
+            return;
+        }
+
+        const list = document.getElementById('budgetsSectionList');
+        if (!list) return;
+
+        const noMsg = document.getElementById('noBudgetsMsg');
+        if (noMsg) noMsg.remove();
+
+        const rowId = `budget-card-${data.category}`;
+        let row = document.getElementById(rowId);
+
+        const isOver = data.raw_percentage >= 100;
+        const isWarning = data.raw_percentage >= 80 && !isOver;
+        const barColorClass = isOver ? 'bg-rose-500 animate-pulse' : (isWarning ? 'bg-amber-400' : 'bg-apple-blue');
+        const pctTextColor = isOver ? 'text-rose-500 font-bold' : (isWarning ? 'text-amber-500' : '');
+        const remLabel = isOver ? 'Over' : 'Remains';
+        const remVal = isOver ? data.overage.toFixed(0) : data.remaining.toFixed(0);
+
+        const newHtml = `
+            <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-semibold text-slate-800 dark:text-slate-200">${data.category}</span>
+                <div class="flex items-center gap-2 font-mono text-[11px]">
+                    <span class="budget-amounts-text">${data.currency}<span class="budget-spent-val">${data.spent.toFixed(0)}</span> <span class="text-slate-400">/ ${data.currency}<span class="budget-limit-val">${data.budget.toFixed(0)}</span></span></span>
+                    <button type="button" onclick="deleteBudgetCategory('${data.category.replace(/'/g, "\\'")}', this)" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Clear budget cap">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-space-850 rounded-full h-1.5 overflow-hidden">
+                <div class="budget-progress-bar h-full rounded-full transition-all duration-500 ${barColorClass}" 
+                     style="width: ${data.percentage}%;"></div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono mt-1">
+                <span class="budget-pct-text ${pctTextColor}"><span class="budget-raw-pct">${data.raw_percentage}</span>% used</span>
+                <span class="budget-remaining-text">${remLabel}: ${data.currency}<span class="budget-remaining-val">${remVal}</span></span>
+            </div>
+        `;
+
+        if (row) {
+            row.innerHTML = newHtml;
+            row.classList.add('ring-2', 'ring-neon-purple', 'rounded-xl', 'p-1');
+            setTimeout(() => row.classList.remove('ring-2', 'ring-neon-purple', 'rounded-xl', 'p-1'), 1600);
+        } else {
+            row = document.createElement('div');
+            row.id = rowId;
+            row.setAttribute('data-category', data.category);
+            row.className = 'budget-card-item transition-all duration-300 ring-2 ring-neon-purple rounded-xl p-1';
+            row.innerHTML = newHtml;
+            list.prepend(row);
+            setTimeout(() => row.classList.remove('ring-2', 'ring-neon-purple', 'rounded-xl', 'p-1'), 1600);
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function deleteBudgetCategory(cat, btn) {
+        if (!confirm(`Clear monthly budget limit for ${cat}?`)) return;
+        const urlParams = new URLSearchParams(window.location.search);
+        const m = urlParams.get('month') || (new Date().getMonth() + 1);
+        const y = urlParams.get('year') || (new Date().getFullYear());
+        
+        try {
+            const res = await fetch(`/budget/delete-category/${encodeURIComponent(cat)}/?month=${m}&year=${y}&format=json`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                showiOSToast(`Budget limit for ${cat} cleared.`, '🗑️');
+                const row = document.getElementById(`budget-card-${cat}`);
+                if (row) {
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(20px)';
+                    setTimeout(() => row.remove(), 300);
+                }
+            }
+        } catch(e) {
+            showiOSToast('Could not clear budget', '⚠');
+        }
+    }
+
+    // Dropzone & Asynchronous Budget Modal Logic
     document.addEventListener('DOMContentLoaded', () => {
+        // 1. Asynchronous Budget Form (Frictionless, No Page Reload, No Scroll Jump)
+        const budgetForm = document.getElementById('budgetModalForm');
+        if (budgetForm) {
+            budgetForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = budgetForm.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerText : '';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = 'Establishing Cap...';
+                }
+                try {
+                    const formData = new FormData(budgetForm);
+                    const res = await fetch(budgetForm.action || '/budget/set/', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        closeModal('budgetModal');
+                        showiOSToast(`🎯 Budget cap set: ${data.currency}${data.budget.toFixed(2)} for ${data.category}!`, '🎯');
+                        updateBudgetWidgetDom(data);
+                        budgetForm.reset();
+                    } else {
+                        showiOSToast(data.message || 'Error establishing budget cap', '⚠');
+                    }
+                } catch(err) {
+                    // Fallback to traditional submit if network interrupted
+                    budgetForm.submit();
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = origText || 'Establish Cap';
+                    }
+                }
+            });
+        }
+
+        // 2. Asynchronous Transaction Form (Zero Disruptive Page Jumps)
+        const txModalForm = document.querySelector('#transactionModal form');
+        if (txModalForm) {
+            txModalForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = txModalForm.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerText : '';
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = 'Logging Event...'; }
+                try {
+                    const formData = new FormData(txModalForm);
+                    const res = await fetch(txModalForm.action || '/transaction/add/', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        closeModal('transactionModal');
+                        showiOSToast(data.message, '✓');
+                        txModalForm.reset();
+                        setTimeout(() => window.location.reload(), 350);
+                    } else {
+                        showiOSToast(data.message || 'Error recording event', '⚠');
+                    }
+                } catch(err) {
+                    txModalForm.submit();
+                } finally {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = origText || 'Commit Event'; }
+                }
+            });
+        }
+
+        // 3. Asynchronous Bill Schedule Form
+        const remModalForm = document.querySelector('#reminderModal form');
+        if (remModalForm) {
+            remModalForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = remModalForm.querySelector('button[type="submit"]');
+                const origText = submitBtn ? submitBtn.innerText : '';
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerText = 'Scheduling Bill...'; }
+                try {
+                    const formData = new FormData(remModalForm);
+                    const res = await fetch(remModalForm.action || '/reminder/add/', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        closeModal('reminderModal');
+                        showiOSToast(data.message, '🔔');
+                        remModalForm.reset();
+                        setTimeout(() => window.location.reload(), 350);
+                    } else {
+                        showiOSToast(data.message || 'Error scheduling bill', '⚠');
+                    }
+                } catch(err) {
+                    remModalForm.submit();
+                } finally {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = origText || 'Schedule Reminder'; }
+                }
+            });
+        }
+
+        // 4. Scroll Position Restoration (Never bump user to the beginning on standard submissions)
+        const savedScroll = sessionStorage.getItem('leoxur_dashboard_scroll');
+        if (savedScroll !== null) {
+            window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+            sessionStorage.removeItem('leoxur_dashboard_scroll');
+        }
+
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('leoxur_dashboard_scroll', window.scrollY);
+        });
+
+        // 3. Dropzone logic
         const fileInput = document.getElementById('file-input');
         const fileLabel = document.getElementById('file-label');
         if (fileInput && fileLabel) {
@@ -1965,5 +2422,25 @@
         initWidgetDragAndDrop();
         if (window.lucide) lucide.createIcons();
     });
+    // Global Window Function Registry for Instant Template Onclick Dispatch
+    window.openAllBillsModal = openAllBillsModal;
+    window.openEditTransactionModal = openEditTransactionModal;
+    window.openEditReminderModal = openEditReminderModal;
+    window.triggerDeleteTransaction = triggerDeleteTransaction;
+    window.triggerDeleteReminder = triggerDeleteReminder;
+    window.toggleBillStatus = toggleBillStatus;
+    window.toggleBillStatusFromModal = toggleBillStatusFromModal;
+    window.toggleCustomizationMode = toggleCustomizationMode;
+    window.resetWidgetLayout = resetWidgetLayout;
+    window.toggleRecurrenceField = toggleRecurrenceField;
+    window.toggleEditRecurrenceField = toggleEditRecurrenceField;
+    window.triggerCopilotPrompt = triggerCopilotPrompt;
+    window.onPeriodChange = onPeriodChange;
+    window.applyLedgerFiltersAndSort = applyLedgerFiltersAndSort;
+    window.updateCategoryDropdown = updateCategoryDropdown;
+    window.deleteBudgetCategory = deleteBudgetCategory;
+    window.toggleSelectAllTransactions = toggleSelectAllTransactions;
+    window.updateBulkDeleteButton = updateBulkDeleteButton;
+    window.submitBulkDelete = submitBulkDelete;
 </script>
 {% endblock %}

@@ -22,3 +22,14 @@ env/
 venv/
 ENV/
 .venv/
+
+# Application Logs & Runtime Cache
+logs/*.log
+!logs/.gitkeep
+staticfiles/
+media/
+
+# SSL & Certbot runtime artifacts
+certbot-etc/
+certbot-var/
+webroot/

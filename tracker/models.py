@@ -61,19 +61,16 @@ class Profile(models.Model):
 
     def get_effective_ai_model(self):
         if self.ai_model and self.ai_model.strip():
-            m = self.ai_model.strip()
-            # Automatically upgrade deprecated Gemini model names
-            if m not in ('gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'):
-                return m
+            return self.ai_model.strip()
         defaults = {
-            'gemini': 'gemini-3.5-flash-lite',
+            'gemini': 'gemini-2.5-flash',
             'groq': 'llama-3.3-70b-versatile',
             'openai': 'gpt-4o-mini',
             'anthropic': 'claude-3-5-sonnet-20241022',
             'openrouter': 'google/gemini-2.0-flash-exp:free',
             'custom': 'default',
         }
-        return defaults.get(self.ai_provider, 'gemini-3.5-flash-lite')
+        return defaults.get(self.ai_provider, 'gemini-2.5-flash')
 
     def get_ai_provider_display_name(self):
         return dict(self.AI_PROVIDER_CHOICES).get(self.ai_provider, self.ai_provider.title())
@@ -192,22 +189,4 @@ class ProcessedEmail(models.Model):
     def __str__(self):
         return self.message_id
 
-
-class MoneyWorkflow(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='money_workflows')
-    name = models.CharField(max_length=150)
-    description = models.TextField(blank=True, default='')
-    trigger_type = models.CharField(max_length=50, default='inflow_salary')
-    is_active = models.BooleanField(default=True)
-    canvas_state = models.JSONField(default=dict, blank=True)
-    execution_count = models.IntegerField(default=0)
-    last_executed_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.name} ({self.user.username})"
 

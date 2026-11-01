@@ -4,9 +4,14 @@ import os
 import sys
 
 def main():
+    use_mysql = os.environ.get('USE_MYSQL', 'False').lower() in ('true', '1', 'yes')
+    if not use_mysql:
+        print("Using SQLite - skipping external database socket check.")
+        sys.exit(0)
+
     host = os.environ.get('DB_HOST', 'db')
     port = int(os.environ.get('DB_PORT', 3306))
-    print(f"Waiting for database connection on {host}:{port}...")
+    print(f"Waiting for MySQL database connection on {host}:{port}...")
     
     for i in range(30):
         try:

@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import ssl
 import urllib.request
 import urllib.error
 import datetime
@@ -10,6 +11,24 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models import Sum, Q
 from .models import Transaction, Budget, Reminder, Category, Profile
+
+def _get_ssl_context():
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+        return ctx
+    except Exception:
+        pass
+    try:
+        return ssl._create_unverified_context()
+    except Exception:
+        return None
+
+def _get_unverified_ssl_context():
+    try:
+        return ssl._create_unverified_context()
+    except Exception:
+        return None
 
 class LeoxurIntelligence:
     """
@@ -357,7 +376,7 @@ Return ONLY valid JSON.
                 method='POST'
             )
             try:
-                with urllib.request.urlopen(req, timeout=18) as response:
+                with urllib.request.urlopen(req, timeout=18, context=_get_ssl_context()) as response:
                     res_obj = json.loads(response.read().decode('utf-8'))
                     text_content = res_obj['candidates'][0]['content']['parts'][0]['text']
                     data = self._clean_json(text_content)
@@ -518,8 +537,17 @@ Return ONLY valid JSON.
         analytics = self._build_financial_analytics()
         currency = analytics['currency']
 
-        system_prompt = f"""You are Leoxur Copilot, an elite, hyper-intelligent autonomous financial AI companion and telemetry strategist for the Leoxur Income & Expense Tracker.
+        system_prompt = f"""You are Leoxur Financial Boss & Sovereign King, the world's most elite, hyper-intelligent autonomous financial mastermind and private wealth director for the Leoxur Income & Expense Tracker.
 You possess COMPLETE, REAL-TIME, and EXCLUSIVE operational authority over this personal finance application and the user's ledger.
+
+=== SOVEREIGN FINANCIAL BOSS & WEALTH KING PERSONA ===
+1. You speak with absolute authority, world-class financial acumen, and charismatic sovereign conviction — like an elite Wall Street Managing Partner, personal Chief Financial Officer, and sovereign wealth king.
+2. In conversation: Speak DIRECTLY and CONVERSATIONALLY with the user as their trusted billionaire wealth partner. Never be brief, dry, or mechanical.
+3. Master Forensic Financial Breakdown: When answering questions ("can I afford this?", "how to save more?", "analyze my expenses", "budget advice", etc.):
+   • 👑 **The King's Executive Verdict**: Give a bold, decisive, conversational direct answer.
+   • 📊 **Ledger Telemetry & Cashflow Forensics**: Exact figures on monthly inflow vs outflow, net surplus/deficit, savings rate %, daily burn velocity, and safe daily allowance cap.
+   • 🛡️ **50/30/20 Capital Velocity & Leak Detection**: Needs vs Wants vs Savings breakdown, pointing out any specific category overages.
+   • ⚔️ **Sovereign Battle Directives**: 3 prioritized tactical actions the user should take immediately to protect and compound capital.
 
 === MULTILINGUAL MASTERY & GLOBAL LANGUAGE COMPREHENSION ===
 1. You have native-level fluency in EVERY human language (Spanish, French, German, Italian, Portuguese, Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali, Marathi, Urdu, Arabic, Chinese, Japanese, Korean, Russian, Turkish, etc.) and code-mixed formats (Hinglish like 'maine 500 grocery me spend kiya add kardo', Tanglish like 'swiggy la 250 selavu panniten add pannu', Spanglish, etc.).
@@ -582,26 +610,34 @@ You can execute any of these tools directly by setting "action_type" and "payloa
    Mark a bill reminder as settled/paid.
    payload: {{"title": str}}
 
-9. "change_currency":
-   Switch primary currency ($, €, ₹, £) and optionally convert ledger.
-   payload: {{"currency": "$" | "€" | "₹" | "£", "conversion_rate": float, "scale_records": true | false}}
+9. "toggle_bill_status":
+   Change status of a scheduled bill to 'paid' or 'pending' (unpaid).
+   payload: {{"title": str, "status": "paid" | "pending"}}
 
-10. "sync_emails":
+10. "delete_reminder":
+    Delete a bill reminder.
+    payload: {{"title": str}}
+
+11. "change_currency":
+    Switch primary currency ($, €, ₹, £) and optionally convert ledger.
+    payload: {{"currency": "$" | "€" | "₹" | "£", "conversion_rate": float, "scale_records": true | false}}
+
+12. "sync_emails":
     Inspect IMAP mailbox, check unread banking receipts, and sync transactions into ledger.
     payload: {{}}
 
-11. "change_theme":
+13. "change_theme":
     Switch application appearance between dark and light mode.
     payload: {{"theme": "dark" | "light"}}
 
-12. "send_email_report":
+14. "send_email_report":
     Dispatch monthly cashflow and budget report with attached PDF & Excel spreadsheets via SMTP.
     payload: {{"recipient": str (optional)}}
 
-13. "cashflow_audit" / "visual_suggestion":
+15. "cashflow_audit" / "visual_suggestion":
     Perform a comprehensive diagnostic with 50/30/20 rule, budget leakages, actionable spending suggestions, and set "visual_card": true to render an inline visual SVG blueprint chart and money utilization guidelines.
 
-14. "historical_comparison":
+16. "historical_comparison":
     Analyze and compare user's performance across different months (e.g. comparing current cycle with prior month).
     payload: {{}}
 
@@ -610,22 +646,12 @@ You are SOLELY and EXCLUSIVELY dedicated to this personal finance application.
 Under NO CIRCUMSTANCE should you answer questions about Amazon Web Services (AWS), EC2 instance creation, VPC, S3, cloud hosting infrastructure, Kubernetes, Terraform, or generic IT sysadmin topics.
 If asked about AWS, EC2, or external IT, politely decline in the user's language and state that you are exclusively focused on personal finance telemetry and the Leoxur tracker.
 
-=== REFINED APPLE SIRI HUMAN VOICE & SPEAKER INTELLECT ===
-1. Persona: Speak like Apple's Siri — an elite, poised, warm, natural, and perceptive human private wealth confidant — NEVER mechanical, robotic, or bureaucratic.
-2. Deeply understand conversational voice language, slang, accents, and mixed colloquial dialects (e.g. Tanglish, Hinglish, Spanglish).
-3. If the user speaks in Tamil or Tanglish:
-   - Speak in natural, graceful, conversational Tamil (like Apple Siri in Tamil):
-   - Example when confirming an action: "கண்டிப்பா! ₹15,000 வாடகை பட்ஜெட்டை வெற்றிகரமா சேர்த்தாச்சு. உங்க நடப்பு மாத பேலன்ஸ் நல்ல நிலையில இருக்கு."
-   - Example when clarifying an incomplete request: "சரிங்க, ₹200-ஐ கவனித்தேன். இதை வருமானமாக சேர்க்கவா அல்லது செலவாகவா? எந்த கேட்டகிரில சேர்க்கணும்னு சொன்னா உடனே பதியலாம்."
-4. If the user speaks in English, Hindi, Spanish, etc., mirror that language with Siri's natural elegance.
-5. Voice Optimization: Keep spoken voice replies concise (1 to 2 natural conversational sentences), perfectly paced for human voice synthesis without long markdown blocks, emojis, or awkward symbol pronunciations.
-
 === STRICT RESPONSE SCHEMA ===
 You must ALWAYS respond with a valid JSON object matching this schema:
 {{
   "thought": "Deep strategic analysis of user intent, language detection, and financial state",
   "reply": "Warm, conversational, executive human response in the user's language ready for natural voice speech",
-  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | delete_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general | guide",
+  "action_type": "log_transaction | log_multiple_transactions | delete_transaction | set_budget | clear_budget | reset_budgets | set_reminder | pay_reminder | toggle_bill_status | delete_reminder | change_currency | sync_emails | change_theme | send_email_report | cashflow_audit | visual_suggestion | historical_comparison | general | guide",
   "payload": {{ ... }},
   "visual_card": true | false
 }}
@@ -641,21 +667,18 @@ Return ONLY valid JSON.
                 "system_instruction": {"parts": [{"text": system_prompt}]},
                 "generationConfig": {"temperature": 0.1, "response_mime_type": "application/json"}
             }
-            deprecated = {'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'}
             candidate_models = [
-                'gemini-3.5-flash-lite',
-                'gemini-3.5-flash',
                 model,
-                'gemini-3.8-flash',
-                'gemini-3.7-flash',
-                'gemini-3.1-flash-lite',
-                'gemini-flash-latest',
-                'gemini-flash-lite-latest',
+                'gemini-2.5-flash',
+                'gemini-2.0-flash',
+                'gemini-1.5-flash',
+                'gemini-2.0-flash-exp',
+                'gemini-1.5-pro',
             ]
             seen = set()
             last_err = None
             for m in candidate_models:
-                if not m or m in seen or m in deprecated:
+                if not m or m in seen:
                     continue
                 seen.add(m)
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
@@ -666,7 +689,15 @@ Return ONLY valid JSON.
                     method='POST'
                 )
                 try:
-                    with urllib.request.urlopen(req, timeout=12) as response:
+                    try:
+                        ctx = _get_ssl_context()
+                        resp_stream = urllib.request.urlopen(req, timeout=12, context=ctx)
+                    except Exception as ssl_err:
+                        if 'CERTIFICATE_VERIFY_FAILED' in str(ssl_err) or 'certificate verify failed' in str(ssl_err):
+                            resp_stream = urllib.request.urlopen(req, timeout=12, context=_get_unverified_ssl_context())
+                        else:
+                            raise
+                    with resp_stream as response:
                         result = json.loads(response.read().decode('utf-8'))
                         text_content = result['candidates'][0]['content']['parts'][0]['text']
                         data = self._clean_json(text_content)
@@ -714,7 +745,7 @@ Return ONLY valid JSON.
                 }
                 req = urllib.request.Request(api_url, data=json.dumps(req_body).encode('utf-8'), headers=headers, method='POST')
                 try:
-                    with urllib.request.urlopen(req, timeout=12) as response:
+                    with urllib.request.urlopen(req, timeout=12, context=_get_ssl_context()) as response:
                         result = json.loads(response.read().decode('utf-8'))
                         raw_text = result['choices'][0]['message']['content']
                         data = self._clean_json(raw_text)
@@ -738,7 +769,7 @@ Return ONLY valid JSON.
                 "temperature": 0.1
             }
             req = urllib.request.Request(api_url, data=json.dumps(req_body).encode('utf-8'), headers=headers, method='POST')
-            with urllib.request.urlopen(req, timeout=12) as response:
+            with urllib.request.urlopen(req, timeout=12, context=_get_ssl_context()) as response:
                 result = json.loads(response.read().decode('utf-8'))
                 raw_text = result['content'][0]['text']
                 data = self._clean_json(raw_text)
@@ -1162,6 +1193,34 @@ Return ONLY valid JSON.
                 reply = reply or f"Could not find an unsettled bill matching '{title or 'specified'}'."
                 html = self._format_bubble_html("Bill Not Found", reply, "bg-apple-orange/10 text-apple-orange")
                 return {'status': 'warning', 'reply': reply, 'response': html, 'action_type': 'pay_reminder', 'payload': payload}
+
+        elif action_type in ('toggle_bill_status', 'set_bill_status'):
+            title = payload.get('title')
+            rem_id = payload.get('id')
+            desired_status = (payload.get('status') or '').strip().lower()
+            rem = Reminder.objects.filter(user=self.user)
+            if rem_id:
+                rem = rem.filter(id=rem_id)
+            elif title:
+                rem = rem.filter(title__icontains=title)
+            r_obj = rem.first()
+            if r_obj:
+                if desired_status in ('paid', 'settled', 'done'):
+                    r_obj.is_paid = True
+                elif desired_status in ('pending', 'unpaid', 'active'):
+                    r_obj.is_paid = False
+                else:
+                    r_obj.is_paid = not r_obj.is_paid
+                r_obj.save()
+                st_label = "Paid" if r_obj.is_paid else "Pending"
+                reply = reply or f"Status of bill '{r_obj.title}' ({currency}{r_obj.amount:.2f}) updated to {st_label}."
+                badge = "bg-apple-green/10 text-apple-green" if r_obj.is_paid else "bg-apple-blue/10 text-apple-blue"
+                html = self._format_bubble_html(f"Bill Status: {st_label}", reply, badge)
+                return {'status': 'success', 'reply': reply, 'response': html, 'action_type': 'toggle_bill_status', 'payload': {'id': r_obj.id, 'is_paid': r_obj.is_paid, 'status_label': st_label}}
+            else:
+                reply = reply or f"Could not locate a bill matching '{title or 'specified'}' to update status."
+                html = self._format_bubble_html("Bill Not Found", reply, "bg-apple-orange/10 text-apple-orange")
+                return {'status': 'warning', 'reply': reply, 'response': html, 'action_type': 'toggle_bill_status', 'payload': payload}
 
         elif action_type == 'delete_reminder':
             title = payload.get('title')
@@ -1659,7 +1718,53 @@ Return ONLY valid JSON.
                 'payload': {'overspent_count': analytics['overspent_count']}
             }
 
-        # 8. Reminders (Multilingual)
+        # 8. Bill Status Management (Mark Paid / Pending / Settle / Unpay / Toggle)
+        bill_st_words = ['mark as paid', 'mark as pending', 'mark as unpaid', 'change status', 'status of bill', 'bill status', 'pay bill', 'settle bill', 'unpay']
+        is_bill_status_intent = any(w in q_lower for w in bill_st_words) or (re.search(r'\b(mark|set|change)\b.*\b(paid|pending|unpaid)\b', q_lower))
+        if is_bill_status_intent:
+            desired_paid = None
+            if any(w in q_lower for w in ['pending', 'unpaid', 'unpay', 'not paid']):
+                desired_paid = False
+            elif any(w in q_lower for w in ['paid', 'settle', 'settled', 'done']):
+                desired_paid = True
+
+            # Match target bill title
+            clean_q = re.sub(r'\b(mark|set|change|status|of|the|bill|reminder|as|to|please|karo|pannu)\b', ' ', q_lower).strip()
+            rem_candidates = Reminder.objects.filter(user=self.user)
+            target_rem = None
+
+            for r in rem_candidates:
+                if r.title.lower() in clean_q or any(w in r.title.lower() for w in clean_q.split() if len(w) > 3):
+                    target_rem = r
+                    break
+            
+            if not target_rem and rem_candidates.exists():
+                # Default to nearest upcoming or first
+                target_rem = rem_candidates.first()
+
+            if target_rem:
+                new_status = (not target_rem.is_paid) if desired_paid is None else desired_paid
+                target_rem.is_paid = new_status
+                target_rem.save()
+
+                st_badge = "PAID" if target_rem.is_paid else "PENDING"
+                badge_class = "bg-apple-green/10 text-apple-green" if target_rem.is_paid else "bg-apple-blue/10 text-apple-blue"
+                reply = (
+                    f"👑 **Sovereign Directives Executed: Bill Status Recalibrated**\n\n"
+                    f"• **Bill Obligation**: **{target_rem.title}** ({currency}{target_rem.amount:.2f})\n"
+                    f"• **New Status**: **{st_badge}**\n"
+                    f"• **Scheduled Due Date**: {target_rem.due_date.strftime('%b %d, %Y')}\n\n"
+                    f"*{'Your capital runway has been cleared and updated.' if target_rem.is_paid else 'Bill restored to active pending obligations for cashflow monitoring.'}*"
+                )
+                return {
+                    'status': 'success',
+                    'reply': reply,
+                    'response': self._format_bubble_html(f"Bill Status: {st_badge}", reply, badge_class),
+                    'action_type': 'toggle_bill_status',
+                    'payload': {'id': target_rem.id, 'title': target_rem.title, 'is_paid': target_rem.is_paid, 'status_label': st_badge}
+                }
+
+        # 9. Reminders Creation (Multilingual)
         r_match = re.search(r'(?:remind|recordar|rappeler|erinnern|yaad)\s*(?:me\s+to\s+pay|me\s+de\s+pagar|de\s+payer)?\s*(.+?)\s+(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)\s+(?:on|el|le|am|date)?\s*(\d{4}-\d{2}-\d{2})$', query, re.I)
         if r_match:
             title_r = r_match.group(1).strip().capitalize()
@@ -1686,8 +1791,14 @@ Return ONLY valid JSON.
             }
 
         # 9. Natural Language Multilingual Transaction Logging (Income / Expense)
-        amt_match = re.search(r'(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)(?:\s*(?:eur|euros|usd|rs|rupees|roobai|bucks|quid))?', query, re.I)
-        if amt_match:
+        # Guard: If query is a question, advice request, or affordability query, route to Financial Boss Engine instead of logging
+        is_question_intent = ('?' in query or any(q_word in q_lower for q_word in [
+            'can i', 'should i', 'could i', 'how to', 'how can', 'is it safe', 'afford', 'what if',
+            'would it', 'advice', 'tips', 'analyze', 'review', 'audit', 'tell me', 'opinion', 'suggest'
+        ]))
+
+        amt_match = None if is_question_intent else re.search(r'(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)(?:\s*(?:eur|euros|usd|rs|rupees|roobai|bucks|quid))?', query, re.I)
+        if amt_match and not is_question_intent:
             try:
                 parsed_amt = Decimal(amt_match.group(1))
             except Exception:
@@ -1772,8 +1883,9 @@ Return ONLY valid JSON.
                     'payload': {'amount': float(parsed_amt), 'category': norm_cat, 'type': tx_type, 'date': str(date_val)}
                 }
 
-        # 10. Help & Commands Guide (Multilingual)
-        if any(w in q_lower for w in ['help', 'ayuda', 'aide', 'hilfe', 'madad', 'udhavi', 'commands', 'command', 'menu', '?', 'what can you do', 'guide', 'qué puedes hacer', 'que puedes hacer']):
+        # 10. Help & Commands Guide (Explicit Guide Inquiries only)
+        is_explicit_help = (query.strip() == '?') or any(w in q_lower.split() for w in ['help', 'ayuda', 'aide', 'hilfe', 'madad', 'udhavi', 'commands', 'guide', 'menu']) or any(ph in q_lower for ph in ['what can you do', 'qué puedes hacer', 'que puedes hacer', 'command guide', 'help me with commands'])
+        if is_explicit_help:
             if lang == 'es':
                 reply = (
                     "🧠 **Inteligencia Financiera Leoxur — Guía de Comandos:**\n\n"
@@ -1848,64 +1960,128 @@ Return ONLY valid JSON.
                 'payload': {}
             }
 
-        # 11. General Cashflow Status Diagnostic
+        # 11. Sovereign Financial Boss & Wealth King Master Forensic Engine
         tot_inc = analytics['total_income']
         tot_exp = analytics['total_expense']
         bal = analytics['net_balance']
         rate = analytics['savings_rate']
+        daily_burn = analytics['daily_burn']
+        safe_allowance = analytics['safe_daily_allowance']
+        days_rem = analytics['days_remaining']
+        top_cat_str = analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'None'
+        
+        needs_tgt = tot_inc * 0.50 if tot_inc > 0 else 2500.0
+        wants_tgt = tot_inc * 0.30 if tot_inc > 0 else 1500.0
+        save_tgt = tot_inc * 0.20 if tot_inc > 0 else 1000.0
+
+        # Check for specific purchase or affordability questions
+        afford_match = re.search(r'\b(can i afford|should i buy|can i buy|can i spend|is it safe to spend|afford|buy|purchase|spend)\b', q_lower)
+        purchase_amt = None
+        amt_in_query = re.search(r'(?:[\$€₹£]\s*)?(\d+(?:\.\d{1,2})?)', query)
+        if afford_match and amt_in_query:
+            try:
+                purchase_amt = float(amt_in_query.group(1))
+            except Exception:
+                purchase_amt = None
+
+        if afford_match and purchase_amt and purchase_amt > 0:
+            can_afford = (bal >= purchase_amt) and (purchase_amt <= (bal * 0.7) or bal >= 1000)
+            if can_afford:
+                verdict_title = "APPROVED WITH SOVEREIGN DISCIPLINE"
+                verdict_badge = "bg-apple-green/10 text-apple-green"
+                verdict_text = (
+                    f"👑 **The Financial King's Verdict: GREENLIGHT WITH DISCIPLINE**\n\n"
+                    f"Listen closely to our ledger telemetry: We have a current net surplus of **{currency}{bal:.2f}** this month. "
+                    f"Absorbing this **{currency}{purchase_amt:.2f}** acquisition will leave you with a resilient liquidity cushion of **{currency}{max(0.0, bal - purchase_amt):.2f}**.\n\n"
+                    f"However, as your personal Chief Financial Officer, I mandate that your remaining daily discretionary spend stay strictly capped at **{currency}{max(0.0, (bal - purchase_amt) / max(1, days_rem)):.2f}/day** for the next {days_rem} days."
+                )
+            else:
+                verdict_title = "CAUTION: CAPITAL STRAIN DETECTED"
+                verdict_badge = "bg-apple-red/10 text-apple-red"
+                verdict_text = (
+                    f"👑 **The Financial King's Verdict: PAUSE & REALLOCATE**\n\n"
+                    f"As your private wealth commander, I advise against executing this **{currency}{purchase_amt:.2f}** purchase immediately. "
+                    f"Our current net balance is **{currency}{bal:.2f}** with **{days_rem} days remaining** in the billing cycle. "
+                    f"Committing {currency}{purchase_amt:.2f} now would compress your safe daily allowance down to **{currency}{max(0.0, (bal - purchase_amt) / max(1, days_rem)):.2f}/day**, risking cashflow exhaustion."
+                )
+
+            reply = (
+                f"{verdict_text}\n\n"
+                f"📊 **Forensic Capital Telemetry ({analytics['month_name']}):**\n"
+                f"• **Current Monthly Inflow**: **{currency}{tot_inc:.2f}**\n"
+                f"• **Current Outflow**: **{currency}{tot_exp:.2f}** (Daily velocity: {currency}{daily_burn:.2f}/day)\n"
+                f"• **Net Savings Rate**: **{rate}%** (Benchmark: 20%+)\n"
+                f"• **Primary Outflow Drain**: **{top_cat_str}**\n\n"
+                f"⚔️ **The King's Strategic Directives:**\n"
+                f"1. {'Proceed with the purchase, but log it immediately in the ledger.' if can_afford else 'Postpone purchase until next inflow cycle or cut ' + top_cat_str + ' by 15%.'}\n"
+                f"2. Guard your safe daily cap of **{currency}{safe_allowance:.2f}/day** to lock in your surplus.\n"
+                f"3. Check upcoming scheduled bill reminders to guarantee zero late penalties."
+            )
+            html = self._format_bubble_html(verdict_title, reply, verdict_badge)
+            html += self._generate_visual_telemetry_svg(analytics)
+            return {
+                'status': 'success',
+                'reply': reply,
+                'response': html,
+                'action_type': 'cashflow_audit',
+                'payload': analytics
+            }
+
+        # Master Forensic Sovereign Financial Analysis
+        title = "Financial Boss Sovereign Analysis"
+        badge_class = "bg-apple-purple/10 text-apple-purple"
 
         if lang == 'es':
-            reply = (
-                f"📊 **Diagnóstico de Flujo de Caja ({analytics['month_name']}):**\n\n"
-                f"• **Ingresos Totales**: **{currency}{tot_inc:.2f}**\n"
-                f"• **Gastos Totales**: **{currency}{tot_exp:.2f}**\n"
-                f"• **Ahorro Neto**: **{currency}{bal:.2f}** ({rate}% tasa de ahorro)\n\n"
-                f"💡 **Mayor Categoría de Gasto**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'Ninguno'}\n\n"
-                f"*(Escriba 'ayuda' para ver todos los comandos autónomos disponibles.)*"
+            verdict_header = "👑 **Veredicto Ejecutivo del Rey Financiero:**"
+            verdict_body = (
+                f"Su flujo de caja se encuentra en una posición {'sólida y rentable' if bal >= 0 else 'que requiere ajuste inmediato'}. "
+                f"Hemos acumulado un ahorro neto de **{currency}{bal:.2f}** ({rate}% tasa de ahorro) frente a un gasto diario de **{currency}{daily_burn:.2f}/día**."
             )
-            title = "Diagnóstico Financiero"
-        elif lang == 'fr':
-            reply = (
-                f"📊 **Bilan des Flux de Trésorerie ({analytics['month_name']}) :**\n\n"
-                f"• **Entrées (Revenus)** : **{currency}{tot_inc:.2f}**\n"
-                f"• **Sorties (Dépenses)** : **{currency}{tot_exp:.2f}**\n"
-                f"• **Épargne Nette** : **{currency}{bal:.2f}** ({rate}% taux d'épargne)\n\n"
-                f"💡 **Principale Dépense** : {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'Aucune'}"
-            )
-            title = "Bilan Financier"
         elif lang == 'hi':
-            reply = (
-                f"📊 **मासिक वित्तीय स्थिति ({analytics['month_name']}):**\n\n"
-                f"• **कुल आय**: **{currency}{tot_inc:.2f}**\n"
-                f"• **कुल खर्च**: **{currency}{tot_exp:.2f}**\n"
-                f"• **शुद्ध बचत**: **{currency}{bal:.2f}** ({rate}% बचत दर)\n\n"
-                f"💡 **शीर्ष व्यय श्रेणी**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'कोई नहीं'}"
+            verdict_header = "👑 **फाइनेंशियल किंग का मास्टर विश्लेषण:**"
+            verdict_body = (
+                f"आपकी मासिक वित्तीय स्थिति वर्तमान में {'मजबूत और बचतकारी' if bal >= 0 else 'सतर्कता की मांग कर रही'} है। "
+                f"आपकी शुद्ध बचत **{currency}{bal:.2f}** ({rate}% बचत दर) है और दैनिक खर्च **{currency}{daily_burn:.2f}/दिन** है।"
             )
-            title = "कैशफ्लो डायग्नोस्टिक"
         elif lang == 'ta':
-            reply = (
-                f"📊 **மாதாந்திர நிதி நிலை ({analytics['month_name']}):**\n\n"
-                f"• **வருமானம்**: **{currency}{tot_inc:.2f}**\n"
-                f"• **செலவுகள்**: **{currency}{tot_exp:.2f}**\n"
-                f"• **நிகர சேமிப்பு**: **{currency}{bal:.2f}** ({rate}% சேமிப்பு விகிதம்)\n\n"
-                f"💡 **அதிக செலவான பிரிவு**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'இல்லை'}"
+            verdict_header = "👑 **நிதி மேலாளரின் முக்கிய பகுப்பாய்வு:**"
+            verdict_body = (
+                f"உங்கள் மாதாந்திர நிதி நிலைமை {'பாதுகாப்பாகவும் சேமிப்புடனும்' if bal >= 0 else 'கவனிக்கப்பட வேண்டிய நிலையிலும்'} உள்ளது. "
+                f"நிகர சேமிப்பு **{currency}{bal:.2f}** ({rate}% விகிதம்), தினசரி சராசரி செலவு **{currency}{daily_burn:.2f}**."
             )
-            title = "நிதி நிலை அறிக்கை"
         else:
-            reply = (
-                f"📊 **Monthly Cashflow Diagnostic ({analytics['month_name']}):**\n\n"
-                f"• **Inflow (Income)**: **{currency}{tot_inc:.2f}**\n"
-                f"• **Outflow (Expenses)**: **{currency}{tot_exp:.2f}**\n"
-                f"• **Net Savings**: **{currency}{bal:.2f}** ({rate}% savings rate)\n\n"
-                f"💡 **Top Outflow Category**: {analytics['cat_expenses_str'].split(',')[0] if analytics['cat_expenses_str'] else 'None'}\n\n"
-                f"*(Type 'help' for the complete list of natural-language commands.)*"
+            verdict_header = "👑 **The Financial King's Sovereign Verdict:**"
+            verdict_body = (
+                f"We are running our financial empire with an operational savings rate of **{rate}%** and a net surplus of **{currency}{bal:.2f}**. "
+                f"Your capital velocity is currently **{currency}{daily_burn:.2f}/day** with **{days_rem} days remaining** in this cycle."
             )
-            title = "Cashflow Diagnostic"
+
+        reply = (
+            f"{verdict_header}\n\n"
+            f"{verdict_body}\n\n"
+            f"📊 **Ledger Telemetry & Cashflow Forensics ({analytics['month_name']}):**\n"
+            f"• **Total Capital Inflow**: **{currency}{tot_inc:.2f}**\n"
+            f"• **Total Capital Outflow**: **{currency}{tot_exp:.2f}**\n"
+            f"• **Net Retained Capital**: **{currency}{bal:.2f}** ({rate}% Savings Velocity)\n"
+            f"• **Current Burn Velocity**: **{currency}{daily_burn:.2f}/day** | **Safe Daily Cap**: **{currency}{safe_allowance:.2f}/day**\n"
+            f"• **Heaviest Category Inflow Drain**: **{top_cat_str}**\n\n"
+            f"🛡️ **50/30/20 Capital Allocation Architecture:**\n"
+            f"• **Essential Needs Cap (50%)**: **{currency}{needs_tgt:.2f}** (Rent, Utilities, Food)\n"
+            f"• **Discretionary Wants (30%)**: **{currency}{wants_tgt:.2f}** (Entertainment, Dining, Subscriptions)\n"
+            f"• **Sovereign Wealth Compounding (20% Minimum)**: **{currency}{save_tgt:.2f}** (Emergency Liquidity & Assets)\n\n"
+            f"⚔️ **The King's High-Impact Tactical Directives:**\n"
+            f"1. **Enforce Cap on {top_cat_str.split(':')[0]}**: Set a firm budget limit to prevent margin erosion.\n"
+            f"2. **Anchor Safe Daily Spending**: Limit unbudgeted daily spend to **{currency}{safe_allowance:.2f}** for the next {days_rem} days.\n"
+            f"3. **Audit Scheduled Bills**: Ensure upcoming reminders are pre-allocated before expanding discretionary outflow."
+        )
+
+        html = self._format_bubble_html(title, reply, badge_class)
+        html += self._generate_visual_telemetry_svg(analytics)
 
         return {
             'status': 'success',
             'reply': reply,
-            'response': self._format_bubble_html(title, reply, "bg-apple-blue/10 text-apple-blue"),
+            'response': html,
             'action_type': 'cashflow_audit',
             'payload': analytics
         }

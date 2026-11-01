@@ -344,6 +344,158 @@
             transform: scale(1.1) !important;
         }
 
+        /* Virtual Visual Task Execution HUD (Financial Boss Engine) */
+        .virtual-task-hud {
+            padding: 14px 16px !important;
+            border-radius: 18px !important;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95)) !important;
+            border: 1px solid rgba(0, 113, 227, 0.35) !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 16px rgba(0, 113, 227, 0.18) !important;
+            color: #ffffff !important;
+            margin-bottom: 6px !important;
+            animation: fadeInHud 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        @keyframes fadeInHud {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hud-top-bar {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin-bottom: 10px !important;
+        }
+        .hud-orb-icon {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 10px !important;
+            background: linear-gradient(135deg, #0071E3, #BF5AF2) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            position: relative !important;
+            box-shadow: 0 0 12px rgba(0, 113, 227, 0.5) !important;
+            font-size: 14px !important;
+        }
+        .hud-pulse-ring {
+            position: absolute !important;
+            inset: -3px !important;
+            border-radius: 13px !important;
+            border: 1.5px solid rgba(0, 113, 227, 0.6) !important;
+            animation: pulseRing 1.5s infinite !important;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.2; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .hud-title-wrap {
+            flex: 1 1 0% !important;
+            min-width: 0 !important;
+        }
+        .hud-title {
+            font-size: 11.5px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.02em !important;
+            color: #ffffff !important;
+            text-transform: uppercase !important;
+        }
+        .hud-live-action {
+            font-size: 10px !important;
+            color: #94A3B8 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            font-family: -apple-system, monospace !important;
+        }
+        .hud-live-tag {
+            font-size: 8.5px !important;
+            font-weight: 800 !important;
+            padding: 2px 7px !important;
+            border-radius: 999px !important;
+            background: rgba(0, 113, 227, 0.25) !important;
+            color: #60A5FA !important;
+            border: 1px solid rgba(96, 165, 250, 0.4) !important;
+            letter-spacing: 0.05em !important;
+            animation: pulseTag 1.2s infinite alternate !important;
+        }
+        @keyframes pulseTag {
+            from { opacity: 0.7; }
+            to { opacity: 1; }
+        }
+        .hud-track {
+            width: 100% !important;
+            height: 4px !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-radius: 999px !important;
+            overflow: hidden !important;
+            margin-bottom: 10px !important;
+        }
+        .hud-bar {
+            height: 100% !important;
+            width: 28% !important;
+            background: linear-gradient(90deg, #0071E3, #BF5AF2, #30D158) !important;
+            border-radius: 999px !important;
+            transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .hud-stages {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+        .hud-stage {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            padding: 6px 10px !important;
+            border-radius: 10px !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            transition: all 0.3s ease !important;
+        }
+        .hud-stage.active {
+            background: rgba(0, 113, 227, 0.15) !important;
+            border-color: rgba(0, 113, 227, 0.45) !important;
+        }
+        .hud-stage.completed {
+            background: rgba(48, 209, 88, 0.08) !important;
+            border-color: rgba(48, 209, 88, 0.3) !important;
+        }
+        .stage-icon {
+            font-size: 12px !important;
+        }
+        .stage-info {
+            flex: 1 1 0% !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .stage-label {
+            font-size: 10.5px !important;
+            font-weight: 700 !important;
+            color: #E2E8F0 !important;
+        }
+        .stage-detail {
+            font-size: 9px !important;
+            color: #64748B !important;
+        }
+        .stage-status {
+            font-size: 8.5px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            font-family: -apple-system, monospace !important;
+            padding: 1px 6px !important;
+            border-radius: 999px !important;
+            color: #94A3B8 !important;
+        }
+        .hud-stage.active .stage-status {
+            background: rgba(0, 113, 227, 0.25) !important;
+            color: #60A5FA !important;
+        }
+        .hud-stage.completed .stage-status {
+            background: rgba(48, 209, 88, 0.2) !important;
+            color: #30D158 !important;
+        }
+
         /* Input Dock */
         .copilot-input-dock {
             background: var(--bg-card) !important;
@@ -523,6 +675,17 @@
         .apple-send-btn:active {
             transform: scale(0.94) !important;
         }
+
+        /* Defensive Modal Rules — Guarantee modals are strictly hidden unless explicitly opened */
+        .hidden, [hidden] {
+            display: none !important;
+        }
+        [id$="Modal"]:not(.open) {
+            display: none !important;
+        }
+        [id$="Modal"].open {
+            display: flex !important;
+        }
     </style>
     
     <!-- Tailwind CSS Play CDN for utility support -->
@@ -590,161 +753,193 @@
         {% if user.is_authenticated %}
         <!-- Navigation Bar — Apple macOS / iOS Executive Floating Glass Bar -->
         <header class="ios-nav">
-            <div class="nav-left">
-                <a href="{% url 'dashboard' %}" class="nav-brand" title="Leoxur — Financial Telemetry">
-                    <div class="brand-icon">
-                        {% sf_icon "wallet" "sf-icon-brand" %}
-                    </div>
-                    <div class="brand-info">
-                        <span class="brand-title">Leoxur</span>
-                        <span class="brand-badge">FIN</span>
-                    </div>
-                </a>
-            </div>
-
-            <nav class="nav-center-links" aria-label="Primary Navigation">
-                <button type="button" class="nav-segment-btn {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
-                    {% sf_icon "clock" "sf-icon-xs" %}
-                    <span>Today</span>
-                </button>
-                <button type="button" class="nav-segment-btn" data-nav="ledger" onclick="smoothNavigateTo('ledgerSection', 'ledger', event)">
-                    {% sf_icon "list" "sf-icon-xs" %}
-                    <span>Ledger</span>
-                </button>
-                <button type="button" class="nav-segment-btn" data-nav="budgets" onclick="smoothNavigateTo('budgetsSection', 'budgets', event)">
-                    {% sf_icon "target" "sf-icon-xs" %}
-                    <span>Budgets</span>
-                </button>
-                <button type="button" class="nav-segment-btn" data-nav="bills" onclick="smoothNavigateTo('remindersSection', 'bills', event)">
-                    {% sf_icon "bell" "sf-icon-xs" %}
-                    <span>Bills</span>
-                </button>
-                <button type="button" class="nav-segment-btn" data-nav="analytics" onclick="smoothNavigateTo('analyticsSection', 'analytics', event)">
-                    {% sf_icon "analytics" "sf-icon-xs" %}
-                    <span>Analytics</span>
-                </button>
-                <a href="{% url 'money_workflows' %}" class="nav-segment-btn {% if request.resolver_match.url_name == 'money_workflows' %}active{% endif %}" data-nav="workflows" title="Money Automation & AI Sandbox">
-                    <svg class="sf-icon-xs" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                    </svg>
-                    <span>Workflows</span>
-                    <span style="font-size: 8.5px; font-weight: 800; padding: 1px 5px; border-radius: 999px; background: rgba(56, 239, 125, 0.16); color: #38ef7d; border: 1px solid rgba(56, 239, 125, 0.32); margin-left: 2px;">SANDBOX</span>
-                </a>
-            </nav>
-
-            <div class="nav-actions">
-                <!-- Live System Clock Pill (Interactive) -->
-                <button id="topBarLiveClock" class="topbar-live-clock" type="button" onclick="openClockModal()" title="System Clock & Realtime Telemetry">
-                    <span class="live-clock-dot"></span>
-                    <span id="topBarClockText">--:--:--</span>
-                </button>
-
-                <!-- Version Pill (Interactive) -->
-                <button id="versionHelpBtn" class="version-help-badge" type="button" onclick="openVersionModal()" title="Version v2.5.0 • System Specs & Telemetry Node">
-                    <span class="version-text">v2.5.0</span>
-                    <span class="version-qmark" aria-hidden="true">?</span>
-                </button>
-
-                <!-- Currency Selector Pill (Interactive Button) -->
-                <button id="currencyPillBtn" class="currency-pill-capsule" type="button" onclick="openCurrencyModal()" title="Currency Switcher & FX Conversion" style="background:var(--bg-subtle); border:1px solid var(--border-hairline); border-radius:var(--radius-full); padding:4px 12px; display:inline-flex; align-items:center; gap:5px; cursor:pointer; transition:all 0.15s ease;">
-                    <span style="font-size:12px; font-weight:800; color:var(--apple-blue);">{{ profile.currency|default:'$' }}</span>
-                    <span style="font-size:11px; font-weight:700; color:var(--text-primary); text-transform:uppercase;">
-                        {% if profile.currency == '$' %}USD
-                        {% elif profile.currency == '€' %}EUR
-                        {% elif profile.currency == '₹' %}INR
-                        {% elif profile.currency == '£' %}GBP
-                        {% else %}FX{% endif %}
-                    </span>
-                    {% sf_icon "chevron_down" "sf-icon-xs" %}
-                </button>
-
-                <!-- Telemetry Alerts Bell -->
-                <button onclick="toggleAlertsDropdown(event)" class="ios-toolbar-btn" id="alerts-bell-btn" type="button" title="Telemetry Alerts" style="position:relative;">
-                    {% sf_icon "bell" "sf-icon-sm" %}
-                    {% if alerts %}
-                    <span style="position:absolute; top:2px; right:2px; width:14px; height:14px; border-radius:50%; background:var(--apple-red); color:white; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center;">{{ alerts|length }}</span>
-                    {% endif %}
-                </button>
-
-                <!-- Dropdown Menu for Alerts -->
-                <div id="alerts-dropdown" class="apple-account-popover" style="display:none; width:300px; right:120px; top:54px; z-index:99999;">
-                    <div style="padding:10px 14px; border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Telemetry Alerts</span>
-                        {% if alerts %}<span style="font-size:10px; font-weight:600; color:var(--apple-red);">{{ alerts|length }} Active</span>{% endif %}
-                    </div>
-                    <div style="max-height:220px; overflow-y:auto; padding:8px;">
-                        {% for alert in alerts %}
-                        <div style="padding:8px 10px; border-radius:8px; margin-bottom:6px; font-size:11px; background:var(--bg-subtle); display:flex; gap:8px;">
-                            <span style="color:var(--apple-red); font-weight:700;">●</span>
-                            <span>{{ alert.message }}</span>
+            <div class="ios-nav-top-row">
+                <div class="nav-left">
+                    <a href="{% url 'dashboard' %}" class="nav-brand" title="Leoxur — Financial Telemetry">
+                        <div class="brand-icon">
+                            {% sf_icon "wallet" "sf-icon-brand" %}
                         </div>
-                        {% empty %}
-                        <div style="padding:16px; text-align:center; color:var(--text-tertiary); font-size:12px;">All telemetries normal</div>
-                        {% endfor %}
-                    </div>
+                        <div class="brand-info">
+                            <span class="brand-title">Leoxur</span>
+                            <span class="brand-badge">FIN</span>
+                        </div>
+                    </a>
                 </div>
 
-                <!-- Leoxur AI Copilot Trigger -->
-                <button id="topBarAiBtn" class="ios-toolbar-btn apple-ai-toolbar-btn" type="button" title="Leoxur AI Copilot" aria-label="Leoxur AI Copilot">
-                    {% sf_icon "apple_intelligence" "sf-icon-sm" %}
-                </button>
+                <!-- Desktop Segmented Navigation Pills (Visible on >= 960px screens) -->
+                <nav class="nav-center-links desktop-nav-center" aria-label="Primary Navigation">
+                    <button type="button" class="nav-segment-btn {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
+                        {% sf_icon "clock" "sf-icon-xs" %}
+                        <span>Today</span>
+                    </button>
+                    <button type="button" class="nav-segment-btn" data-nav="ledger" onclick="smoothNavigateTo('ledgerSection', 'ledger', event)">
+                        {% sf_icon "list" "sf-icon-xs" %}
+                        <span>Ledger</span>
+                    </button>
+                    <button type="button" class="nav-segment-btn" data-nav="budgets" onclick="smoothNavigateTo('budgetsSection', 'budgets', event)">
+                        {% sf_icon "target" "sf-icon-xs" %}
+                        <span>Budgets</span>
+                    </button>
+                    <button type="button" class="nav-segment-btn" data-nav="bills" onclick="smoothNavigateTo('remindersSection', 'bills', event)">
+                        {% sf_icon "bell" "sf-icon-xs" %}
+                        <span>Bills</span>
+                    </button>
+                    <button type="button" class="nav-segment-btn" data-nav="analytics" onclick="smoothNavigateTo('analyticsSection', 'analytics', event)">
+                        {% sf_icon "analytics" "sf-icon-xs" %}
+                        <span>Analytics</span>
+                    </button>
+                </nav>
 
-                <!-- Appearance Toggle (Dark / Light) -->
-                <button id="themeToggleBtn" class="ios-toolbar-btn" type="button" title="Toggle Appearance" aria-label="Toggle Appearance">
-                    <span class="theme-icon-slot">{% sf_icon "theme" "sf-icon-sm" %}</span>
-                </button>
-
-                <!-- Apple Account Profile Menu Capsule -->
-                <div class="apple-account-menu-wrapper" style="position:relative;">
-                    <button id="accountMenuBtn" class="apple-account-chip" type="button" aria-haspopup="true" aria-expanded="false" title="Account & Preferences">
-                        <span class="account-avatar-ring" style="background:var(--apple-blue);">
-                            {{ user.username|slice:":1"|upper }}
-                        </span>
-                        <span class="account-name">{{ user.username }}</span>
-                        <span class="account-chevron">{% sf_icon "chevron_down" "sf-icon-xs" %}</span>
+                <div class="nav-actions">
+                    <!-- Live System Clock Pill (Interactive - Desktop Only) -->
+                    <button id="topBarLiveClock" class="topbar-live-clock desktop-pill" type="button" onclick="openClockModal()" title="System Clock & Realtime Telemetry">
+                        <span class="live-clock-dot"></span>
+                        <span id="topBarClockText">--:--:--</span>
                     </button>
 
-                    <!-- Popover Menu Sheet -->
-                    <div id="accountPopover" class="apple-account-popover" hidden style="z-index:999999;">
-                        <div class="popover-profile-header">
-                            <div class="popover-avatar-lg" style="background:var(--apple-blue);">
-                                {{ user.username|slice:":1"|upper }}
-                            </div>
-                            <div class="popover-profile-meta">
-                                <span class="popover-name">{{ user.username }}</span>
-                                <span class="popover-subtitle">Portfolio Node</span>
-                            </div>
+                    <!-- Version Pill (Interactive - Desktop Only) -->
+                    <button id="versionHelpBtn" class="version-help-badge desktop-pill" type="button" onclick="openVersionModal()" title="Version v2.5.0 • System Specs & Telemetry Node">
+                        <span class="version-text">v2.5.0</span>
+                        <span class="version-qmark" aria-hidden="true">?</span>
+                    </button>
+
+                    <!-- Currency Selector Pill (Interactive Button) -->
+                    <button id="currencyPillBtn" class="currency-pill-capsule" type="button" onclick="openCurrencyModal()" title="Currency Switcher & FX Conversion">
+                        <span class="currency-symbol-tag">{{ profile.currency|default:'$' }}</span>
+                        <span class="currency-name-label">
+                            {% if profile.currency == '$' %}USD
+                            {% elif profile.currency == '€' %}EUR
+                            {% elif profile.currency == '₹' %}INR
+                            {% elif profile.currency == '£' %}GBP
+                            {% else %}FX{% endif %}
+                        </span>
+                        {% sf_icon "chevron_down" "sf-icon-xs" %}
+                    </button>
+
+                    <!-- Telemetry Alerts Bell -->
+                    <button onclick="toggleAlertsDropdown(event)" class="ios-toolbar-btn" id="alerts-bell-btn" type="button" title="Telemetry Alerts" style="position:relative;">
+                        {% sf_icon "bell" "sf-icon-sm" %}
+                        {% if alerts %}
+                        <span class="alert-counter-badge">{{ alerts|length }}</span>
+                        {% endif %}
+                    </button>
+
+                    <!-- Dropdown Menu for Alerts -->
+                    <div id="alerts-dropdown" class="apple-account-popover alerts-popover" style="display:none; width:300px; right:120px; top:54px; z-index:99999;">
+                        <div style="padding:10px 14px; border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Telemetry Alerts</span>
+                            {% if alerts %}<span style="font-size:10px; font-weight:600; color:var(--apple-red);">{{ alerts|length }} Active</span>{% endif %}
                         </div>
-                        <div class="popover-menu-list">
-                            <a href="javascript:void(0)" onclick="openSettingsModal('ai')" class="popover-menu-item">
-                                {% sf_icon "apple_intelligence" "sf-icon-sm" %}
-                                <span>AI Agent Settings</span>
-                            </a>
-                            <a href="javascript:void(0)" onclick="openSettingsModal('email')" class="popover-menu-item">
-                                {% sf_icon "envelope" "sf-icon-sm" %}
-                                <span>Email Node (IMAP & SMTP)</span>
-                            </a>
-                            <a href="javascript:void(0)" onclick="toggleCustomizationMode()" class="popover-menu-item">
-                                {% sf_icon "sliders" "sf-icon-sm" %}
-                                <span>Customize Dashboard Layout</span>
-                            </a>
-                            <a href="{% url 'sync_emails_now' %}" class="popover-menu-item">
-                                {% sf_icon "bolt" "sf-icon-sm" %}
-                                <span>Sync Mailbox Now</span>
-                            </a>
-                            <div class="popover-separator"></div>
-                            <a href="{% url 'logout' %}" class="popover-menu-item popover-item-logout">
-                                {% sf_icon "signout" "sf-icon-sm" %}
-                                <span>Sign Out</span>
-                            </a>
+                        <div style="max-height:220px; overflow-y:auto; padding:8px;">
+                            {% for alert in alerts %}
+                            <div style="padding:8px 10px; border-radius:8px; margin-bottom:6px; font-size:11px; background:var(--bg-subtle); display:flex; gap:8px;">
+                                <span style="color:var(--apple-red); font-weight:700;">●</span>
+                                <span>{{ alert.message }}</span>
+                            </div>
+                            {% empty %}
+                            <div style="padding:16px; text-align:center; color:var(--text-tertiary); font-size:12px;">All telemetries normal</div>
+                            {% endfor %}
                         </div>
                     </div>
-                </div>
 
-                <!-- Quick Sign Out -->
-                <a href="{% url 'logout' %}" class="ios-toolbar-btn ios-signout-btn" title="Sign Out" aria-label="Sign Out">
-                    {% sf_icon "signout" "sf-icon-sm" %}
-                </a>
+                    <!-- Leoxur AI Copilot Trigger -->
+                    <button id="topBarAiBtn" class="ios-toolbar-btn apple-ai-toolbar-btn" type="button" title="Leoxur AI Copilot" aria-label="Leoxur AI Copilot">
+                        {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+                    </button>
+
+                    <!-- Appearance Toggle (Dark / Light) -->
+                    <button id="themeToggleBtn" class="ios-toolbar-btn" type="button" title="Toggle Appearance" aria-label="Toggle Appearance">
+                        <span class="theme-icon-slot">{% sf_icon "theme" "sf-icon-sm" %}</span>
+                    </button>
+
+                    <!-- Apple Account Profile Menu Capsule -->
+                    <div class="apple-account-menu-wrapper" style="position:relative;">
+                        <button id="accountMenuBtn" class="apple-account-chip" type="button" aria-haspopup="true" aria-expanded="false" title="Account & Preferences">
+                            <span class="account-avatar-ring" style="background:var(--apple-blue);">
+                                {{ user.username|slice:":1"|upper }}
+                            </span>
+                            <span class="account-name">{{ user.username }}</span>
+                            <span class="account-chevron">{% sf_icon "chevron_down" "sf-icon-xs" %}</span>
+                        </button>
+
+                        <!-- Popover Menu Sheet -->
+                        <div id="accountPopover" class="apple-account-popover" hidden style="z-index:999999;">
+                            <div class="popover-profile-header">
+                                <div class="popover-avatar-lg" style="background:var(--apple-blue);">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                                <div class="popover-profile-meta">
+                                    <span class="popover-name">{{ user.username }}</span>
+                                    <span class="popover-subtitle">Portfolio Node</span>
+                                </div>
+                            </div>
+                            <!-- Mobile Telemetry Status Pill -->
+                            <div class="popover-telemetry-badge">
+                                <div class="popover-telemetry-item" onclick="openClockModal()" title="System Clock">
+                                    <span class="live-clock-dot"></span>
+                                    <span id="popoverClockText">--:--:--</span>
+                                </div>
+                                <div class="popover-telemetry-item" onclick="openVersionModal()" title="Version v2.5.0">
+                                    <span>v2.5.0 Engine</span>
+                                </div>
+                            </div>
+                            <div class="popover-menu-list">
+                                <a href="javascript:void(0)" onclick="openSettingsModal('ai')" class="popover-menu-item">
+                                    {% sf_icon "apple_intelligence" "sf-icon-sm" %}
+                                    <span>AI Agent Settings</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="openSettingsModal('email')" class="popover-menu-item">
+                                    {% sf_icon "envelope" "sf-icon-sm" %}
+                                    <span>Email Node (IMAP & SMTP)</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="toggleCustomizationMode()" class="popover-menu-item">
+                                    {% sf_icon "sliders" "sf-icon-sm" %}
+                                    <span>Customize Dashboard Layout</span>
+                                </a>
+                                <a href="{% url 'sync_emails_now' %}" class="popover-menu-item">
+                                    {% sf_icon "bolt" "sf-icon-sm" %}
+                                    <span>Sync Mailbox Now</span>
+                                </a>
+                                <div class="popover-separator"></div>
+                                <a href="{% url 'logout' %}" class="popover-menu-item popover-item-logout">
+                                    {% sf_icon "signout" "sf-icon-sm" %}
+                                    <span>Sign Out</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Sign Out (Desktop Only) -->
+                    <a href="{% url 'logout' %}" class="ios-toolbar-btn ios-signout-btn desktop-pill" title="Sign Out" aria-label="Sign Out">
+                        {% sf_icon "signout" "sf-icon-sm" %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mobile Horizontal Smooth Scroll Navigation Strip (Visible on mobile/tablet < 960px) -->
+            <div class="nav-mobile-strip" aria-label="Mobile Section Navigation">
+                <div class="nav-mobile-strip-scroller">
+                    <button type="button" class="nav-mobile-btn {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-nav="today" onclick="smoothNavigateTo('top', 'today', event)">
+                        {% sf_icon "clock" "sf-icon-xs" %}
+                        <span>Today</span>
+                    </button>
+                    <button type="button" class="nav-mobile-btn" data-nav="ledger" onclick="smoothNavigateTo('ledgerSection', 'ledger', event)">
+                        {% sf_icon "list" "sf-icon-xs" %}
+                        <span>Ledger</span>
+                    </button>
+                    <button type="button" class="nav-mobile-btn" data-nav="budgets" onclick="smoothNavigateTo('budgetsSection', 'budgets', event)">
+                        {% sf_icon "target" "sf-icon-xs" %}
+                        <span>Budgets</span>
+                    </button>
+                    <button type="button" class="nav-mobile-btn" data-nav="bills" onclick="smoothNavigateTo('remindersSection', 'bills', event)">
+                        {% sf_icon "bell" "sf-icon-xs" %}
+                        <span>Bills</span>
+                    </button>
+                    <button type="button" class="nav-mobile-btn" data-nav="analytics" onclick="smoothNavigateTo('analyticsSection', 'analytics', event)">
+                        {% sf_icon "analytics" "sf-icon-xs" %}
+                        <span>Analytics</span>
+                    </button>
+                </div>
             </div>
         </header>
         {% endif %}
@@ -825,26 +1020,26 @@
         <!-- Sleek Redesigned Header v2 -->
         <div class="assistant-header-v2">
             <div class="assistant-brand-block">
-                <div class="assistant-iridescent-orb" title="Leoxur AI Neural Telemetry">
-                    <span class="orb-glyph">✨</span>
+                <div class="assistant-iridescent-orb" title="Financial Boss & Sovereign AI">
+                    <span class="orb-glyph">👑</span>
                     <span class="orb-pulse-ring"></span>
                 </div>
                 <div class="assistant-title-meta" id="assistantTitle">
                     <div class="assistant-title-row">
-                        <span class="assistant-heading-title">Leoxur Copilot</span>
+                        <span class="assistant-heading-title">Financial Boss AI</span>
                         {% if user.profile.get_saved_ai_key and user.profile.ai_mode != 'local' %}
-                        <span class="copilot-neural-badge cloud" title="Connected to Google Gemini Neural Intelligence">
+                        <span class="copilot-neural-badge cloud" title="Sovereign Neural Financial Intelligence">
                             <span class="pulse-dot"></span>
-                            <span>Gemini Neural</span>
+                            <span>Sovereign King</span>
                         </span>
                         {% else %}
-                        <span class="copilot-neural-badge local" title="Operating with deterministic local brain">
+                        <span class="copilot-neural-badge local" title="Autonomous deterministic private wealth engine">
                             <span class="pulse-dot"></span>
-                            <span>Local Brain</span>
+                            <span>Financial Boss</span>
                         </span>
                         {% endif %}
                     </div>
-                    <div class="assistant-subheading">Autonomous Wealth & Telemetry Advisor</div>
+                    <div class="assistant-subheading">World Professional Wealth & Strategy Director</div>
                 </div>
             </div>
 
@@ -898,15 +1093,15 @@
             <div class="welcome-card" style="padding:18px 16px; border-radius:20px; background:linear-gradient(135deg, rgba(0,113,227,0.1), rgba(191,90,242,0.08)); border:1px solid rgba(255,255,255,0.14); margin-bottom:6px;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
                     <div style="width:36px; height:36px; border-radius:12px; background:linear-gradient(135deg, #0071E3, #BF5AF2); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,113,227,0.35); color:#fff; font-size:16px;">
-                        ✨
+                        👑
                     </div>
                     <div>
-                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I'm Leoxur Copilot</div>
-                        <div style="font-size:11px; color:var(--text-secondary);">Your personal finance AI & natural voice companion</div>
+                        <div style="font-size:14px; font-weight:700; color:var(--text-primary); letter-spacing:-0.01em;">Hi {{ user.first_name|default:user.username }}, I am your Financial Boss & Sovereign King</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">Your world-class financial mastermind and private wealth director</div>
                     </div>
                 </div>
                 <div style="font-size:12.5px; line-height:1.45; color:var(--text-secondary); margin-bottom:12px;">
-                    Tap the microphone to speak in any language or type your instructions. I'll execute actions and speak back with a natural human voice.
+                    Ask me any financial strategy question, test affordability, or instruct me to manage your budgets and bills. I evaluate your telemetry with executive precision.
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                     <button type="button" class="welcome-action-card" onclick="if(window.leoxurCopilot) window.leoxurCopilot.sendPrompt('send oct report to my mail with spreadsheet and pdf')">
@@ -1451,11 +1646,13 @@
         // Live Clock Controller
         function updateLiveClock() {
             const el = document.getElementById('topBarClockText');
+            const popoverEl = document.getElementById('popoverClockText');
             const modalEl = document.getElementById('modalClockLarge');
             const modalDate = document.getElementById('modalClockDate');
             const now = new Date();
             const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             if (el) el.innerText = timeStr;
+            if (popoverEl) popoverEl.innerText = timeStr;
             if (modalEl) modalEl.innerText = timeStr;
             if (modalDate) modalDate.innerText = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
@@ -1498,19 +1695,34 @@
             showiOSToast(`Selected ${symbol} (${name})`, '✓');
         }
 
-        // Smooth Navigation Controller with Header Offset and Active State
+        // Smooth Navigation Controller with Dynamic Header Offset & Multi-Surface Sync
         function smoothNavigateTo(targetId, navKey, e) {
             if (e) e.preventDefault();
 
-            // Set active class on nav pills
+            // 1. Desktop Segmented Nav Pills
             document.querySelectorAll('.nav-segment-btn').forEach(btn => {
-                if (btn.getAttribute('data-nav') === navKey) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
+                btn.classList.toggle('active', btn.getAttribute('data-nav') === navKey);
+            });
+
+            // 2. Mobile Ribbon Navigation Strip (auto-center active button)
+            document.querySelectorAll('.nav-mobile-btn').forEach(btn => {
+                const isActive = btn.getAttribute('data-nav') === navKey;
+                btn.classList.toggle('active', isActive);
+                if (isActive) {
+                    try {
+                        btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    } catch (err) {}
                 }
             });
 
+            // 3. Mobile Bottom Tab Bar Sync
+            document.querySelectorAll('.ios-tab-bar .tab-item').forEach(btn => {
+                const label = btn.querySelector('span:last-child');
+                const key = label ? label.innerText.toLowerCase().trim() : '';
+                btn.classList.toggle('active', key === navKey);
+            });
+
+            // 4. Smooth window scrolling with dynamic sticky header measurement
             if (targetId === 'top' || targetId === 'today') {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
@@ -1518,48 +1730,76 @@
 
             const el = document.getElementById(targetId);
             if (el) {
-                const headerOffset = 85;
+                const header = document.querySelector('.ios-nav');
+                const headerOffset = header ? (header.getBoundingClientRect().height + 16) : 85;
                 const elementPosition = el.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
                 window.scrollTo({
-                    top: offsetPosition,
+                    top: Math.max(0, offsetPosition),
                     behavior: 'smooth'
                 });
             } else if (targetId) {
-                // If on another page like /workflows/, navigate back to dashboard section
+                // If on another page, navigate back to dashboard section
                 window.location.href = `/?nav=${navKey}#${targetId}`;
             }
         }
 
-        // Scroll-Spy to auto update active nav pill
+        // Throttled High-Performance Scroll-Spy
+        let scrollSpyTicking = false;
         window.addEventListener('scroll', () => {
-            const scrollPos = window.scrollY + 120;
-            const sections = [
-                { id: 'analyticsSection', key: 'analytics' },
-                { id: 'remindersSection', key: 'bills' },
-                { id: 'budgetsSection', key: 'budgets' },
-                { id: 'ledgerSection', key: 'ledger' }
-            ];
+            if (!scrollSpyTicking) {
+                window.requestAnimationFrame(() => {
+                    const header = document.querySelector('.ios-nav');
+                    const headerHeight = header ? header.getBoundingClientRect().height : 60;
+                    const scrollPos = window.scrollY + headerHeight + 50;
+                    const sections = [
+                        { id: 'analyticsSection', key: 'analytics' },
+                        { id: 'remindersSection', key: 'bills' },
+                        { id: 'budgetsSection', key: 'budgets' },
+                        { id: 'ledgerSection', key: 'ledger' }
+                    ];
 
-            let found = false;
-            for (const s of sections) {
-                const el = document.getElementById(s.id);
-                if (el) {
-                    const top = el.offsetTop;
-                    const height = el.offsetHeight;
-                    if (scrollPos >= top && scrollPos < top + height) {
-                        document.querySelectorAll('.nav-segment-btn').forEach(b => {
-                            b.classList.toggle('active', b.getAttribute('data-nav') === s.key);
-                        });
-                        found = true;
-                        break;
+                    let activeKey = null;
+                    if (window.scrollY < 180) {
+                        activeKey = 'today';
+                    } else {
+                        for (const s of sections) {
+                            const el = document.getElementById(s.id);
+                            if (el) {
+                                const top = el.offsetTop;
+                                const height = el.offsetHeight;
+                                if (scrollPos >= top && scrollPos < top + height) {
+                                    activeKey = s.key;
+                                    break;
+                                }
+                            }
+                        }
                     }
-                }
-            }
-            if (!found && window.scrollY < 200) {
-                document.querySelectorAll('.nav-segment-btn').forEach(b => {
-                    b.classList.toggle('active', b.getAttribute('data-nav') === 'today');
+
+                    if (activeKey) {
+                        document.querySelectorAll('.nav-segment-btn').forEach(b => {
+                            b.classList.toggle('active', b.getAttribute('data-nav') === activeKey);
+                        });
+                        document.querySelectorAll('.nav-mobile-btn').forEach(b => {
+                            const isActive = b.getAttribute('data-nav') === activeKey;
+                            if (b.classList.contains('active') !== isActive) {
+                                b.classList.toggle('active', isActive);
+                                if (isActive) {
+                                    try {
+                                        b.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                                    } catch (err) {}
+                                }
+                            }
+                        });
+                        document.querySelectorAll('.ios-tab-bar .tab-item').forEach(b => {
+                            const label = b.querySelector('span:last-child');
+                            const key = label ? label.innerText.toLowerCase().trim() : '';
+                            b.classList.toggle('active', key === activeKey);
+                        });
+                    }
+                    scrollSpyTicking = false;
                 });
+                scrollSpyTicking = true;
             }
         }, { passive: true });
 
@@ -2052,7 +2292,7 @@
             if (el) {
                 el.classList.remove('hidden');
                 el.classList.add('open');
-                el.style.display = 'flex';
+                el.style.setProperty('display', 'flex', 'important');
                 el.style.opacity = '1';
                 el.style.pointerEvents = 'auto';
                 el.setAttribute('aria-hidden', 'false');
@@ -2077,7 +2317,7 @@
                 setTimeout(() => {
                     el.classList.remove('open');
                     el.classList.add('hidden');
-                    el.style.display = 'none';
+                    el.style.setProperty('display', 'none', 'important');
                     el.style.opacity = '0';
                     el.style.pointerEvents = 'none';
                     el.setAttribute('aria-hidden', 'true');
@@ -2096,6 +2336,22 @@
                 openModal('budgetModal');
             }
         }
+
+        // Global Window Registry for all Modal and System Controllers
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.openBudgetModal = openBudgetModal;
+        window.openSettingsModal = openSettingsModal;
+        window.closeSettingsModal = closeSettingsModal;
+        window.openClockModal = openClockModal;
+        window.openVersionModal = openVersionModal;
+        window.openCurrencyModal = openCurrencyModal;
+        window.cancelCurrencyChange = cancelCurrencyChange;
+        window.showiOSToast = showiOSToast;
+        window.smoothNavigateTo = smoothNavigateTo;
+        window.toggleAlertsDropdown = toggleAlertsDropdown;
+        window.initThemeMode = initThemeMode;
+        window.setThemeMode = setThemeMode;
 
         // Global ESC and Backdrop Close
         document.addEventListener('keydown', (e) => {
@@ -2133,6 +2389,7 @@
                 if (panel) panel.classList.toggle('open');
             }
         }
+        window.toggleFloatingChat = toggleFloatingChat;
 
         // Leoxur Copilot UI Controller with Full Multi-Session History & Persistence
         class LeoxurCopilotUI {
@@ -2733,6 +2990,94 @@
                 this.stopListening(false);
             }
 
+            renderTaskHud(container) {
+                const hudId = 'taskHud_' + Date.now();
+                container.innerHTML = `
+                    <div class="virtual-task-hud" id="${hudId}">
+                        <div class="hud-top-bar">
+                            <div class="hud-orb-icon">
+                                <span class="hud-pulse-ring"></span>
+                                <span class="hud-glyph">👑</span>
+                            </div>
+                            <div class="hud-title-wrap">
+                                <div class="hud-title">Financial Boss & Sovereign AI</div>
+                                <div class="hud-live-action" id="${hudId}_status">Auditing Personal Financial Ledger...</div>
+                            </div>
+                            <span class="hud-live-tag">EXECUTING</span>
+                        </div>
+                        <div class="hud-track">
+                            <div class="hud-bar" id="${hudId}_bar" style="width: 28%;"></div>
+                        </div>
+                        <div class="hud-stages">
+                            <div class="hud-stage active" id="${hudId}_s1">
+                                <span class="stage-icon">🔍</span>
+                                <div class="stage-info">
+                                    <span class="stage-label">Auditing Transactions & Cashflow</span>
+                                    <span class="stage-detail">Scanning real-time inflows & outlays</span>
+                                </div>
+                                <span class="stage-status" id="${hudId}_s1_st">active</span>
+                            </div>
+                            <div class="hud-stage" id="${hudId}_s2">
+                                <span class="stage-icon">⚡</span>
+                                <div class="stage-info">
+                                    <span class="stage-label">Calculating 50/30/20 Burn Velocity</span>
+                                    <span class="stage-detail">Evaluating budget thresholds & risk caps</span>
+                                </div>
+                                <span class="stage-status" id="${hudId}_s2_st">queued</span>
+                            </div>
+                            <div class="hud-stage" id="${hudId}_s3">
+                                <span class="stage-icon">👑</span>
+                                <div class="stage-info">
+                                    <span class="stage-label">Executing Sovereign Wealth Directives</span>
+                                    <span class="stage-detail">Synthesizing master financial verdict</span>
+                                </div>
+                                <span class="stage-status" id="${hudId}_s3_st">queued</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                const t1 = setTimeout(() => {
+                    const s1 = document.getElementById(`${hudId}_s1`);
+                    const s2 = document.getElementById(`${hudId}_s2`);
+                    const s1_st = document.getElementById(`${hudId}_s1_st`);
+                    const s2_st = document.getElementById(`${hudId}_s2_st`);
+                    const bar = document.getElementById(`${hudId}_bar`);
+                    const st = document.getElementById(`${hudId}_status`);
+                    if (s1 && s2) {
+                        s1.classList.remove('active');
+                        s1.classList.add('completed');
+                        if (s1_st) s1_st.innerText = '✓ done';
+                        s2.classList.add('active');
+                        if (s2_st) s2_st.innerText = 'active';
+                        if (bar) bar.style.width = '64%';
+                        if (st) st.innerText = 'Evaluating 50/30/20 Velocity & Budget Limits...';
+                    }
+                }, 400);
+
+                const t2 = setTimeout(() => {
+                    const s2 = document.getElementById(`${hudId}_s2`);
+                    const s3 = document.getElementById(`${hudId}_s3`);
+                    const s2_st = document.getElementById(`${hudId}_s2_st`);
+                    const s3_st = document.getElementById(`${hudId}_s3_st`);
+                    const bar = document.getElementById(`${hudId}_bar`);
+                    const st = document.getElementById(`${hudId}_status`);
+                    if (s2 && s3) {
+                        s2.classList.remove('active');
+                        s2.classList.add('completed');
+                        if (s2_st) s2_st.innerText = '✓ done';
+                        s3.classList.add('active');
+                        if (s3_st) s3_st.innerText = 'active';
+                        if (bar) bar.style.width = '94%';
+                        if (st) st.innerText = 'Synthesizing Sovereign Verdict & Directives...';
+                    }
+                }, 850);
+
+                return () => {
+                    clearTimeout(t1);
+                    clearTimeout(t2);
+                };
+            }
+
             async sendAudioToServer(blob, mimeType, selectedLang) {
                 const userBubble = document.createElement('div');
                 userBubble.className = 'msg-bubble msg-user';
@@ -2741,8 +3086,8 @@
 
                 const loadingBubble = document.createElement('div');
                 loadingBubble.className = 'msg-bubble msg-assistant';
-                loadingBubble.innerHTML = '<span class="opacity-60 italic">Processing voice audio with Gemini Neural Multilingual Intelligence...</span>';
                 this.msgContainer.appendChild(loadingBubble);
+                const clearHud = this.renderTaskHud(loadingBubble);
                 this.scrollToBottom();
 
                 const formData = new FormData();
@@ -2758,12 +3103,13 @@
                         body: formData
                     });
                     const data = await res.json();
+                    clearHud();
                     if (data.status === 'success') {
                         if (data.user_transcript) {
                             userBubble.innerHTML = `🎙️ "${data.user_transcript}" <span style="font-size:10px; opacity:0.6;">[${data.detected_language || selectedLang}]</span>`;
                         }
                         let respHtml = data.response || data.reply || 'Voice instruction executed successfully.';
-                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
+                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'toggle_bill_status', 'change_currency'].includes(data.action_type)) {
                             respHtml += `
                                 <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end;">
                                     <button type="button" onclick="window.location.reload()" class="ios-btn-secondary" style="font-size:11px; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
@@ -2799,6 +3145,7 @@
                         loadingBubble.innerHTML = errHtml;
                     }
                 } catch (err) {
+                    clearHud();
                     loadingBubble.innerHTML = `<span style="color:var(--apple-red);">Voice offline fault: ${err.message}</span>`;
                 }
                 this.scrollToBottom();
@@ -3034,8 +3381,8 @@
 
                 const loadingBubble = document.createElement('div');
                 loadingBubble.className = 'msg-bubble msg-assistant';
-                loadingBubble.innerHTML = '<span class="opacity-60 italic">Analyzing telemetry...</span>';
                 this.msgContainer.appendChild(loadingBubble);
+                const clearHud = this.renderTaskHud(loadingBubble);
                 this.scrollToBottom();
 
                 try {
@@ -3054,11 +3401,12 @@
                         body: JSON.stringify({ query: text, client_context: clientContext })
                     });
                     const data = await res.json();
+                    clearHud();
                     if (data.status === 'success') {
                         let respHtml = data.response || data.reply || 'Analysis complete.';
                         
                         // Mutating actions add a discreet refresh pill inside the chat bubble
-                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'change_currency'].includes(data.action_type)) {
+                        if (['log_transaction', 'log_multiple_transactions', 'delete_transaction', 'set_budget', 'clear_budget', 'reset_budgets', 'set_reminder', 'pay_reminder', 'toggle_bill_status', 'change_currency'].includes(data.action_type)) {
                             respHtml += `
                                 <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end;">
                                     <button type="button" onclick="window.location.reload()" class="ios-btn-secondary" style="font-size:11px; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">

@@ -20,15 +20,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wt=3tc4qir3v#43vvuagckg06_m9h63+ds8$e^_0i!a0c$qw9g'
+# SECURITY: Secret key should be provided via environment variable in production
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ.get('SECRET_KEY') or 'django-insecure-wt=3tc4qir3v#43vvuagckg06_m9h63+ds8$e^_0i!a0c$qw9g'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY: Don't run with debug turned on in production!
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', '').split(',') if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS', os.environ.get('DJANGO_ALLOWED_HOSTS', '')).split(',') if host.strip()]
 if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['*']
+    ALLOWED_HOSTS = ['*'] if DEBUG else ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -51,6 +51,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'tracker.middleware.LeoxurLoggingMiddleware',
+    'tracker.middleware.LeoxurSecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'income_tracker.urls'
@@ -164,3 +166,152 @@ IMAP_PASSWORD = os.environ.get('IMAP_PASSWORD', '')  # Set via environment varia
 
 
 STATICFILES_DIRS = [BASE_DIR / 'tracker' / 'static']
+
+# ================= PRODUCTION SECURITY HARDENING =================
+
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Allows frontend JavaScript to read csrf cookie for authenticated AJAX
+SESSION_COOKIE_AGE = 1209600  # 2-week persistent session lifetime
+
+# DoS and Payload Protection: Limit maximum upload and payload memory
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB maximum request payload
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB maximum uploaded file
+
+# Reverse proxy SSL header detection (Nginx sets X-Forwarded-Proto)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# CSRF Trusted Origins for Custom Domain & Reverse Proxies
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip() for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()
+]
+domain_env = os.environ.get('DOMAIN_NAME')
+if domain_env:
+    for prefix in ('https://', 'http://'):
+        clean_url = f"{prefix}{domain_env.strip()}"
+        if clean_url not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(clean_url)
+        # Also support subdomains/wildcards if applicable
+        wildcard_url = f"{prefix}*.{domain_env.strip()}"
+        if wildcard_url not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(wildcard_url)
+
+# Production SSL & HSTS conditional enforcement
+if not DEBUG:
+    SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1')
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1')
+    CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False').lower() in ('true', '1')
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', 31536000))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ================= HIGH-FIDELITY TELEMETRY & LOGGING ARCHITECTURE =================
+
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname:<8} [{name}:{lineno}] [{threadName}] {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'request_telemetry': {
+            'format': '[{asctime}] {levelname:<8} {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '[{asctime}] {levelname} {message}',
+            'style': '{',
+            'datefmt': '%H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file_app': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'leoxur_app.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB per file
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'file_requests': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'leoxur_requests.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB per file
+            'backupCount': 5,
+            'formatter': 'request_telemetry',
+            'encoding': 'utf-8',
+        },
+        'file_security': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'leoxur_security.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB per file
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'file_errors': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOGS_DIR / 'leoxur_errors.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB per file
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file_errors'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file_requests', 'file_errors'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['console', 'file_security'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'tracker': {
+            'handlers': ['console', 'file_app', 'file_errors'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'tracker.requests': {
+            'handlers': ['console', 'file_requests'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'tracker.security': {
+            'handlers': ['console', 'file_security'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'tracker.errors': {
+            'handlers': ['console', 'file_errors'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
+}

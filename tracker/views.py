@@ -12,8 +12,13 @@ from decimal import Decimal
 import calendar
 import json
 
-from .models import Profile, Transaction, Budget, Reminder, Category, MoneyWorkflow
+from .models import Profile, Transaction, Budget, Reminder, Category
 from django.contrib.auth.forms import UserCreationForm
+from django.utils.html import strip_tags
+import logging
+
+logger = logging.getLogger('tracker')
+sec_logger = logging.getLogger('tracker.security')
 
 # ----------------- Auth Views -----------------
 
@@ -25,10 +30,13 @@ def signup_view(request):
         if form.is_valid():
             user = form.save()
             auth_login(request, user)
+            sec_logger.info(f"New user registration successful: username={user.username}, ip={request.META.get('REMOTE_ADDR')}")
             # Create sample data for the user on signup to make it look great instantly
             seed_user_demo_data(user)
             messages.success(request, f"Welcome to Leoxur tracker, {user.username}!")
             return redirect('dashboard')
+        else:
+            sec_logger.warning(f"Failed user registration attempt: errors={form.errors}, ip={request.META.get('REMOTE_ADDR')}")
     else:
         form = UserCreationForm()
     return render(request, 'tracker/signup.html', {'form': form})
@@ -223,6 +231,10 @@ def dashboard_view(request):
     reminders = Reminder.objects.filter(user=user, is_paid=False)
     upcoming_reminders = reminders.filter(due_date__gte=real_today)
     overdue_reminders = reminders.filter(due_date__lt=real_today)
+    paid_reminders = Reminder.objects.filter(user=user, is_paid=True).order_by('-due_date')[:25]
+    pending_reminders_count = reminders.count()
+    paid_reminders_count = Reminder.objects.filter(user=user, is_paid=True).count()
+    all_reminders_count = pending_reminders_count + paid_reminders_count
     
     # Financial Activity Ledger: show transactions for the selected cycle
     month_transactions = month_txs.order_by('-date', '-created_at')
@@ -295,6 +307,10 @@ def dashboard_view(request):
         'ai_telemetry': ai_telemetry,
         'upcoming_reminders': upcoming_reminders,
         'overdue_reminders': overdue_reminders,
+        'paid_reminders': paid_reminders,
+        'pending_reminders_count': pending_reminders_count,
+        'paid_reminders_count': paid_reminders_count,
+        'all_reminders_count': all_reminders_count,
         'recent_transactions': recent_transactions,
         'user_income_cats': user_income_cats,
         'user_expense_cats': user_expense_cats,
@@ -628,7 +644,7 @@ def savings_analyst_chat(request):
         import json
         try:
             body = json.loads(request.body)
-            query = body.get("query", "").strip()
+            query = (body.get("query") or body.get("message") or "").strip()
         except Exception:
             return JsonResponse({"status": "error", "message": "Invalid JSON body"}, status=400)
         if not query:
@@ -778,11 +794,13 @@ def voice_speak_api(request):
 
 
 
+@login_required
 def toggle_theme(request):
     if request.method == 'POST':
         profile = request.user.profile
         profile.theme = 'light' if profile.theme == 'dark' else 'dark'
-        profile.save()
+        profile.save(update_fields=['theme'])
+        logger.info(f"User '{request.user.username}' toggled theme to '{profile.theme}'")
         return JsonResponse({'status': 'success', 'theme': profile.theme})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 
@@ -924,6 +942,7 @@ def check_and_send_budget_alerts(user, category, tx_date):
         print(f"Error in check_and_send_budget_alerts: {e}")
 
 
+@login_required
 def add_transaction(request):
     if request.method == 'POST':
         amount = request.POST.get('amount')
@@ -932,23 +951,49 @@ def add_transaction(request):
         tx_date = request.POST.get('date') or date.today().strftime('%Y-%m-%d')
         description = request.POST.get('description', '')
         
+        is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+                   request.content_type == 'application/json' or 
+                   request.POST.get('format') == 'json')
+
         try:
+            amt_dec = Decimal(str(amount))
+            if amt_dec <= Decimal('0.00') or amt_dec > Decimal('999999999999.99'):
+                raise ValueError("Amount must be a positive number up to 1 trillion.")
+
             tx = Transaction.objects.create(
                 user=request.user,
-                amount=Decimal(amount),
+                amount=amt_dec,
                 transaction_type=tx_type,
                 category=category,
                 date=tx_date,
                 description=description
             )
-            messages.success(request, "Transaction successfully added!")
+            logger.info(f"Transaction logged: ID={tx.id} | User={request.user.username} | {tx_type} {amt_dec} [{category}]")
+            msg = "Financial event successfully logged!"
+            messages.success(request, msg)
             
             # Send budget alert emails if transaction is an Expense (OUT)
             if tx_type == 'OUT':
                 check_and_send_budget_alerts(request.user, category, tx_date)
+
+            if is_ajax:
+                currency = getattr(request.user.profile, 'currency', '$')
+                date_fmt = tx.date.strftime('%b %d, %Y') if hasattr(tx.date, 'strftime') else str(tx.date)
+                return JsonResponse({
+                    'status': 'success',
+                    'message': msg,
+                    'id': tx.id,
+                    'amount': float(tx.amount),
+                    'transaction_type': tx.transaction_type,
+                    'category': tx.category,
+                    'date': str(tx.date),
+                    'date_formatted': date_fmt,
+                    'description': tx.description or 'Untitled Event',
+                    'currency': currency,
+                })
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': f"Error saving transaction: {e}"}, status=400)
             messages.error(request, f"Error saving transaction: {e}")
             
     return redirect('dashboard')
@@ -956,9 +1001,16 @@ def add_transaction(request):
 
 @login_required
 def delete_transaction(request, pk):
+    is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+               request.content_type == 'application/json' or 
+               request.POST.get('format') == 'json')
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+    tx_id = tx.id
     tx.delete()
-    messages.success(request, "Transaction successfully deleted!")
+    msg = "Transaction successfully deleted!"
+    if is_ajax:
+        return JsonResponse({'status': 'success', 'message': msg, 'id': tx_id})
+    messages.success(request, msg)
     return redirect('dashboard')
 
 
@@ -977,17 +1029,69 @@ def set_budget(request):
         except (ValueError, TypeError):
             target_month, target_year = today.month, today.year
 
+        is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+                   request.content_type == 'application/json' or 
+                   request.POST.get('format') == 'json')
+
         try:
+            budget_amount = Decimal(str(amount))
             budget, created = Budget.objects.update_or_create(
                 user=request.user,
                 category=category,
                 period='MONTHLY',
                 month=target_month,
                 year=target_year,
-                defaults={'amount': Decimal(amount)}
+                defaults={'amount': budget_amount}
             )
-            messages.success(request, f"Budget set for {category} ({calendar.month_name[target_month]} {target_year})!")
+
+            # Compute real-time spent in this category for this month
+            _, last_day = calendar.monthrange(target_year, target_month)
+            start_date = date(target_year, target_month, 1)
+            end_date = date(target_year, target_month, last_day)
+
+            if category.lower() == 'total':
+                spent_dec = Transaction.objects.filter(
+                    user=request.user,
+                    transaction_type='OUT',
+                    date__range=(start_date, end_date)
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+            else:
+                spent_dec = Transaction.objects.filter(
+                    user=request.user,
+                    transaction_type='OUT',
+                    category=category,
+                    date__range=(start_date, end_date)
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+
+            spent_float = float(spent_dec)
+            budget_float = float(budget_amount)
+            raw_pct = int(round((spent_float / budget_float * 100))) if budget_float > 0 else 0
+            capped_pct = min(raw_pct, 100)
+            remaining = max(0.0, budget_float - spent_float)
+            overage = max(0.0, spent_float - budget_float)
+
+            currency = getattr(request.user.profile, 'currency', '$')
+            msg = f"Budget set for {category} ({calendar.month_name[target_month]} {target_year}): {currency}{budget_float:.2f}!"
+
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': msg,
+                    'category': category,
+                    'budget': budget_float,
+                    'spent': spent_float,
+                    'raw_percentage': raw_pct,
+                    'percentage': capped_pct,
+                    'remaining': remaining,
+                    'overage': overage,
+                    'month': target_month,
+                    'year': target_year,
+                    'currency': currency
+                })
+            messages.success(request, msg)
         except Exception as e:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': f"Error setting budget: {e}"}, status=400)
             messages.error(request, f"Error setting budget: {e}")
             
         return redirect(f"/dashboard/?month={target_month}&year={target_year}")
@@ -1004,8 +1108,12 @@ def add_reminder(request):
         is_recurring = request.POST.get('is_recurring') == 'on'
         recurrence_period = request.POST.get('recurrence_period') if is_recurring else None
         
+        is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+                   request.content_type == 'application/json' or 
+                   request.POST.get('format') == 'json')
+
         try:
-            Reminder.objects.create(
+            rem = Reminder.objects.create(
                 user=request.user,
                 title=title,
                 amount=Decimal(amount),
@@ -1013,8 +1121,23 @@ def add_reminder(request):
                 is_recurring=is_recurring,
                 recurrence_period=recurrence_period
             )
-            messages.success(request, "Bill reminder successfully added!")
+            msg = f"Bill reminder '{title}' successfully added!"
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': msg,
+                    'id': rem.id,
+                    'title': rem.title,
+                    'amount': float(rem.amount),
+                    'due_date': str(rem.due_date),
+                    'is_recurring': rem.is_recurring,
+                    'recurrence_period': rem.recurrence_period or '',
+                    'is_paid': rem.is_paid
+                })
+            messages.success(request, msg)
         except Exception as e:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': f"Error adding reminder: {e}"}, status=400)
             messages.error(request, f"Error adding reminder: {e}")
             
     return redirect('dashboard')
@@ -1023,6 +1146,10 @@ def add_reminder(request):
 @login_required
 def pay_reminder(request, pk):
     reminder = get_object_or_404(Reminder, pk=pk, user=request.user)
+    is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+               request.content_type == 'application/json' or 
+               request.POST.get('format') == 'json' or 
+               request.GET.get('format') == 'json')
     
     if reminder.is_recurring and reminder.recurrence_period:
         # Create a new reminder for the next period
@@ -1034,7 +1161,6 @@ def pay_reminder(request, pk):
         elif reminder.recurrence_period == 'WEEKLY':
             next_due = current_due + timedelta(weeks=1)
         elif reminder.recurrence_period == 'MONTHLY':
-            # Add one month handling days overflow
             month = current_due.month
             year = current_due.year
             if month == 12:
@@ -1046,7 +1172,6 @@ def pay_reminder(request, pk):
             day = min(current_due.day, last_day)
             next_due = date(year, month, day)
         elif reminder.recurrence_period == 'YEARLY':
-            # Add one year
             year = current_due.year + 1
             month = current_due.month
             _, last_day = calendar.monthrange(year, month)
@@ -1066,7 +1191,87 @@ def pay_reminder(request, pk):
         
     reminder.is_paid = True
     reminder.save()
-    messages.success(request, f"Marked '{reminder.title}' as Paid!")
+    msg = f"Marked '{reminder.title}' as Paid!"
+
+    if is_ajax:
+        return JsonResponse({
+            'status': 'success',
+            'message': msg,
+            'id': reminder.id,
+            'is_paid': True,
+            'status_label': 'Paid',
+            'title': reminder.title
+        })
+    messages.success(request, msg)
+    return redirect('dashboard')
+
+
+@login_required
+def toggle_reminder_status(request, pk):
+    """
+    Toggle or update the settlement status of a scheduled bill reminder.
+    Supports 1-click Paid <-> Pending flipping with instant AJAX telemetry.
+    """
+    reminder = get_object_or_404(Reminder, pk=pk, user=request.user)
+    is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+               request.content_type == 'application/json' or 
+               request.GET.get('format') == 'json' or 
+               request.POST.get('format') == 'json')
+
+    target_status = request.POST.get('status') or request.GET.get('status')
+    if target_status:
+        reminder.is_paid = (target_status.strip().lower() in ('paid', 'true', '1'))
+    else:
+        # Simple toggle
+        reminder.is_paid = not reminder.is_paid
+
+    # If transitioning to paid and recurring, optionally spawn recurrence if not already spawned
+    if reminder.is_paid and reminder.is_recurring and reminder.recurrence_period:
+        current_due = reminder.due_date
+        next_due = current_due
+        if reminder.recurrence_period == 'DAILY':
+            next_due = current_due + timedelta(days=1)
+        elif reminder.recurrence_period == 'WEEKLY':
+            next_due = current_due + timedelta(weeks=1)
+        elif reminder.recurrence_period == 'MONTHLY':
+            m = current_due.month + 1 if current_due.month < 12 else 1
+            y = current_due.year if current_due.month < 12 else current_due.year + 1
+            _, last_day = calendar.monthrange(y, m)
+            next_due = date(y, m, min(current_due.day, last_day))
+        elif reminder.recurrence_period == 'YEARLY':
+            next_due = date(current_due.year + 1, current_due.month, current_due.day)
+            
+        # Ensure we don't spawn duplicate recurrence if already exists
+        if not Reminder.objects.filter(user=reminder.user, title=reminder.title, due_date=next_due, is_paid=False).exists():
+            Reminder.objects.create(
+                user=reminder.user,
+                title=reminder.title,
+                amount=reminder.amount,
+                due_date=next_due,
+                is_recurring=True,
+                recurrence_period=reminder.recurrence_period,
+                is_paid=False
+            )
+
+    reminder.save()
+    status_label = "Paid" if reminder.is_paid else "Pending"
+    msg = f"Bill '{reminder.title}' marked as {status_label}!"
+
+    if is_ajax:
+        today = date.today()
+        is_overdue = (not reminder.is_paid and reminder.due_date < today)
+        return JsonResponse({
+            'status': 'success',
+            'id': reminder.id,
+            'is_paid': reminder.is_paid,
+            'is_overdue': is_overdue,
+            'status_label': status_label,
+            'title': reminder.title,
+            'amount': float(reminder.amount),
+            'message': msg
+        })
+
+    messages.success(request, msg)
     return redirect('dashboard')
 
 # ----------------- Helper: Seed Demo Data -----------------
@@ -1122,6 +1327,9 @@ def delete_budget_category(request, category):
     except (ValueError, TypeError):
         target_month, target_year = today.month, today.year
 
+    is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or 
+               request.GET.get('format') == 'json')
+
     deleted_count, _ = Budget.objects.filter(
         user=request.user, 
         category=category, 
@@ -1134,9 +1342,17 @@ def delete_budget_category(request, category):
         deleted_count, _ = Budget.objects.filter(user=request.user, category=category).delete()
 
     if deleted_count > 0:
-        messages.success(request, f"Budget limit for {category} cleared successfully.")
+        msg = f"Budget limit for {category} cleared successfully."
     else:
-        messages.info(request, f"No budget set for {category}.")
+        msg = f"No budget set for {category}."
+
+    if is_ajax:
+        return JsonResponse({'status': 'success', 'message': msg, 'category': category})
+
+    if deleted_count > 0:
+        messages.success(request, msg)
+    else:
+        messages.info(request, msg)
     return redirect(f"/dashboard/?month={target_month}&year={target_year}")
 
 
@@ -2177,18 +2393,27 @@ def export_pdf_view(request):
 @login_required
 def add_category(request):
     if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
+        raw_name = request.POST.get('name', '')
+        name = strip_tags(raw_name).strip()[:50]
         is_income = request.POST.get('is_income') == 'on' or request.POST.get('is_income') == 'True'
         
         if name:
             try:
-                # Restrict to unique per user
-                category, created = Category.objects.get_or_create(user=request.user, name=name, is_income=is_income)
-                if created:
-                    messages.success(request, f"Custom category '{name}' created successfully!")
+                existing = Category.objects.filter(user=request.user, name__iexact=name).first()
+                if existing:
+                    if existing.is_income != is_income:
+                        existing.is_income = is_income
+                        existing.save(update_fields=['is_income'])
+                        logger.info(f"Category '{existing.name}' nature updated to {'Income' if is_income else 'Expense'} by user '{request.user.username}'")
+                        messages.success(request, f"Category '{existing.name}' updated to {'Income' if is_income else 'Expense'}.")
+                    else:
+                        messages.info(request, f"Category '{existing.name}' already exists.")
                 else:
-                    messages.info(request, f"Category '{name}' already exists.")
+                    Category.objects.create(user=request.user, name=name, is_income=is_income)
+                    logger.info(f"Custom category '{name}' created by user '{request.user.username}'")
+                    messages.success(request, f"Custom category '{name}' created successfully!")
             except Exception as e:
+                logger.error(f"Error creating category for user '{request.user.username}': {e}")
                 messages.error(request, f"Error creating category: {e}")
         else:
             messages.error(request, "Category name cannot be empty.")
@@ -2336,8 +2561,14 @@ def import_transactions(request):
     
     if request.method == 'POST' and request.FILES.get('file'):
         file = request.FILES['file']
-        filename = file.name
-        
+        filename = file.name.lower()
+
+        # Security: Enforce maximum 5 MB upload size limit to prevent resource exhaustion
+        if file.size > 5 * 1024 * 1024:
+            sec_logger.warning(f"File upload rejected for '{request.user.username}': size {file.size} bytes exceeds 5MB limit.")
+            messages.error(request, "File exceeds maximum upload allowance of 5 MB.")
+            return redirect('dashboard')
+
         success_count = 0
         error_rows = []
         
@@ -2527,6 +2758,7 @@ def update_ai_settings(request):
     return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
 
 
+@login_required
 def reminders_check_api(request):
     """Graceful JSON endpoint for background reminder checks"""
     return JsonResponse({'status': 'ok', 'due_reminders': []})
@@ -2748,382 +2980,6 @@ def test_ai_settings(request):
             'status': 'error',
             'message': f"AI Connection Failed: {str(e)}"
         }, status=400)
-
-
-# =========================================================================
-# 7. MONEY WORKFLOW AUTOMATION & NO-CODE SANDBOX STUDIO
-# =========================================================================
-
-def _seed_default_workflows(user, currency):
-    """Seed intuitive high-impact financial workflow templates if none exist."""
-    templates = [
-        {
-            'name': '⚡ 50/30/20 Automated Payday Splitter',
-            'description': 'When salary arrives, verify needs/wants balance and auto-allocate 20% directly into wealth accumulation reserve.',
-            'trigger_type': 'inflow_salary',
-            'is_active': True,
-            'canvas_state': {
-                'nodes': [
-                    {'id': 'node_1', 'type': 'trigger', 'title': 'Salary Inflow Credited', 'subtitle': f'Inflow > {currency}30,000', 'icon': 'zap', 'x': 80, 'y': 140, 'config': {'min_amount': 30000, 'category': 'Salary'}},
-                    {'id': 'node_2', 'type': 'condition', 'title': '50/30/20 Rule Check', 'subtitle': 'Savings Rate < 20%', 'icon': 'scale', 'x': 380, 'y': 140, 'config': {'rule': 'savings_under_20'}},
-                    {'id': 'node_3', 'type': 'action', 'title': 'Auto-Allocate Reserve', 'subtitle': 'Transfer 20% to Vault', 'icon': 'shield', 'x': 680, 'y': 80, 'config': {'percentage': 20, 'vault_name': 'Emergency Buffer'}},
-                    {'id': 'node_4', 'type': 'action', 'title': 'Apple Siri Voice Alert', 'subtitle': 'Announce savings status', 'icon': 'volume-2', 'x': 680, 'y': 220, 'config': {'message': 'Payday verified! Transferred 20% to your Wealth Reserve.'}}
-                ],
-                'edges': [
-                    {'from': 'node_1', 'to': 'node_2', 'label': 'On Credited'},
-                    {'from': 'node_2', 'to': 'node_3', 'label': 'Pass: Surplus'},
-                    {'from': 'node_2', 'to': 'node_4', 'label': 'Simultaneous'}
-                ]
-            }
-        },
-        {
-            'name': '🚨 Discretionary Outflow Surge Guardian',
-            'description': 'Detects spikes in dining, leisure, or retail above threshold and instantly triggers budget protection telemetry.',
-            'trigger_type': 'expense_surge',
-            'is_active': True,
-            'canvas_state': {
-                'nodes': [
-                    {'id': 'node_10', 'type': 'trigger', 'title': 'High Outflow Surge', 'subtitle': f'Single spend > {currency}5,000', 'icon': 'alert-triangle', 'x': 80, 'y': 140, 'config': {'min_amount': 5000}},
-                    {'id': 'node_11', 'type': 'condition', 'title': 'Category Match', 'subtitle': 'Food, Dining or Shopping', 'icon': 'filter', 'x': 380, 'y': 140, 'config': {'categories': ['Food', 'Entertainment', 'Shopping']}},
-                    {'id': 'node_12', 'type': 'action', 'title': 'Telemetry Alert Email', 'subtitle': 'Dispatch warning to inbox', 'icon': 'mail', 'x': 680, 'y': 80, 'config': {'subject': 'Outflow Anomaly Detected'}},
-                    {'id': 'node_13', 'type': 'action', 'title': 'Cap Category Budget', 'subtitle': 'Freeze remaining allowance', 'icon': 'lock', 'x': 680, 'y': 220, 'config': {'lock_budget': True}}
-                ],
-                'edges': [
-                    {'from': 'node_10', 'to': 'node_11', 'label': 'Detect Surge'},
-                    {'from': 'node_11', 'to': 'node_12', 'label': 'Category Match'},
-                    {'from': 'node_11', 'to': 'node_13', 'label': 'Enforce Cap'}
-                ]
-            }
-        },
-        {
-            'name': '⏰ Autonomous Bill Settlement & Settle Guardian',
-            'description': 'Monitors upcoming scheduled bills 48 hours prior to due date and verifies liquidity before auto-settling.',
-            'trigger_type': 'bill_due_date',
-            'is_active': True,
-            'canvas_state': {
-                'nodes': [
-                    {'id': 'node_20', 'type': 'trigger', 'title': 'Bill Due in 48h', 'subtitle': 'Scheduled bill reminder alert', 'icon': 'clock', 'x': 80, 'y': 140, 'config': {'advance_days': 2}},
-                    {'id': 'node_21', 'type': 'condition', 'title': 'Liquidity Balance Check', 'subtitle': 'Net balance >= Bill Amount', 'icon': 'dollar-sign', 'x': 380, 'y': 140, 'config': {'check_liquidity': True}},
-                    {'id': 'node_22', 'type': 'action', 'title': 'Auto-Settle Bill', 'subtitle': 'Mark reminder paid & log tx', 'icon': 'check-circle', 'x': 680, 'y': 80, 'config': {'auto_settle': True}},
-                    {'id': 'node_23', 'type': 'action', 'title': 'Copilot Telemetry Notice', 'subtitle': 'Siri voice confirmation', 'icon': 'bot', 'x': 680, 'y': 220, 'config': {'ai_prompt': 'Confirm payment dispatch'}}
-                ],
-                'edges': [
-                    {'from': 'node_20', 'to': 'node_21', 'label': 'Due Soon'},
-                    {'from': 'node_21', 'to': 'node_22', 'label': 'Sufficient Cash'},
-                    {'from': 'node_21', 'to': 'node_23', 'label': 'Audit Ready'}
-                ]
-            }
-        }
-    ]
-    for w in templates:
-        MoneyWorkflow.objects.create(
-            user=user,
-            name=w['name'],
-            description=w['description'],
-            trigger_type=w['trigger_type'],
-            is_active=w['is_active'],
-            canvas_state=w['canvas_state']
-        )
-
-
-@login_required
-def money_workflows(request):
-    """Visual drag-and-drop Money Workflow studio and sandbox environment."""
-    user = request.user
-    profile = user.profile
-    currency = profile.currency or '$'
-
-    # Seed starter workflows if first visit
-    if not MoneyWorkflow.objects.filter(user=user).exists():
-        _seed_default_workflows(user, currency)
-
-    workflows = MoneyWorkflow.objects.filter(user=user).order_by('-created_at')
-
-    # Live telemetry context for test sandbox
-    today = date.today()
-    month_txs = Transaction.objects.filter(user=user, date__year=today.year, date__month=today.month)
-    total_income = month_txs.filter(transaction_type='IN').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    total_expense = month_txs.filter(transaction_type='OUT').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    net_balance = total_income - total_expense
-
-    categories = list(Category.objects.filter(user=user).values('name', 'is_income'))
-    budgets = list(Budget.objects.filter(user=user, year=today.year, month=today.month).values('category', 'amount'))
-    reminders = list(Reminder.objects.filter(user=user, is_paid=False).values('id', 'title', 'amount', 'due_date', 'is_recurring'))
-
-    context = {
-        'profile': profile,
-        'currency': currency,
-        'workflows': workflows,
-        'workflows_json': json.dumps([{
-            'id': w.id,
-            'name': w.name,
-            'description': w.description,
-            'trigger_type': w.trigger_type,
-            'is_active': w.is_active,
-            'execution_count': w.execution_count,
-            'last_executed_at': w.last_executed_at.strftime('%b %d, %H:%M') if w.last_executed_at else None,
-            'canvas_state': w.canvas_state or {}
-        } for w in workflows]),
-        'telemetry': {
-            'total_income': float(total_income),
-            'total_expense': float(total_expense),
-            'net_balance': float(net_balance),
-            'categories': categories,
-            'budgets': budgets,
-            'reminders': reminders,
-        }
-    }
-    return render(request, 'tracker/workflows.html', context)
-
-
-@login_required
-def api_save_workflow(request):
-    """Save or update a Money Workflow canvas."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
-    try:
-        data = json.loads(request.body)
-        wf_id = data.get('id')
-        name = data.get('name') or 'Untitled Workflow'
-        description = data.get('description', '')
-        trigger_type = data.get('trigger_type', 'inflow_salary')
-        is_active = data.get('is_active', True)
-        canvas_state = data.get('canvas_state', {})
-
-        if wf_id:
-            wf = get_object_or_404(MoneyWorkflow, id=wf_id, user=request.user)
-            wf.name = name
-            wf.description = description
-            wf.trigger_type = trigger_type
-            wf.is_active = is_active
-            wf.canvas_state = canvas_state
-            wf.save()
-        else:
-            wf = MoneyWorkflow.objects.create(
-                user=request.user,
-                name=name,
-                description=description,
-                trigger_type=trigger_type,
-                is_active=is_active,
-                canvas_state=canvas_state
-            )
-        return JsonResponse({
-            'status': 'success',
-            'id': wf.id,
-            'name': wf.name,
-            'message': f"Workflow '{wf.name}' saved successfully."
-        })
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-
-@login_required
-def api_delete_workflow(request, pk):
-    """Delete a workflow."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
-    wf = get_object_or_404(MoneyWorkflow, pk=pk, user=request.user)
-    name = wf.name
-    wf.delete()
-    return JsonResponse({'status': 'success', 'message': f"Workflow '{name}' deleted."})
-
-
-@login_required
-def api_toggle_workflow(request, pk):
-    """Toggle a workflow active state."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
-    wf = get_object_or_404(MoneyWorkflow, pk=pk, user=request.user)
-    wf.is_active = not wf.is_active
-    wf.save()
-    return JsonResponse({'status': 'success', 'is_active': wf.is_active})
-
-
-@login_required
-def api_simulate_workflow(request):
-    """Execute end-to-end sandbox simulation on the drag-and-drop workflow."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
-    try:
-        data = json.loads(request.body)
-        wf_id = data.get('workflow_id')
-        nodes = data.get('nodes', [])
-        edges = data.get('edges', [])
-        test_event = data.get('test_event', {})
-        currency = request.user.profile.currency or '$'
-
-        if not nodes:
-            return JsonResponse({'status': 'error', 'message': 'No nodes present on canvas to simulate.'}, status=400)
-
-        logs = []
-        node_statuses = {}
-        now_str = timezone.now().strftime('%H:%M:%S')
-
-        logs.append(f"[{now_str}] 🚀 Initializing Leoxur Sandbox Simulation Engine...")
-        logs.append(f"[{now_str}] 📊 Telemetry Event Injected: {test_event.get('title', 'Manual Test Run')} ({currency}{test_event.get('amount', '0.00')})")
-
-        # Map nodes
-        node_map = {n['id']: n for n in nodes}
-        adjacency = {}
-        for e in edges:
-            src = e.get('from')
-            tgt = e.get('to')
-            if src not in adjacency: adjacency[src] = []
-            adjacency[src].append((tgt, e.get('label', '')))
-
-        # Find triggers
-        triggers = [n for n in nodes if n.get('type') == 'trigger']
-        if not triggers:
-            triggers = [nodes[0]]
-
-        queue = [t['id'] for t in triggers]
-        visited = set()
-        actions_executed = 0
-
-        while queue:
-            curr_id = queue.pop(0)
-            if curr_id in visited: continue
-            visited.add(curr_id)
-
-            curr_node = node_map.get(curr_id)
-            if not curr_node: continue
-
-            ntype = curr_node.get('type', 'trigger')
-            title = curr_node.get('title', 'Node')
-            config = curr_node.get('config', {})
-            t_now = timezone.now().strftime('%H:%M:%S')
-
-            if ntype == 'trigger':
-                node_statuses[curr_id] = 'active'
-                logs.append(f"[{t_now}] ⚡ [TRIGGER ACTIVATED] {title} -> Event condition validated with high confidence.")
-            elif ntype == 'condition':
-                node_statuses[curr_id] = 'passed'
-                logs.append(f"[{t_now}] ⚖️ [CONDITION EVALUATED] {title} -> PASS (Thresholds met; routing to downstream actions).")
-            elif ntype == 'action':
-                node_statuses[curr_id] = 'executed'
-                actions_executed += 1
-                if 'vault' in title.lower() or 'reserve' in title.lower() or 'allocate' in title.lower():
-                    pct = config.get('percentage', 20)
-                    logs.append(f"[{t_now}] 🏦 [ACTION EXECUTED] {title} -> Computed allocation: {pct}% transferred to Reserve Vault.")
-                elif 'alert' in title.lower() or 'voice' in title.lower() or 'siri' in title.lower():
-                    logs.append(f"[{t_now}] 🔊 [ACTION EXECUTED] {title} -> Apple Siri voice notification synthesized.")
-                elif 'email' in title.lower():
-                    logs.append(f"[{t_now}] 📧 [ACTION EXECUTED] {title} -> Dispatched real-time telemetry alert email.")
-                elif 'cap' in title.lower() or 'budget' in title.lower():
-                    logs.append(f"[{t_now}] 🛡️ [ACTION EXECUTED] {title} -> Discretionary budget cap locked for current cycle.")
-                elif 'settle' in title.lower() or 'bill' in title.lower():
-                    logs.append(f"[{t_now}] ⏰ [ACTION EXECUTED] {title} -> Scheduled bill queued for settlement telemetry.")
-                else:
-                    logs.append(f"[{t_now}] 🤖 [ACTION EXECUTED] {title} -> Autonomous Copilot Agent dispatched task.")
-
-            # Queue children
-            for child_id, label in adjacency.get(curr_id, []):
-                if child_id not in visited:
-                    queue.append(child_id)
-
-        end_time = timezone.now().strftime('%H:%M:%S')
-        logs.append(f"[{end_time}] ✅ Sandbox Simulation Completed: {len(visited)} nodes evaluated, {actions_executed} actions executed, 0 faults.")
-
-        # Update workflow record if exists
-        if wf_id:
-            try:
-                wf = MoneyWorkflow.objects.get(id=wf_id, user=request.user)
-                wf.execution_count += 1
-                wf.last_executed_at = timezone.now()
-                wf.save()
-            except Exception: pass
-
-        return JsonResponse({
-            'status': 'success',
-            'summary': f"Simulated {len(visited)} nodes with {actions_executed} executed actions.",
-            'logs': logs,
-            'node_statuses': node_statuses,
-            'timestamp': end_time
-        })
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-
-@login_required
-def api_copilot_generate_workflow(request):
-    """Ask Leoxur AI Copilot to generate a complete no-code workflow graph from natural language."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
-    try:
-        data = json.loads(request.body)
-        prompt = (data.get('prompt') or '').strip()
-        currency = request.user.profile.currency or '$'
-
-        if not prompt:
-            return JsonResponse({'status': 'error', 'message': 'Prompt is required.'}, status=400)
-
-        # Default intelligent template generator
-        p_lower = prompt.lower()
-        if 'save' in p_lower or 'salary' in p_lower or 'income' in p_lower or '50/30/20' in p_lower:
-            workflow_data = {
-                'name': f"✨ AI: Smart Inflow Reserve ({currency})",
-                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
-                'trigger_type': 'inflow_salary',
-                'canvas_state': {
-                    'nodes': [
-                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Salary Inflow Detected', 'subtitle': f'Inflow > {currency}25,000', 'icon': 'zap', 'x': 80, 'y': 150, 'config': {'min_amount': 25000}},
-                        {'id': 'ai_node_2', 'type': 'condition', 'title': '50/30/20 Health Check', 'subtitle': 'Savings Rate < 25%', 'icon': 'scale', 'x': 380, 'y': 150, 'config': {'rule': 'savings_under_25'}},
-                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Transfer to Savings Vault', 'subtitle': 'Auto-save 25% of inflow', 'icon': 'shield', 'x': 680, 'y': 80, 'config': {'percentage': 25}},
-                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Siri Audio Confirmation', 'subtitle': 'Speak confirmation aloud', 'icon': 'volume-2', 'x': 680, 'y': 220, 'config': {'message': 'Income received! Allocated 25% to savings reserve.'}}
-                    ],
-                    'edges': [
-                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'On Inflow'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'Needs Reserve'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Voice Telemetry'}
-                    ]
-                }
-            }
-        elif 'bill' in p_lower or 'reminder' in p_lower or 'due' in p_lower or 'pay' in p_lower:
-            workflow_data = {
-                'name': f"✨ AI: Autonomous Bill Settlement Guardian",
-                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
-                'trigger_type': 'bill_due_date',
-                'canvas_state': {
-                    'nodes': [
-                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Scheduled Bill Approaching', 'subtitle': 'Within 48 hours of due date', 'icon': 'clock', 'x': 80, 'y': 150, 'config': {'advance_days': 2}},
-                        {'id': 'ai_node_2', 'type': 'condition', 'title': 'Liquidity Available', 'subtitle': 'Check net balance > bill', 'icon': 'dollar-sign', 'x': 380, 'y': 150, 'config': {'liquidity_check': True}},
-                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Auto-Mark Bill Settled', 'subtitle': 'Record expense ledger & notify', 'icon': 'check-circle', 'x': 680, 'y': 80, 'config': {'settle': True}},
-                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Dispatch Email Summary', 'subtitle': 'Send payment receipt', 'icon': 'mail', 'x': 680, 'y': 220, 'config': {'send_receipt': True}}
-                    ],
-                    'edges': [
-                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'Due Check'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'Sufficient Funds'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Audit Log'}
-                    ]
-                }
-            }
-        else:
-            workflow_data = {
-                'name': f"✨ AI: Spend Guardian Protocol",
-                'description': f"Synthesized by Leoxur Copilot from: \"{prompt}\"",
-                'trigger_type': 'expense_surge',
-                'canvas_state': {
-                    'nodes': [
-                        {'id': 'ai_node_1', 'type': 'trigger', 'title': 'Outflow Spike Detected', 'subtitle': f'Spend > {currency}4,000', 'icon': 'alert-triangle', 'x': 80, 'y': 150, 'config': {'min_amount': 4000}},
-                        {'id': 'ai_node_2', 'type': 'condition', 'title': 'Discretionary Category', 'subtitle': 'Food, Shopping, Entertainment', 'icon': 'filter', 'x': 380, 'y': 150, 'config': {'categories': ['Food', 'Shopping']}},
-                        {'id': 'ai_node_3', 'type': 'action', 'title': 'Siri Outflow Alert', 'subtitle': 'Announce high spend', 'icon': 'volume-2', 'x': 680, 'y': 80, 'config': {'message': 'High discretionary spend detected!'}},
-                        {'id': 'ai_node_4', 'type': 'action', 'title': 'Cap Category Budget', 'subtitle': 'Freeze remaining limit', 'icon': 'lock', 'x': 680, 'y': 220, 'config': {'freeze_budget': True}}
-                    ],
-                    'edges': [
-                        {'from': 'ai_node_1', 'to': 'ai_node_2', 'label': 'On Spike'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_3', 'label': 'High Discretionary'},
-                        {'from': 'ai_node_2', 'to': 'ai_node_4', 'label': 'Enforce'}
-                    ]
-                }
-            }
-
-        return JsonResponse({
-            'status': 'success',
-            'workflow': workflow_data,
-            'message': f"Leoxur Copilot successfully synthesized '{workflow_data['name']}'!"
-        })
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 @login_required

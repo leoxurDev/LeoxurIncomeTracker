@@ -4,53 +4,74 @@ services:
   web:
     build: .
     container_name: leoxur_web
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - USE_MYSQL=True
+      - USE_MYSQL=${USE_MYSQL:-True}
       - DB_NAME=${DB_NAME:-income_tracker}
       - DB_USER=${DB_USER:-leoxur_admin}
       - DB_PASSWORD=${DB_PASSWORD:-securepassword123}
-      - DB_HOST=db
-      - DB_PORT=3306
-      - SECRET_KEY=${SECRET_KEY:-django-production-secret-key-12345}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
-      - EMAIL_HOST=${EMAIL_HOST}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - SECRET_KEY=${SECRET_KEY}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - GUNICORN_WORKERS=${GUNICORN_WORKERS:-3}
+      - GUNICORN_TIMEOUT=${GUNICORN_TIMEOUT:-120}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
       - EMAIL_PORT=${EMAIL_PORT:-587}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - IMAP_HOST=${IMAP_HOST:-imap.gmail.com}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:-}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - web-static:/app/staticfiles
+      - ./logs:/app/logs
+      - sqlite-data:/app/data
     depends_on:
-      - db
-    ports:
-      - "8000:8000"
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
 
   db:
     image: mysql:8.0
     container_name: leoxur_db
-    restart: always
-    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       - MYSQL_DATABASE=${DB_NAME:-income_tracker}
       - MYSQL_USER=${DB_USER:-leoxur_admin}
       - MYSQL_PASSWORD=${DB_PASSWORD:-securepassword123}
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpass123}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpass123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
 
   nginx:
     image: nginx:alpine
     container_name: leoxur_nginx
-    restart: always
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     environment:
-      - DOMAIN_NAME=${DOMAIN_NAME}
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
     volumes:
       - ./nginx.conf:/etc/nginx/templates/default.conf.template:ro
       - ./certbot-etc:/etc/letsencrypt:ro
@@ -63,70 +84,15 @@ services:
   certbot:
     image: certbot/certbot
     container_name: leoxur_certbot
+    restart: unless-stopped
+    # Checks every 12 hours and renews certificates if nearing expiration
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
     volumes:
       - ./certbot-etc:/etc/letsencrypt
       - ./certbot-var:/var/lib/letsencrypt
       - ./webroot:/var/www/certbot
 
-  prometheus:
-    image: prom/prometheus:v2.45.0
-    container_name: leoxur_prometheus
-    restart: always
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    ports:
-      - "9090:9090"
-    depends_on:
-      - node-exporter
-      - cadvisor
-
-  grafana:
-    image: grafana/grafana:10.0.0
-    container_name: leoxur_grafana
-    restart: always
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
-
-  node-exporter:
-    image: prom/node-exporter:v1.6.0
-    container_name: leoxur_node_exporter
-    restart: always
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-    ports:
-      - "9100:9100"
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.0
-    container_name: leoxur_cadvisor
-    restart: always
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    ports:
-      - "8080:8080"
-
 volumes:
   mysql-data:
   web-static:
-  prometheus-data:
-  grafana-data:
+  sqlite-data:

@@ -98,6 +98,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 85px;
+}
+
+@media (max-width: 959px) {
+  html {
+    scroll-padding-top: 120px;
+  }
+}
+
 body {
   font-family: "Helvetica Neue", -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Helvetica, Arial, sans-serif;
   background-color: var(--bg-canvas);
@@ -173,25 +184,35 @@ body {
 /* Navigation Bar — Apple macOS / iOS Executive Floating Vibrancy Bar */
 .ios-nav {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   background: var(--bg-card);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
   border: 1px solid var(--border-hairline);
   border-radius: 16px;
-  height: 52px;
+  min-height: 52px;
   padding: 0 14px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   position: sticky;
-  top: 14px;
+  top: 12px;
   z-index: 95;
   transition: background var(--duration-normal) var(--ease-apple), border-color var(--duration-normal) var(--ease-apple), box-shadow var(--duration-normal) var(--ease-apple);
 }
 
 [data-theme="dark"] .ios-nav {
   box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ios-nav-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  height: 52px;
 }
 
 /* Apple SF Symbols Utility */
@@ -349,8 +370,8 @@ body {
   border: 0.5px solid var(--border-hairline);
 }
 
-@media (min-width: 680px) {
-  .nav-center-links {
+@media (min-width: 960px) {
+  .nav-center-links.desktop-nav-center {
     display: flex;
   }
 }
@@ -385,6 +406,219 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Currency Pill Capsule */
+.currency-pill-capsule {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  height: 33px;
+  box-sizing: border-box;
+}
+
+.currency-pill-capsule:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  transform: translateY(-0.5px);
+}
+
+.currency-symbol-tag {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--apple-blue);
+  line-height: 1;
+}
+
+.currency-name-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Telemetry Alert Counter Badge */
+.alert-counter-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--apple-red);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile Horizontal Ribbon Navigation (< 960px) */
+.nav-mobile-strip {
+  display: none;
+  width: 100%;
+  padding: 4px 0 6px 0;
+  border-top: 0.5px solid var(--border-hairline);
+  overflow: hidden;
+}
+
+.nav-mobile-strip-scroller {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  padding: 2px 2px;
+}
+
+.nav-mobile-strip-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-mobile-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  border: 0.5px solid var(--border-hairline);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.nav-mobile-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.nav-mobile-btn.active {
+  background: var(--apple-blue) !important;
+  color: #ffffff !important;
+  border-color: var(--apple-blue) !important;
+  box-shadow: 0 2px 8px rgba(0, 113, 227, 0.35);
+  font-weight: 700;
+}
+
+.nav-mobile-btn.active svg,
+.nav-mobile-btn.active .sf-icon {
+  stroke: #ffffff;
+}
+
+/* Telemetry Badges in Popover */
+.popover-telemetry-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-subtle);
+  border: 0.5px solid var(--border-hairline);
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin: 4px 6px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.popover-telemetry-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.popover-telemetry-item:hover {
+  color: var(--apple-blue);
+}
+
+/* Responsive Breakpoints for Nav Bar */
+@media (max-width: 959px) {
+  .ios-nav {
+    padding: 0 10px;
+    height: auto;
+    border-radius: 16px;
+    margin-bottom: 20px;
+  }
+
+  .ios-nav-top-row {
+    height: 48px;
+  }
+
+  .desktop-nav-center {
+    display: none !important;
+  }
+
+  .desktop-pill {
+    display: none !important;
+  }
+
+  .nav-mobile-strip {
+    display: block;
+  }
+}
+
+@media (min-width: 960px) {
+  .nav-mobile-strip {
+    display: none !important;
+  }
+
+  .desktop-nav-center {
+    display: flex !important;
+  }
+
+  .desktop-pill {
+    display: inline-flex !important;
+  }
+}
+
+@media (max-width: 580px) {
+  .brand-title {
+    font-size: 14.5px;
+  }
+  .brand-badge {
+    display: none;
+  }
+  .currency-name-label {
+    display: none;
+  }
+  .currency-pill-capsule {
+    padding: 3px 7px;
+  }
+  .account-name,
+  .account-chevron {
+    display: none !important;
+  }
+  .apple-account-chip {
+    padding: 2px 2px;
+    border-radius: 50%;
+  }
+  .ios-toolbar-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .nav-actions {
+    gap: 4px;
+  }
 }
 
 /* Apple Squircle Toolbar Button */
